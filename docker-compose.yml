@@ -1,0 +1,59 @@
+services:
+  # 1. Service Database MySQL 8.0
+  db:
+    image: mysql:8.0
+    container_name: ejournal_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - ejournal_network
+
+  # 2. Service phpMyAdmin untuk manajemen GUI
+  pma:
+    image: phpmyadmin/phpmyadmin
+    container_name: ejournal_pma
+    restart: always
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "8080:80" # Akses PMA di http://IP_VM:8080
+    networks:
+      - ejournal_network
+
+  # 3. Service Aplikasi Next.js
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ejournal_nextjs
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "3000:3000" # Akses Aplikasi di http://IP_VM:3000
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+    networks:
+      - ejournal_network
+
+# Mengamankan data database agar tidak hilang saat container mati
+volumes:
+  db_data:
+
+# Membuat jaringan internal agar container bisa saling berkomunikasi dengan nama service
+networks:
+  ejournal_network:
+    driver: bridge
