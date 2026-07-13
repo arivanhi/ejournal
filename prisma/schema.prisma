@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// =======================
+// ENUMS (TIPE DATA FIX)
+// =======================
+enum Role {
+  ADMIN_TU
+  WAKA
+  WALI_KELAS
+  GURU
+  SISWA
+}
+
+enum StatusHadir {
+  H // Hadir
+  S // Sakit
+  I // Izin
+  A // Alpa
+}
+
+enum JurnalStatus {
+  DRAFT
+  SUBMITTED
+}
+
+// =======================
+// ENTITAS MASTER & AUTH
+// =======================
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique // Untuk Guru/Admin pakai NPP, Siswa pakai NISN
+  password  String
+  nama      String
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relasi opsional, tergantung rolenya
+  guru      Guru?
+  siswa     Siswa?
+}
+
+model TahunAjaran {
+  id               String              @id @default(uuid())
+  nama             String              @unique // Contoh: "2026/2027 Ganjil"
+  isActive         Boolean             @default(false)
+  
+  riwayatSiswa     RiwayatKelasSiswa[]
+  jadwalPelajaran  JadwalPelajaran[]
+}
+
+model Kelas {
+  id               String              @id @default(uuid())
+  nama             String              @unique // Contoh: "X-A", "XI-MIPA 1"
+  
+  riwayatSiswa     RiwayatKelasSiswa[]
+  jadwalPelajaran  JadwalPelajaran[]
+  waliKelas        KelasWali[]
+}
+
+model MataPelajaran {
+  id              String            @id @default(uuid())
+  kode            String            @unique
+  nama            String
+  
+  jadwalPelajaran JadwalPelajaran[]
+}
+
+model PengaturanSekolah {
+  id              String @id @default(uuid())
+  schoolName      String @default("SMA Negeri 2 Brebes")
+  latitude        Float
+  longitude       Float
+  radiusToleransi Float  @default(100.0) // Jarak Geofencing dalam meter
+  qrExpirySec     Int    @default(15)    // Durasi refresh Dynamic QR
+}
+
+// =======================
+// ENTITAS AKTOR SPESIFIK
+// =======================
+model Guru {
+  id              String            @id @default(uuid())
+  npp             String            @unique
+  userId          String            @unique
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  jadwalPelajaran JadwalPelajaran[]
+  waliKelasDi     KelasWali[]
+}
+
+model KelasWali {
+  id        String   @id @default(uuid())
+  guruId    String
+  kelasId   String
+  guru      Guru     @relation(fields: [guruId], references: [id], onDelete: Cascade)
+  kelas     Kelas    @relation(fields: [kelasId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([guruId, kelasId])
+}
+
+model Siswa {
+  id           String              @id @default(uuid())
+  nisn         String              @unique
+  nis          String              @unique
+  userId       String              @unique
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  riwayatKelas RiwayatKelasSiswa[]
+  presensi     PresensiSiswa[]
+}
+
+// Relasi historis agar data absen aman saat siswa pindah kelas
+model RiwayatKelasSiswa {
+  id            String      @id @default(uuid())
+  siswaId       String
+  kelasId       String
+  tahunAjaranId String
+  
+  siswa         Siswa       @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  kelas         Kelas       @relation(fields: [kelasId], references: [id], onDelete: Cascade)
+  tahunAjaran   TahunAjaran @relation(fields: [tahunAjaranId], references: [id], onDelete: Cascade)
+
+  // Menjamin 1 siswa hanya berada di 1 kelas pada tahun ajaran yang sama
+  @@unique([siswaId, tahunAjaranId]) 
+}
+
+// =======================
+// ENTITAS TRANSAKSIONAL (JADWAL & JURNAL)
+// =======================
+model JadwalPelajaran {
+  id            String          @id @default(uuid())
+  guruId        String
+  mapelId       String
+  kelasId       String
+  tahunAjaranId String
+  hari          Int             // 1 = Senin, 2 = Selasa, dst.
+  waktuMulai    String          // Format "07:00"
+  waktuSelesai  String          // Format "08:30"
+  
+  guru          Guru            @relation(fields: [guruId], references: [id])
+  mapel         MataPelajaran   @relation(fields: [mapelId], references: [id])
+  kelas         Kelas           @relation(fields: [kelasId], references: [id])
+  tahunAjaran   TahunAjaran     @relation(fields: [tahunAjaranId], references: [id])
+  jurnal        JurnalMengajar[]
+}
+
+model JurnalMengajar {
+  id         String          @id @default(uuid())
+  jadwalId   String
+  tanggal    DateTime        @default(now())
+  materiBab  String?         @db.Text
+  catatan    String?         @db.Text
+  status     JurnalStatus    @default(DRAFT)
+  
+  // Data Audit Geofencing Guru
+  latAbsen   Float?
+  longAbsen  Float?
+  
+  // Token Dynamic QR
+  qrToken    String?         @db.VarChar(500)
+  
+  jadwal     JadwalPelajaran @relation(fields: [jadwalId], references: [id], onDelete: Cascade)
+  presensi   PresensiSiswa[]
+}
+
+model PresensiSiswa {
+  id        String         @id @default(uuid())
+  jurnalId  String
+  siswaId   String
+  status    StatusHadir    @default(A)
+  waktuScan DateTime?      // Null jika dia absen manual oleh guru (bukan scan QR)
+  
+  jurnal    JurnalMengajar @relation(fields: [jurnalId], references: [id], onDelete: Cascade)
+  siswa     Siswa          @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+
+  // 1 Jurnal hanya boleh ada 1 record presensi per siswa
+  @@unique([jurnalId, siswaId])
+}

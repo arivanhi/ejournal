@@ -27,7 +27,7 @@ services:
       PMA_HOST: db
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
-      - "8080:80" # Akses PMA di http://IP_VM:8080
+      - "8099:80" # Akses PMA di http://IP_VM:8080
     networks:
       - ejournal_network
 
