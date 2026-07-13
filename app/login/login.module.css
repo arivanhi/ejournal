@@ -1,0 +1,230 @@
+.pageContainer {
+	display: flex;
+	min-height: 100vh;
+	width: 100%;
+	background-color: #ffffff;
+	font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* === PANEL KIRI (BRANDING) === */
+.leftPanel {
+	display: none; /* Sembunyikan total di layar HP */
+}
+
+/* Munculkan panel kiri mulai dari layar tablet/laptop */
+@media (min-width: 1024px) {
+	.leftPanel {
+		display: flex;
+		flex: 1; /* Otomatis membagi layar 50:50 */
+		background-color: #0a2540;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		text-align: center;
+		padding: 3rem;
+	}
+}
+
+.logoContainer {
+	background-color: #ffffff;
+	padding: 1.5rem;
+	border-radius: 1.5rem;
+	margin-bottom: 2rem;
+	box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+.brandTitle {
+	font-size: 3.5rem;
+	font-weight: 800;
+	color: #ffffff;
+	line-height: 1.2;
+	margin-bottom: 1rem;
+}
+
+.brandSubtitle {
+	font-size: 1.25rem;
+	color: #bfdbfe;
+	margin-bottom: 3rem;
+}
+
+.badgeContainer {
+	display: flex;
+	gap: 1rem;
+	justify-content: center;
+	flex-wrap: wrap; /* Agar badge tidak menabrak jika layar menyempit */
+}
+
+.badge {
+	padding: 0.5rem 1.25rem;
+	border-radius: 9999px;
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	background-color: rgba(255, 255, 255, 0.1);
+	color: #ffffff;
+	font-size: 0.875rem;
+	font-weight: 500;
+}
+
+/* === PANEL KANAN (FORM LOGIN) === */
+.rightPanel {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	padding: 2rem 1.5rem; /* Padding lebih kecil di HP */
+}
+
+@media (min-width: 1024px) {
+	.rightPanel {
+		flex: 1; /* Membagi layar 50:50 dengan panel kiri */
+		padding: 6rem;
+	}
+}
+
+.formContainer {
+	width: 100%;
+	max-width: 420px;
+}
+
+.preTitle {
+	font-size: 0.75rem;
+	color: #6b7280;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	margin-bottom: 0.5rem;
+}
+
+.welcomeTitle {
+	font-size: 2rem; /* Ukuran font dikecilkan sedikit untuk HP */
+	font-weight: 800;
+	color: #111827;
+	margin-bottom: 0.5rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+	.welcomeTitle {
+		font-size: 2.5rem; /* Ukuran normal di tablet/desktop */
+	}
+}
+
+.welcomeSubtitle {
+	color: #6b7280;
+	font-size: 0.95rem;
+	line-height: 1.5;
+	margin-bottom: 2.5rem;
+}
+
+.inputGroup {
+	margin-bottom: 1.5rem;
+}
+
+.inputLabel {
+	display: block;
+	font-size: 0.85rem;
+	font-weight: 700;
+	color: #374151;
+	margin-bottom: 0.5rem;
+}
+
+.inputWrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.inputField {
+	width: 100%;
+	padding: 1rem 1.25rem;
+	padding-right: 3rem;
+	border: 1px solid #d1d5db;
+	border-radius: 0.75rem;
+	font-size: 1rem;
+	color: #111827;
+	background-color: #f9fafb; /* Sedikit abu-abu agar form menonjol dari background putih */
+	box-sizing: border-box;
+	transition: all 0.2s;
+}
+
+.inputField:focus {
+	outline: none;
+	border-color: #0a2540;
+	background-color: #ffffff;
+	box-shadow: 0 0 0 3px rgba(10, 37, 64, 0.1);
+}
+
+.iconRight {
+	position: absolute;
+	right: 1.25rem;
+	color: #9ca3af;
+	background: none;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	display: flex;
+}
+
+.submitBtn {
+	width: 100%;
+	padding: 1rem;
+	background-color: #0a2540;
+	color: #ffffff;
+	border: none;
+	border-radius: 0.75rem;
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	margin-top: 1rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 0.5rem;
+	transition: background-color 0.2s;
+}
+
+.submitBtn:hover {
+	background-color: #0f3459;
+}
+
+.submitBtn:disabled {
+	background-color: #4b5563;
+	cursor: not-allowed;
+}
+
+.errorAlert {
+	background-color: #fef2f2;
+	color: #dc2626;
+	padding: 1rem;
+	border-radius: 0.75rem;
+	border: 1px solid #fee2e2;
+	margin-bottom: 1.5rem;
+	font-size: 0.875rem;
+}
+
+.footer {
+	text-align: center;
+	margin-top: 3.5rem;
+}
+
+.footerTitle {
+	font-size: 0.75rem;
+	color: #9ca3af;
+	margin-bottom: 0.5rem;
+}
+
+.footerText {
+	font-size: 0.875rem;
+	color: #6b7280;
+}
+
+.footerLink {
+	color: #2563eb;
+	text-decoration: none;
+}
+
+.footerLink:hover {
+	text-decoration: underline;
+}
