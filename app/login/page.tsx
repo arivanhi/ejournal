@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, User } from "lucide-react";
+// Tambahkan ikon BookOpen, Calendar, dan FileText di sini
+import { Eye, EyeOff, User, BookOpen, Calendar, FileText } from "lucide-react";
 import styles from "./login.module.css";
 
 export default function LoginPage() {
@@ -48,14 +49,21 @@ export default function LoginPage() {
 				</h1>
 				<p className={styles.brandSubtitle}>Sistem Akademik Digital</p>
 
+				{/* Hapus emoji dan ganti dengan komponen ikon dari Lucide */}
 				<div className={styles.badgeContainer}>
-					<span className={styles.badge}>🎓 Bimbingan Siswa</span>
-					<span className={styles.badge}>📅 Jadwal Mengajar</span>
-					<span className={styles.badge}>📄 Dokumen Sekolah</span>
+					<span className={styles.badge}>
+						<BookOpen size={16} /> Bimbingan Siswa
+					</span>
+					<span className={styles.badge}>
+						<Calendar size={16} /> Jadwal Mengajar
+					</span>
+					<span className={styles.badge}>
+						<FileText size={16} /> Dokumen Sekolah
+					</span>
 				</div>
 			</div>
 
-			{/* Panel Kanan */}
+			{/* Panel Kanan (Tetap sama seperti sebelumnya) */}
 			<div className={styles.rightPanel}>
 				<div className={styles.formContainer}>
 					<p className={styles.preTitle}>Masuk ke Akun Anda</p>

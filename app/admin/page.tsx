@@ -1,114 +1,106 @@
 import { Users, GraduationCap, CalendarCheck, Settings, BookCopy, ArrowRight } from "lucide-react";
+import styles from "./adminDashboard.module.css";
 
 export default function AdminDashboard() {
 	return (
-		<div className="max-w-6xl mx-auto space-y-8">
-			{/* Title */}
+		<div className={styles.dashboardContainer}>
 			<div>
-				<h1 className="text-2xl font-bold text-[#0a2540]">Dashboard Overview</h1>
-				<p className="text-gray-500 mt-1">High-level statistics and quick administrative actions for SMAN 2 Brebes.</p>
+				<h1 className={styles.pageTitle}>Ringkasan Dashboard</h1>
+				<p className={styles.pageSubtitle}>Statistik utama dan aksi administratif cepat untuk SMAN 2 Brebes.</p>
 			</div>
 
-			{/* Stats Cards */}
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-				<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-center">
-					<div className="flex items-center gap-4 mb-2">
-						<div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-							<Users className="h-6 w-6" />
+			<div className={styles.statsGrid}>
+				<div className={styles.statCard}>
+					<div className={styles.statHeader}>
+						<div className={`${styles.iconWrapper} ${styles.iconBlue}`}>
+							<Users size={20} />
 						</div>
-						<p className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total Students</p>
+						<span className={styles.statLabel}>Total Siswa</span>
 					</div>
-					<h2 className="text-5xl font-bold text-[#0a2540]">1,248</h2>
+					{/* Angka statis sementara, nanti di-fetch dari database Prisma */}
+					<div className={styles.statValue}>1.248</div>
 				</div>
 
-				<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-center">
-					<div className="flex items-center gap-4 mb-2">
-						<div className="p-3 bg-yellow-50 text-yellow-600 rounded-xl">
-							<GraduationCap className="h-6 w-6" />
+				<div className={styles.statCard}>
+					<div className={styles.statHeader}>
+						<div className={`${styles.iconWrapper} ${styles.iconYellow}`}>
+							<GraduationCap size={20} />
 						</div>
-						<p className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total Teachers</p>
+						<span className={styles.statLabel}>Total Guru</span>
 					</div>
-					<h2 className="text-5xl font-bold text-[#0a2540]">86</h2>
+					<div className={styles.statValue}>86</div>
 				</div>
 
-				<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-center">
-					<div className="flex items-center gap-4 mb-2">
-						<div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-							<CalendarCheck className="h-6 w-6" />
+				<div className={styles.statCard}>
+					<div className={styles.statHeader}>
+						<div className={`${styles.iconWrapper} ${styles.iconIndigo}`}>
+							<CalendarCheck size={20} />
 						</div>
-						<p className="text-sm font-bold text-gray-500 uppercase tracking-wider">Active Sessions Today</p>
+						<span className={styles.statLabel}>Sesi Aktif Hari Ini</span>
 					</div>
-					<h2 className="text-5xl font-bold text-[#0a2540]">42</h2>
+					<div className={styles.statValue}>42</div>
 				</div>
 			</div>
 
-			{/* Bottom Section */}
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				{/* Quick Access */}
-				<div className="lg:col-span-2 space-y-4">
-					<h3 className="text-lg font-bold text-[#0a2540]">Quick Access</h3>
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-						<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
-							<div className="flex justify-between items-start mb-4">
-								<div className="p-2 bg-gray-50 text-gray-700 rounded-lg">
-									<Settings className="h-5 w-5" />
+			<div className={styles.bottomGrid}>
+				<div>
+					<h3 className={styles.sectionTitle}>Akses Cepat</h3>
+					<div className={styles.quickAccessGrid}>
+						<div className={styles.accessCard}>
+							<div className={styles.accessHeader}>
+								<div className={styles.accessIcon}>
+									<Settings size={18} />
 								</div>
-								<ArrowRight className="h-5 w-5 text-gray-300 group-hover:text-[#0a2540] transition-colors" />
+								<ArrowRight size={18} className={styles.arrowIcon} />
 							</div>
-							<h4 className="text-lg font-bold text-[#0a2540] mb-2">Manajemen Role</h4>
-							<p className="text-sm text-gray-500">
-								Configure permissions, assign administrative rights, and manage user roles across the platform.
+							<h4 className={styles.accessTitle}>Manajemen Role</h4>
+							<p className={styles.accessDesc}>
+								Atur hak akses, berikan izin administratif, dan kelola peran pengguna di seluruh sistem.
 							</p>
 						</div>
 
-						<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
-							<div className="flex justify-between items-start mb-4">
-								<div className="p-2 bg-gray-50 text-gray-700 rounded-lg">
-									<BookCopy className="h-5 w-5" />
+						<div className={styles.accessCard}>
+							<div className={styles.accessHeader}>
+								<div className={styles.accessIcon}>
+									<BookCopy size={18} />
 								</div>
-								<ArrowRight className="h-5 w-5 text-gray-300 group-hover:text-[#0a2540] transition-colors" />
+								<ArrowRight size={18} className={styles.arrowIcon} />
 							</div>
-							<h4 className="text-lg font-bold text-[#0a2540] mb-2">Manajemen Mapel</h4>
-							<p className="text-sm text-gray-500">
-								Setup curriculum, allocate teachers to subjects, and manage academic scheduling.
+							<h4 className={styles.accessTitle}>Manajemen Mapel</h4>
+							<p className={styles.accessDesc}>
+								Atur kurikulum, alokasikan guru ke mata pelajaran, dan kelola penjadwalan akademik.
 							</p>
 						</div>
 					</div>
 				</div>
 
-				{/* Recent Activity */}
-				<div className="space-y-4">
-					<h3 className="text-lg font-bold text-[#0a2540]">Recent Activity</h3>
-					<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-						<div className="space-y-6 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent hidden"></div>
+				<div>
+					<h3 className={styles.sectionTitle}>Aktivitas Terkini</h3>
+					<div className={styles.activityCard}>
+						<div className={styles.timeline}>
+							<div className={styles.timelineItem}>
+								<div className={styles.timelineDot}></div>
+								<div className={styles.activityTitle}>Peran Diperbarui</div>
+								<div className={styles.activityDesc}>Budi Santoso ditugaskan sebagai Wali Kelas X-MIPA 1.</div>
+								<div className={styles.activityTime}>10 menit yang lalu</div>
+							</div>
 
-						{/* Timeline Items */}
-						<div className="relative pl-6 mb-6">
-							<span className="absolute left-0 top-1.5 h-3 w-3 rounded-full border-2 border-[#0a2540] bg-white"></span>
-							<div className="border-l-2 border-gray-200 absolute left-1 top-4 h-full"></div>
-							<h5 className="font-bold text-[#0a2540] text-sm">Role Updated</h5>
-							<p className="text-xs text-gray-500 mt-1">Budi Santoso assigned as Homeroom Teacher for X-IPA 1.</p>
-							<span className="text-[10px] font-semibold text-gray-400 mt-2 block">10 mins ago</span>
+							<div className={styles.timelineItem}>
+								<div className={`${styles.timelineDot} ${styles.timelineDotInactive}`}></div>
+								<div className={styles.activityTitle}>Mata Pelajaran Ditambahkan</div>
+								<div className={styles.activityDesc}>Modul kurikulum baru 'Fisika Lanjutan' ditambahkan ke sistem.</div>
+								<div className={styles.activityTime}>2 jam yang lalu</div>
+							</div>
+
+							<div className={styles.timelineItem}>
+								<div className={`${styles.timelineDot} ${styles.timelineDotInactive}`}></div>
+								<div className={styles.activityTitle}>Pencadangan Sistem</div>
+								<div className={styles.activityDesc}>Pencadangan database otomatis berhasil diselesaikan.</div>
+								<div className={styles.activityTime}>Kemarin, 23:00</div>
+							</div>
 						</div>
 
-						<div className="relative pl-6 mb-6">
-							<span className="absolute left-0 top-1.5 h-3 w-3 rounded-full border-2 border-gray-300 bg-white"></span>
-							<div className="border-l-2 border-gray-200 absolute left-1 top-4 h-full"></div>
-							<h5 className="font-bold text-gray-700 text-sm">Subject Added</h5>
-							<p className="text-xs text-gray-500 mt-1">New curriculum module 'Fisika Lanjutan' added.</p>
-							<span className="text-[10px] font-semibold text-gray-400 mt-2 block">2 hours ago</span>
-						</div>
-
-						<div className="relative pl-6 mb-6">
-							<span className="absolute left-0 top-1.5 h-3 w-3 rounded-full border-2 border-gray-300 bg-white"></span>
-							<h5 className="font-bold text-gray-700 text-sm">System Backup</h5>
-							<p className="text-xs text-gray-500 mt-1">Automated database backup completed successfully.</p>
-							<span className="text-[10px] font-semibold text-gray-400 mt-2 block">Yesterday, 23:00</span>
-						</div>
-
-						<button className="w-full mt-2 border border-gray-200 text-gray-700 font-semibold text-sm py-2 rounded-lg hover:bg-gray-50 transition-colors">
-							View Full Log
-						</button>
+						<button className={styles.btnFullLog}>Lihat Semua Log</button>
 					</div>
 				</div>
 			</div>

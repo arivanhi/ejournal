@@ -1,0 +1,248 @@
+.dashboardContainer {
+	max-width: 1100px;
+	margin: 0 auto;
+}
+
+.pageTitle {
+	font-size: 1.75rem;
+	font-weight: 800;
+	color: #0a2540;
+	margin-bottom: 0.25rem;
+}
+
+.pageSubtitle {
+	color: #6b7280;
+	font-size: 0.9rem;
+	margin-bottom: 2rem;
+}
+
+/* === STATS GRID === */
+.statsGrid {
+	display: grid;
+	grid-template-columns: repeat(1, 1fr);
+	gap: 1.5rem;
+	margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+	.statsGrid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+.statCard {
+	background-color: #ffffff;
+	border: 1px solid #f3f4f6;
+	border-radius: 1rem;
+	padding: 1.5rem;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+.statHeader {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 0.75rem;
+}
+
+.iconWrapper {
+	width: 2.5rem;
+	height: 2.5rem;
+	border-radius: 0.5rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.iconBlue {
+	background-color: #eff6ff;
+	color: #2563eb;
+}
+.iconYellow {
+	background-color: #fefce8;
+	color: #ca8a04;
+}
+.iconIndigo {
+	background-color: #eef2ff;
+	color: #4f46e5;
+}
+
+.statLabel {
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: #6b7280;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.statValue {
+	font-size: 2.5rem;
+	font-weight: 800;
+	color: #0a2540;
+}
+
+/* === BOTTOM SECTION === */
+.bottomGrid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+	.bottomGrid {
+		grid-template-columns: 2fr 1fr; /* Membagi kolom kiri lebih besar dari kanan */
+	}
+}
+
+.sectionTitle {
+	font-size: 1.1rem;
+	font-weight: 700;
+	color: #0a2540;
+	margin-bottom: 1rem;
+}
+
+.quickAccessGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 1rem;
+}
+
+.accessCard {
+	background-color: #ffffff;
+	border: 1px solid #f3f4f6;
+	border-radius: 1rem;
+	padding: 1.5rem;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.accessCard:hover {
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+	border-color: #e5e7eb;
+}
+
+.accessHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: 1rem;
+}
+
+.accessIcon {
+	padding: 0.5rem;
+	background-color: #f9fafb;
+	color: #374151;
+	border-radius: 0.5rem;
+}
+
+.arrowIcon {
+	color: #d1d5db;
+	transition: color 0.2s;
+}
+
+.accessCard:hover .arrowIcon {
+	color: #0a2540;
+}
+
+.accessTitle {
+	font-size: 1rem;
+	font-weight: 700;
+	color: #0a2540;
+	margin-bottom: 0.5rem;
+}
+
+.accessDesc {
+	font-size: 0.8rem;
+	color: #6b7280;
+	line-height: 1.5;
+}
+
+/* === TIMELINE === */
+.activityCard {
+	background-color: #ffffff;
+	border: 1px solid #f3f4f6;
+	border-radius: 1rem;
+	padding: 1.5rem;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.timeline {
+	position: relative;
+	padding-left: 1.5rem;
+	margin-bottom: 1.5rem;
+}
+
+/* Garis vertikal timeline */
+.timeline::before {
+	content: "";
+	position: absolute;
+	left: 5px;
+	top: 10px;
+	bottom: 0;
+	width: 2px;
+	background-color: #e5e7eb;
+}
+
+.timelineItem {
+	position: relative;
+	margin-bottom: 1.5rem;
+}
+
+.timelineItem:last-child {
+	margin-bottom: 0;
+}
+
+.timelineDot {
+	position: absolute;
+	left: -1.5rem;
+	top: 0.25rem;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background-color: #ffffff;
+	border: 2px solid #0a2540; /* Titik aktif */
+}
+
+.timelineDotInactive {
+	border-color: #d1d5db; /* Titik riwayat lama */
+}
+
+.activityTitle {
+	font-weight: 700;
+	color: #111827;
+	font-size: 0.85rem;
+	margin-bottom: 0.25rem;
+}
+
+.activityDesc {
+	font-size: 0.75rem;
+	color: #6b7280;
+	margin-bottom: 0.25rem;
+}
+
+.activityTime {
+	font-size: 0.65rem;
+	font-weight: 600;
+	color: #9ca3af;
+}
+
+.btnFullLog {
+	width: 100%;
+	padding: 0.75rem;
+	background-color: #ffffff;
+	border: 1px solid #e5e7eb;
+	border-radius: 0.5rem;
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: #374151;
+	cursor: pointer;
+	transition: background-color 0.2s;
+}
+
+.btnFullLog:hover {
+	background-color: #f9fafb;
+}

@@ -2,21 +2,26 @@
 	display: flex;
 	min-height: 100vh;
 	width: 100%;
-	background-color: #ffffff;
+	/* Background Utama: Gradasi Mesh Biru Dongker & Cyan */
+	background-color: #0a192f;
+	background-image:
+		radial-gradient(circle at 15% 50%, rgba(30, 58, 138, 0.6) 0%, transparent 45%),
+		radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.3) 0%, transparent 45%),
+		radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
 	font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	position: relative;
+	overflow: hidden;
 }
 
 /* === PANEL KIRI (BRANDING) === */
 .leftPanel {
-	display: none; /* Sembunyikan total di layar HP */
+	display: none;
 }
 
-/* Munculkan panel kiri mulai dari layar tablet/laptop */
 @media (min-width: 1024px) {
 	.leftPanel {
 		display: flex;
-		flex: 1; /* Otomatis membagi layar 50:50 */
-		background-color: #0a2540;
+		flex: 1;
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
@@ -27,10 +32,13 @@
 
 .logoContainer {
 	background-color: #ffffff;
-	padding: 1.5rem;
+	padding: 1rem; /* Padding disesuaikan agar tidak terlalu lebar */
 	border-radius: 1.5rem;
 	margin-bottom: 2rem;
-	box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+	box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+	display: flex;
+	justify-content: center;
+	align-items: center;
 }
 
 .brandTitle {
@@ -39,6 +47,7 @@
 	color: #ffffff;
 	line-height: 1.2;
 	margin-bottom: 1rem;
+	text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .brandSubtitle {
@@ -51,17 +60,23 @@
 	display: flex;
 	gap: 1rem;
 	justify-content: center;
-	flex-wrap: wrap; /* Agar badge tidak menabrak jika layar menyempit */
+	flex-wrap: wrap;
 }
 
 .badge {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem; /* Jarak antara ikon dan teks */
 	padding: 0.5rem 1.25rem;
 	border-radius: 9999px;
-	border: 1px solid rgba(255, 255, 255, 0.2);
-	background-color: rgba(255, 255, 255, 0.1);
+	background: rgba(255, 255, 255, 0.05);
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	border: 1px solid rgba(255, 255, 255, 0.15);
 	color: #ffffff;
 	font-size: 0.875rem;
 	font-weight: 500;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* === PANEL KANAN (FORM LOGIN) === */
@@ -71,12 +86,19 @@
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
-	padding: 2rem 1.5rem; /* Padding lebih kecil di HP */
+	padding: 2rem 1.5rem;
+
+	/* Efek Kaca Terang Utama (Frosted Glass) */
+	background: rgba(255, 255, 255, 0.8);
+	backdrop-filter: blur(24px);
+	-webkit-backdrop-filter: blur(24px);
+	border-left: 1px solid rgba(255, 255, 255, 0.4);
+	box-shadow: -10px 0 40px rgba(0, 0, 0, 0.15);
 }
 
 @media (min-width: 1024px) {
 	.rightPanel {
-		flex: 1; /* Membagi layar 50:50 dengan panel kiri */
+		flex: 1;
 		padding: 6rem;
 	}
 }
@@ -88,7 +110,7 @@
 
 .preTitle {
 	font-size: 0.75rem;
-	color: #6b7280;
+	color: #4b5563;
 	font-weight: 700;
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
@@ -96,7 +118,7 @@
 }
 
 .welcomeTitle {
-	font-size: 2rem; /* Ukuran font dikecilkan sedikit untuk HP */
+	font-size: 2rem;
 	font-weight: 800;
 	color: #111827;
 	margin-bottom: 0.5rem;
@@ -107,12 +129,12 @@
 
 @media (min-width: 768px) {
 	.welcomeTitle {
-		font-size: 2.5rem; /* Ukuran normal di tablet/desktop */
+		font-size: 2.5rem;
 	}
 }
 
 .welcomeSubtitle {
-	color: #6b7280;
+	color: #4b5563;
 	font-size: 0.95rem;
 	line-height: 1.5;
 	margin-bottom: 2.5rem;
@@ -126,7 +148,7 @@
 	display: block;
 	font-size: 0.85rem;
 	font-weight: 700;
-	color: #374151;
+	color: #1f2937;
 	margin-bottom: 0.5rem;
 }
 
@@ -140,26 +162,29 @@
 	width: 100%;
 	padding: 1rem 1.25rem;
 	padding-right: 3rem;
-	border: 1px solid #d1d5db;
 	border-radius: 0.75rem;
 	font-size: 1rem;
 	color: #111827;
-	background-color: #f9fafb; /* Sedikit abu-abu agar form menonjol dari background putih */
 	box-sizing: border-box;
-	transition: all 0.2s;
+	transition: all 0.3s ease;
+
+	/* Input dengan gaya semi-transparan */
+	background-color: rgba(255, 255, 255, 0.5);
+	border: 1px solid rgba(255, 255, 255, 0.8);
+	box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .inputField:focus {
 	outline: none;
-	border-color: #0a2540;
-	background-color: #ffffff;
-	box-shadow: 0 0 0 3px rgba(10, 37, 64, 0.1);
+	background-color: rgba(255, 255, 255, 0.95);
+	border-color: #0ea5e9;
+	box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
 }
 
 .iconRight {
 	position: absolute;
 	right: 1.25rem;
-	color: #9ca3af;
+	color: #6b7280;
 	background: none;
 	border: none;
 	padding: 0;
@@ -170,7 +195,8 @@
 .submitBtn {
 	width: 100%;
 	padding: 1rem;
-	background-color: #0a2540;
+	/* Tombol gradasi modern */
+	background: linear-gradient(135deg, #0a2540 0%, #1e3a8a 100%);
 	color: #ffffff;
 	border: none;
 	border-radius: 0.75rem;
@@ -182,20 +208,26 @@
 	justify-content: center;
 	align-items: center;
 	gap: 0.5rem;
-	transition: background-color 0.2s;
+	box-shadow: 0 4px 12px rgba(10, 37, 64, 0.2);
+	transition: all 0.3s ease;
 }
 
 .submitBtn:hover {
-	background-color: #0f3459;
+	background: linear-gradient(135deg, #0f3459 0%, #1e40af 100%);
+	transform: translateY(-1px);
+	box-shadow: 0 6px 16px rgba(10, 37, 64, 0.3);
 }
 
 .submitBtn:disabled {
-	background-color: #4b5563;
+	background: #6b7280;
 	cursor: not-allowed;
+	transform: translateY(0);
+	box-shadow: none;
 }
 
 .errorAlert {
-	background-color: #fef2f2;
+	background-color: rgba(254, 242, 242, 0.8);
+	backdrop-filter: blur(4px);
 	color: #dc2626;
 	padding: 1rem;
 	border-radius: 0.75rem;
@@ -211,18 +243,20 @@
 
 .footerTitle {
 	font-size: 0.75rem;
-	color: #9ca3af;
+	color: #6b7280;
 	margin-bottom: 0.5rem;
+	font-weight: 600;
 }
 
 .footerText {
 	font-size: 0.875rem;
-	color: #6b7280;
+	color: #4b5563;
 }
 
 .footerLink {
-	color: #2563eb;
+	color: #0ea5e9;
 	text-decoration: none;
+	font-weight: 500;
 }
 
 .footerLink:hover {

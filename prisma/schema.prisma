@@ -48,21 +48,21 @@ model User {
 }
 
 model TahunAjaran {
-  id               String              @id @default(uuid())
-  nama             String              @unique // Contoh: "2026/2027 Ganjil"
-  isActive         Boolean             @default(false)
+  id              String              @id @default(uuid())
+  nama            String              @unique // Contoh: "2026/2027 Ganjil"
+  isActive        Boolean             @default(false)
   
-  riwayatSiswa     RiwayatKelasSiswa[]
-  jadwalPelajaran  JadwalPelajaran[]
+  riwayatSiswa    RiwayatKelasSiswa[]
+  jadwalPelajaran JadwalPelajaran[]
 }
 
 model Kelas {
-  id               String              @id @default(uuid())
-  nama             String              @unique // Contoh: "X-A", "XI-MIPA 1"
+  id              String              @id @default(uuid())
+  nama            String              @unique // Contoh: "X-A", "XI-MIPA 1"
   
-  riwayatSiswa     RiwayatKelasSiswa[]
-  jadwalPelajaran  JadwalPelajaran[]
-  waliKelas        KelasWali[]
+  riwayatSiswa    RiwayatKelasSiswa[]
+  jadwalPelajaran JadwalPelajaran[]
+  waliKelas       KelasWali[]
 }
 
 model MataPelajaran {
@@ -88,6 +88,8 @@ model PengaturanSekolah {
 model Guru {
   id              String            @id @default(uuid())
   npp             String            @unique
+  jenisKelamin    String            // <--- TAMBAHAN BARU
+  status          Boolean           @default(true) // <--- TAMBAHAN BARU
   userId          String            @unique
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   
@@ -110,6 +112,7 @@ model Siswa {
   id           String              @id @default(uuid())
   nisn         String              @unique
   nis          String              @unique
+  jenisKelamin String              // <--- TAMBAHAN BARU
   userId       String              @unique
   user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   
@@ -172,14 +175,14 @@ model JurnalMengajar {
 }
 
 model PresensiSiswa {
-  id        String         @id @default(uuid())
-  jurnalId  String
-  siswaId   String
-  status    StatusHadir    @default(A)
-  waktuScan DateTime?      // Null jika dia absen manual oleh guru (bukan scan QR)
+  id         String       @id @default(uuid())
+  jurnalId   String
+  siswaId    String
+  status     StatusHadir  @default(A)
+  waktuScan  DateTime?    // Null jika dia absen manual oleh guru (bukan scan QR)
   
-  jurnal    JurnalMengajar @relation(fields: [jurnalId], references: [id], onDelete: Cascade)
-  siswa     Siswa          @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  jurnal     JurnalMengajar @relation(fields: [jurnalId], references: [id], onDelete: Cascade)
+  siswa      Siswa          @relation(fields: [siswaId], references: [id], onDelete: Cascade)
 
   // 1 Jurnal hanya boleh ada 1 record presensi per siswa
   @@unique([jurnalId, siswaId])
