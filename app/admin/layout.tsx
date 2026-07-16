@@ -22,9 +22,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
 	const menuItems = [
 		{ name: "Dashboard", icon: LayoutDashboard, path: "/admin" },
-		{ name: "Manajemen Role", icon: Users, path: "/admin/roles" },
-		{ name: "Manajemen Mapel", icon: BookOpen, path: "/admin/mapel" },
 		{ name: "Data Master", icon: Database, path: "/admin/master" },
+		{ name: "Manajemen Role", icon: Users, path: "/admin/role" },
+		{ name: "Manajemen Mapel", icon: BookOpen, path: "/admin/mapel" },
 		{ name: "Jadwal Pelajaran", icon: Calendar, path: "/admin/jadwal" },
 		{ name: "Tampilan Guru", icon: UserSquare, path: "/admin/teacher-view" },
 	];
