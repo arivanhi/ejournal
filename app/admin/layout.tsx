@@ -26,7 +26,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 		{ name: "Manajemen Role", icon: Users, path: "/admin/role" },
 		{ name: "Manajemen Mapel", icon: BookOpen, path: "/admin/mapel" },
 		{ name: "Jadwal Pelajaran", icon: Calendar, path: "/admin/jadwal" },
-		{ name: "Tampilan Guru", icon: UserSquare, path: "/admin/teacher-view" },
+		{ name: "Tampilan Guru", icon: UserSquare, path: "/teacher/dashboard" },
 	];
 
 	return (

@@ -1,0 +1,355 @@
+.pageContainer {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	padding: 1rem 2rem;
+	max-width: 1200px;
+	margin: 0 auto;
+	width: 100%;
+}
+.pageHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: 1rem;
+}
+.pageTitle {
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: #0a2540;
+	margin-bottom: 0.25rem;
+}
+.pageSubtitle {
+	color: #6b7280;
+	font-size: 0.875rem;
+}
+
+/* === VIEW 1: DAFTAR KARTU JADWAL === */
+.cardGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 1.5rem;
+}
+.jurnalCard {
+	background: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	position: relative;
+	overflow: hidden;
+	border: 1px solid #e5e7eb;
+	border-left: 6px solid #d1d5db;
+	transition: 0.2s;
+}
+.jurnalCard:hover {
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+	transform: translateY(-2px);
+}
+
+/* Status Colors */
+.statusBelum {
+	border-left-color: #ef4444;
+} /* Merah */
+.statusSelesai {
+	border-left-color: #10b981;
+} /* Hijau */
+.statusBerlangsung {
+	border-left-color: #f59e0b;
+} /* Kuning */
+
+.cardHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+}
+.mapelTitle {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: #111827;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.mapelSubtitle {
+	font-size: 0.875rem;
+	color: #4b5563;
+	font-weight: 500;
+	margin-top: 0.25rem;
+}
+.badgeStatus {
+	padding: 0.25rem 0.6rem;
+	border-radius: 9999px;
+	font-size: 0.7rem;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+.badgeBelum {
+	background-color: #fee2e2;
+	color: #b91c1c;
+}
+.badgeSelesai {
+	background-color: #d1fae5;
+	color: #047857;
+}
+.badgeBerlangsung {
+	background-color: #fef3c7;
+	color: #b45309;
+}
+
+.cardBody {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	font-size: 0.875rem;
+	color: #4b5563;
+}
+.infoRow {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.btnPrimaryFull {
+	width: 100%;
+	background-color: #0a2540;
+	color: white;
+	padding: 0.75rem;
+	border-radius: 0.5rem;
+	font-weight: 600;
+	border: none;
+	cursor: pointer;
+	transition: 0.2s;
+	margin-top: auto;
+}
+.btnPrimaryFull:hover {
+	background-color: #1e3a8a;
+}
+.btnOutlineFull {
+	width: 100%;
+	background-color: transparent;
+	color: #0a2540;
+	border: 1px solid #0a2540;
+	padding: 0.75rem;
+	border-radius: 0.5rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: 0.2s;
+	margin-top: auto;
+}
+.btnOutlineFull:hover {
+	background-color: #f8fafc;
+}
+
+/* === VIEW 2: FORM JURNAL (SPLIT LAYOUT) === */
+.splitLayout {
+	display: grid;
+	grid-template-columns: 2fr 1fr;
+	gap: 2rem;
+	align-items: start;
+}
+.formSection {
+	background: white;
+	padding: 2rem;
+	border-radius: 0.75rem;
+	border: 1px solid #e5e7eb;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.formTitle {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: #111827;
+	margin-bottom: 0.5rem;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+.formMeta {
+	font-size: 0.875rem;
+	color: #6b7280;
+	display: flex;
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+}
+.formGroup {
+	margin-bottom: 1.25rem;
+}
+.formLabel {
+	display: block;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #374151;
+	margin-bottom: 0.5rem;
+}
+.formInput,
+.formTextarea {
+	width: 100%;
+	padding: 0.75rem;
+	border: 1px solid #d1d5db;
+	border-radius: 0.5rem;
+	font-size: 0.875rem;
+	font-family: inherit;
+	outline: none;
+}
+.formInput:focus,
+.formTextarea:focus {
+	border-color: #3b82f6;
+	box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+.formTextarea {
+	min-height: 100px;
+	resize: vertical;
+}
+
+.sideSection {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+}
+.summaryCard {
+	background: white;
+	padding: 1.5rem;
+	border-radius: 0.75rem;
+	border: 1px solid #e5e7eb;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.summaryHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 1rem;
+	font-weight: 700;
+	color: #111827;
+}
+.summaryLink {
+	font-size: 0.75rem;
+	color: #3b82f6;
+	text-decoration: none;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+.summaryStats {
+	display: flex;
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+}
+.statTotal {
+	flex: 1;
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 0.5rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem 0;
+}
+.statTotalNum {
+	font-size: 2rem;
+	font-weight: 800;
+	color: #0a2540;
+	line-height: 1;
+}
+.statTotalLabel {
+	font-size: 0.7rem;
+	font-weight: 700;
+	color: #64748b;
+	text-transform: uppercase;
+	margin-top: 0.25rem;
+}
+.statBreakdown {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+.statRow {
+	display: flex;
+	justify-content: space-between;
+	font-size: 0.75rem;
+	font-weight: 600;
+	padding: 0.25rem 0.5rem;
+	border-radius: 0.25rem;
+}
+.statHadir {
+	background: #d1fae5;
+	color: #047857;
+}
+.statIzin {
+	background: #fef3c7;
+	color: #b45309;
+}
+.statAlpha {
+	background: #fee2e2;
+	color: #b91c1c;
+}
+
+.btnQR {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	background: #f8fafc;
+	border: 1px solid #cbd5e1;
+	color: #0a2540;
+	padding: 0.75rem;
+	border-radius: 0.5rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: 0.2s;
+}
+.btnQR:hover {
+	background: #e2e8f0;
+}
+
+.formFooter {
+	display: flex;
+	justify-content: flex-end;
+	gap: 1rem;
+	padding-top: 1.5rem;
+	border-top: 1px solid #e5e7eb;
+	margin-top: 1.5rem;
+}
+
+/* === VIEW 3: DETAIL PRESENSI === */
+.tableCard {
+	background: white;
+	padding: 0;
+	border-radius: 0.75rem;
+	border: 1px solid #e5e7eb;
+	overflow: hidden;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.tableToolbar {
+	padding: 1rem 1.5rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	border-bottom: 1px solid #e5e7eb;
+	background: #f8fafc;
+}
+.tableStyle {
+	width: 100%;
+	border-collapse: collapse;
+	text-align: left;
+	font-size: 0.875rem;
+}
+.tableStyle th {
+	background-color: #f8fafc;
+	padding: 0.875rem 1.5rem;
+	color: #475569;
+	font-weight: 600;
+	border-bottom: 1px solid #e2e8f0;
+}
+.tableStyle td {
+	padding: 1rem 1.5rem;
+	border-bottom: 1px solid #e2e8f0;
+	color: #334155;
+}
+.tableStyle tr:last-child td {
+	border-bottom: none;
+}

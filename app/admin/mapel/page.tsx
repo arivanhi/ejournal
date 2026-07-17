@@ -1,3 +1,5 @@
+// app/admin/mapel/page.tsx
+
 import { prisma } from "@/lib/prisma";
 import MapelClient from "./MapelClient";
 
@@ -6,59 +8,56 @@ export const dynamic = "force-dynamic";
 export default async function MapelPage() {
 	const tahunAjaranAktif = await prisma.tahunAjaran.findFirst({ where: { isActive: true } });
 
-	// Ambil semua entitas master
-	const semuaGuru = await prisma.guru.findMany({ include: { user: true }, orderBy: { user: { nama: "asc" } } });
-	const semuaMapel = await prisma.mataPelajaran.findMany({ orderBy: { nama: "asc" } });
-	const semuaKelas = await prisma.kelas.findMany({ orderBy: { nama: "asc" } });
+	const guruListDb = await prisma.guru.findMany({ include: { user: true }, orderBy: { user: { nama: "asc" } } });
+	const mapelList = await prisma.mataPelajaran.findMany({ orderBy: { nama: "asc" } });
+	const kelasList = await prisma.kelas.findMany({ orderBy: { nama: "asc" } });
 
-	// Ambil pemetaan yang sudah ada di tahun ajaran ini
-	const pemetaanDb = tahunAjaranAktif
+	// Hanya ambil data pemetaan (hari = 0) agar tidak tercampur dengan jadwal asli
+	const jadwalList = tahunAjaranAktif
 		? await prisma.jadwalPelajaran.findMany({
-				where: { tahunAjaranId: tahunAjaranAktif.id },
+				where: {
+					tahunAjaranId: tahunAjaranAktif.id,
+					hari: 0, // <--- KUNCI: Hanya ambil yang hari = 0
+				},
 				include: { guru: { include: { user: true } }, mapel: true, kelas: true },
 			})
 		: [];
 
-	// Hitung KPI (Total Mapel Aktif & Distribusi Kelas)
-	const uniqueMapels = new Set(pemetaanDb.map((p) => p.mapelId)).size;
-	const uniqueKelas = new Set(pemetaanDb.map((p) => p.kelasId)).size;
+	// 4. Kelompokkan Data Pemetaan
+	const groupedData: any[] = [];
 
-	// Format ulang data pemetaan untuk dikelompokkan per Guru
-	const guruMap = new Map();
-
-	pemetaanDb.forEach((item) => {
-		if (!guruMap.has(item.guruId)) {
-			guruMap.set(item.guruId, {
-				guru: {
-					id: item.guru.id,
-					nama: item.guru.user.nama,
-					npp: item.guru.npp,
-				},
-				mapels: new Map(), // Menyimpan mapel dan array kelas
-			});
+	jadwalList.forEach((jadwal) => {
+		let guruGroup = groupedData.find((g) => g.guru.id === jadwal.guruId);
+		if (!guruGroup) {
+			guruGroup = {
+				guru: { id: jadwal.guruId, nama: jadwal.guru.user.nama, npp: jadwal.guru.npp },
+				mapels: [],
+			};
+			groupedData.push(guruGroup);
 		}
 
-		const guruData = guruMap.get(item.guruId);
-		if (!guruData.mapels.has(item.mapelId)) {
-			guruData.mapels.set(item.mapelId, { id: item.mapel.id, nama: item.mapel.nama, kelasTarget: [] });
+		let mapelGroup = guruGroup.mapels.find((m: any) => m.id === jadwal.mapelId);
+		if (!mapelGroup) {
+			mapelGroup = { id: jadwal.mapelId, nama: jadwal.mapel.nama, kelasTarget: [] };
+			guruGroup.mapels.push(mapelGroup);
 		}
 
-		guruData.mapels.get(item.mapelId).kelasTarget.push(item.kelas.nama);
+		// CEGAH DUPLIKAT: Pastikan kelas belum ada di array kelasTarget
+		if (!mapelGroup.kelasTarget.includes(jadwal.kelas.nama)) {
+			mapelGroup.kelasTarget.push(jadwal.kelas.nama);
+		}
 	});
 
-	// Konversi Map ke Array agar mudah di-render di Client
-	const daftarPemetaan = Array.from(guruMap.values()).map((g) => ({
-		guru: g.guru,
-		mapels: Array.from(g.mapels.values()),
-	}));
+	const kpiTotalMapel = new Set(jadwalList.map((j) => j.mapelId)).size;
+	const kpiTotalRombel = new Set(jadwalList.map((j) => j.kelasId)).size;
 
 	return (
 		<MapelClient
-			guruList={semuaGuru.map((g) => ({ id: g.id, nama: g.user.nama, npp: g.npp }))}
-			mapelList={semuaMapel}
-			kelasList={semuaKelas}
-			daftarPemetaan={daftarPemetaan}
-			kpi={{ totalMapel: uniqueMapels, totalRombel: uniqueKelas }}
+			guruList={guruListDb.map((g) => ({ id: g.id, nama: g.user.nama, npp: g.npp }))}
+			mapelList={mapelList}
+			kelasList={kelasList}
+			daftarPemetaan={groupedData}
+			kpi={{ totalMapel: kpiTotalMapel, totalRombel: kpiTotalRombel }}
 		/>
 	);
 }

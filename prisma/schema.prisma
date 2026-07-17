@@ -147,6 +147,7 @@ model JadwalPelajaran {
   hari          Int             // 1 = Senin, 2 = Selasa, dst.
   waktuMulai    String          // Format "07:00"
   waktuSelesai  String          // Format "08:30"
+  ruang         String?
   
   guru          Guru            @relation(fields: [guruId], references: [id])
   mapel         MataPelajaran   @relation(fields: [mapelId], references: [id])

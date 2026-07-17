@@ -22,13 +22,12 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 	const [modalMode, setModalMode] = useState<"create" | "edit">("create");
 	const [loading, setLoading] = useState(false);
 
-	// Data Form States
 	const [selectedGuru, setSelectedGuru] = useState<{ id: string; nama: string; npp: string } | null>(null);
 	const [selectedMapel, setSelectedMapel] = useState<{ id: string; nama: string } | null>(null);
+	const [oldMapelId, setOldMapelId] = useState("");
 	const [selectedKelasIds, setSelectedKelasIds] = useState<string[]>([]);
 	const [deleteData, setDeleteData] = useState<{ guruId: string; mapelId: string; namaMapel: string } | null>(null);
 
-	// Custom Auto-fill Search States
 	const [searchGuruForm, setSearchGuruForm] = useState("");
 	const [searchMapelForm, setSearchMapelForm] = useState("");
 	const [isGuruDropdownOpen, setIsGuruDropdownOpen] = useState(false);
@@ -37,10 +36,17 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 	const guruRef = useRef<HTMLDivElement>(null);
 	const mapelRef = useRef<HTMLDivElement>(null);
 
-	// Filter Sidebar States
 	const [filterCariGuru, setFilterCariGuru] = useState("");
-	const [filterMapel, setFilterMapel] = useState("Semua Mapel");
+	const [filterCariMapel, setFilterCariMapel] = useState("");
 	const [filterCariKelas, setFilterCariKelas] = useState("");
+
+	const [isSidebarGuruOpen, setIsSidebarGuruOpen] = useState(false);
+	const [isSidebarMapelOpen, setIsSidebarMapelOpen] = useState(false);
+	const [isSidebarKelasOpen, setIsSidebarKelasOpen] = useState(false);
+
+	const filterGuruRef = useRef<HTMLDivElement>(null);
+	const filterMapelRef = useRef<HTMLDivElement>(null);
+	const filterKelasRef = useRef<HTMLDivElement>(null);
 
 	const getInitials = (name: string) =>
 		name
@@ -54,11 +60,14 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 		return colors[index % colors.length];
 	};
 
-	// Tutup panel rekomendasi jika klik di luar area input
 	useEffect(() => {
 		function handleClickOutside(e: MouseEvent) {
 			if (guruRef.current && !guruRef.current.contains(e.target as Node)) setIsGuruDropdownOpen(false);
 			if (mapelRef.current && !mapelRef.current.contains(e.target as Node)) setIsMapelDropdownOpen(false);
+
+			if (filterGuruRef.current && !filterGuruRef.current.contains(e.target as Node)) setIsSidebarGuruOpen(false);
+			if (filterMapelRef.current && !filterMapelRef.current.contains(e.target as Node)) setIsSidebarMapelOpen(false);
+			if (filterKelasRef.current && !filterKelasRef.current.contains(e.target as Node)) setIsSidebarKelasOpen(false);
 		}
 		document.addEventListener("mousedown", handleClickOutside);
 		return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -87,6 +96,7 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 		setModalMode("edit");
 		setSelectedGuru(guru);
 		setSelectedMapel({ id: mapel.id, nama: mapel.nama });
+		setOldMapelId(mapel.id);
 		setSearchMapelForm(mapel.nama);
 
 		const targetIds = kelasList.filter((k) => mapel.kelasTarget.includes(k.nama)).map((k) => k.id);
@@ -100,16 +110,12 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 			alert("Lengkapi data Guru, Mata Pelajaran, dan pilih minimal 1 Kelas!");
 			return;
 		}
-
 		setLoading(true);
-		let hasil;
-		if (modalMode === "create") {
-			hasil = await assignMapelAction(selectedGuru.id, selectedMapel.id, selectedKelasIds);
-		} else {
-			hasil = await editMapelAction(selectedGuru.id, selectedMapel.id, selectedKelasIds);
-		}
+		let hasil =
+			modalMode === "create"
+				? await assignMapelAction(selectedGuru.id, selectedMapel.id, selectedKelasIds)
+				: await editMapelAction(selectedGuru.id, selectedMapel.id, selectedKelasIds, oldMapelId);
 		setLoading(false);
-
 		if (hasil.success) setIsModalOpen(false);
 		else alert(hasil.message);
 	};
@@ -119,16 +125,15 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 		setLoading(true);
 		const hasil = await deleteMapelAction(deleteData.guruId, deleteData.mapelId);
 		setLoading(false);
-
 		if (hasil.success) setIsDeleteModalOpen(false);
 		else alert(hasil.message);
 	};
 
-	// Logika Filter Sidebar
 	const filteredPemetaan = daftarPemetaan.filter((p) => {
 		const matchGuru =
 			p.guru.nama.toLowerCase().includes(filterCariGuru.toLowerCase()) || p.guru.npp.includes(filterCariGuru);
-		const matchMapel = filterMapel === "Semua Mapel" || p.mapels.some((m) => m.id === filterMapel);
+		const matchMapel =
+			filterCariMapel === "" || p.mapels.some((m) => m.nama.toLowerCase().includes(filterCariMapel.toLowerCase()));
 		const matchKelas =
 			filterCariKelas === "" ||
 			p.mapels.some((m) => m.kelasTarget.some((k) => k.toLowerCase().includes(filterCariKelas.toLowerCase())));
@@ -152,40 +157,195 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 			</div>
 
 			<div className={styles.mainLayout}>
-				{/* === KIRI: FILTERS === */}
+				{/* === KIRI: FILTERS SIDEBAR === */}
 				<div className={styles.leftSidebar}>
 					<div className={styles.filterCard}>
 						<h3>Filters</h3>
-						<div className={styles.formGroup} style={{ marginBottom: "1rem" }}>
+						{/* FILTER GURU */}
+						<div
+							className={styles.formGroup}
+							ref={filterGuruRef}
+							style={{ marginBottom: "1rem", position: "relative" }}
+						>
 							<label className={styles.formLabel}>Cari Guru</label>
-							<input
-								type="text"
-								placeholder="Nama Guru atau NIP"
+							<div
 								className={styles.formInput}
-								value={filterCariGuru}
-								onChange={(e) => setFilterCariGuru(e.target.value)}
-							/>
+								style={{ display: "flex", gap: "0.5rem", alignItems: "center", backgroundColor: "white" }}
+								onClick={() => setIsSidebarGuruOpen(true)}
+							>
+								<Search size={16} color="#9ca3af" />
+								<input
+									type="text"
+									placeholder="Nama Guru atau NIP"
+									style={{
+										border: "none",
+										outline: "none",
+										width: "100%",
+										backgroundColor: "transparent",
+										padding: 0,
+										fontSize: "0.875rem",
+									}}
+									value={filterCariGuru}
+									onChange={(e) => {
+										setFilterCariGuru(e.target.value);
+										setIsSidebarGuruOpen(true);
+									}}
+								/>
+								{filterCariGuru && (
+									<X size={14} color="#9ca3af" style={{ cursor: "pointer" }} onClick={() => setFilterCariGuru("")} />
+								)}
+							</div>
+							{isSidebarGuruOpen && (
+								<div className={styles.dropdownList}>
+									{guruList.filter(
+										(g) =>
+											g.nama.toLowerCase().includes(filterCariGuru.toLowerCase()) || g.npp.includes(filterCariGuru),
+									).length === 0 ? (
+										<div className={styles.dropdownItem} style={{ color: "#9ca3af", cursor: "default" }}>
+											Guru tidak ditemukan
+										</div>
+									) : (
+										guruList
+											.filter(
+												(g) =>
+													g.nama.toLowerCase().includes(filterCariGuru.toLowerCase()) || g.npp.includes(filterCariGuru),
+											)
+											.slice(0, 5)
+											.map((g) => (
+												<div
+													key={g.id}
+													className={styles.dropdownItem}
+													onClick={() => {
+														setFilterCariGuru(g.nama);
+														setIsSidebarGuruOpen(false);
+													}}
+												>
+													<div style={{ fontWeight: 500, fontSize: "0.875rem" }}>{g.nama}</div>
+												</div>
+											))
+									)}
+								</div>
+							)}
 						</div>
-						<div className={styles.formGroup} style={{ marginBottom: "1rem" }}>
+
+						{/* FILTER MATA PELAJARAN */}
+						<div
+							className={styles.formGroup}
+							ref={filterMapelRef}
+							style={{ marginBottom: "1rem", position: "relative" }}
+						>
 							<label className={styles.formLabel}>Mata Pelajaran</label>
-							<select className={styles.formInput} value={filterMapel} onChange={(e) => setFilterMapel(e.target.value)}>
-								<option value="Semua Mapel">Semua Mapel</option>
-								{mapelList.map((m) => (
-									<option key={m.id} value={m.id}>
-										{m.nama}
-									</option>
-								))}
-							</select>
-						</div>
-						<div className={styles.formGroup} style={{ marginBottom: 0 }}>
-							<label className={styles.formLabel}>Cari Kelas Terdampak</label>
-							<input
-								type="text"
-								placeholder="Contoh: X MIPA 1"
+							<div
 								className={styles.formInput}
-								value={filterCariKelas}
-								onChange={(e) => setFilterCariKelas(e.target.value)}
-							/>
+								style={{ display: "flex", gap: "0.5rem", alignItems: "center", backgroundColor: "white" }}
+								onClick={() => setIsSidebarMapelOpen(true)}
+							>
+								<Search size={16} color="#9ca3af" />
+								<input
+									type="text"
+									placeholder="Ketik nama mapel..."
+									style={{
+										border: "none",
+										outline: "none",
+										width: "100%",
+										backgroundColor: "transparent",
+										padding: 0,
+										fontSize: "0.875rem",
+									}}
+									value={filterCariMapel}
+									onChange={(e) => {
+										setFilterCariMapel(e.target.value);
+										setIsSidebarMapelOpen(true);
+									}}
+								/>
+								{filterCariMapel && (
+									<X size={14} color="#9ca3af" style={{ cursor: "pointer" }} onClick={() => setFilterCariMapel("")} />
+								)}
+							</div>
+							{isSidebarMapelOpen && (
+								<div className={styles.dropdownList}>
+									{mapelList.filter((m) => m.nama.toLowerCase().includes(filterCariMapel.toLowerCase())).length ===
+									0 ? (
+										<div className={styles.dropdownItem} style={{ color: "#9ca3af", cursor: "default" }}>
+											Mapel tidak ditemukan
+										</div>
+									) : (
+										mapelList
+											.filter((m) => m.nama.toLowerCase().includes(filterCariMapel.toLowerCase()))
+											.slice(0, 5)
+											.map((m) => (
+												<div
+													key={m.id}
+													className={styles.dropdownItem}
+													onClick={() => {
+														setFilterCariMapel(m.nama);
+														setIsSidebarMapelOpen(false);
+													}}
+												>
+													<div style={{ fontSize: "0.875rem" }}>{m.nama}</div>
+												</div>
+											))
+									)}
+								</div>
+							)}
+						</div>
+
+						{/* FILTER KELAS TERDAMPAK */}
+						<div className={styles.formGroup} ref={filterKelasRef} style={{ marginBottom: 0, position: "relative" }}>
+							<label className={styles.formLabel}>Cari Kelas Terdampak</label>
+							<div
+								className={styles.formInput}
+								style={{ display: "flex", gap: "0.5rem", alignItems: "center", backgroundColor: "white" }}
+								onClick={() => setIsSidebarKelasOpen(true)}
+							>
+								<Search size={16} color="#9ca3af" />
+								<input
+									type="text"
+									placeholder="Contoh: X MIPA 1"
+									style={{
+										border: "none",
+										outline: "none",
+										width: "100%",
+										backgroundColor: "transparent",
+										padding: 0,
+										fontSize: "0.875rem",
+									}}
+									value={filterCariKelas}
+									onChange={(e) => {
+										setFilterCariKelas(e.target.value);
+										setIsSidebarKelasOpen(true);
+									}}
+								/>
+								{filterCariKelas && (
+									<X size={14} color="#9ca3af" style={{ cursor: "pointer" }} onClick={() => setFilterCariKelas("")} />
+								)}
+							</div>
+							{isSidebarKelasOpen && (
+								<div className={styles.dropdownList}>
+									{kelasList.filter((k) => k.nama.toLowerCase().includes(filterCariKelas.toLowerCase())).length ===
+									0 ? (
+										<div className={styles.dropdownItem} style={{ color: "#9ca3af", cursor: "default" }}>
+											Kelas tidak ditemukan
+										</div>
+									) : (
+										kelasList
+											.filter((k) => k.nama.toLowerCase().includes(filterCariKelas.toLowerCase()))
+											.slice(0, 5)
+											.map((k) => (
+												<div
+													key={k.id}
+													className={styles.dropdownItem}
+													onClick={() => {
+														setFilterCariKelas(k.nama);
+														setIsSidebarKelasOpen(false);
+													}}
+												>
+													<div style={{ fontSize: "0.875rem" }}>{k.nama}</div>
+												</div>
+											))
+									)}
+								</div>
+							)}
 						</div>
 					</div>
 
@@ -197,7 +357,7 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 					</div>
 				</div>
 
-				{/* === KANAN: TABEL PEMETAAN === */}
+				{/* === KANAN: TABEL PEMETAAN (DIDESAIN ULANG!) === */}
 				<div className={styles.contentCard}>
 					<div className={styles.cardHeader}>
 						<h2 className={styles.cardTitle}>Daftar Pemetaan</h2>
@@ -206,23 +366,22 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 					<table className={styles.dataTable}>
 						<thead>
 							<tr>
-								<th>Nama Guru & NIP</th>
-								<th>Mata Pelajaran</th>
-								<th style={{ width: "35%" }}>Kelas Target</th>
-								<th>Aksi</th>
+								<th style={{ width: "35%" }}>Nama Guru & NIP</th>
+								<th>Detail Penugasan Mengajar</th>
 							</tr>
 						</thead>
 						<tbody>
 							{filteredPemetaan.length === 0 ? (
 								<tr>
-									<td colSpan={4} style={{ textAlign: "center", padding: "2rem" }}>
+									<td colSpan={2} style={{ textAlign: "center", padding: "2rem" }}>
 										Tidak ada data pemetaan yang cocok dengan filter.
 									</td>
 								</tr>
 							) : (
 								filteredPemetaan.map((item, index) => (
 									<tr key={index}>
-										<td>
+										{/* INFO GURU (Diposisikan selalu di atas / align-top) */}
+										<td style={{ verticalAlign: "top", paddingTop: "1.25rem" }}>
 											<div className={styles.teacherInfo}>
 												<div className={styles.avatar}>{getInitials(item.guru.nama)}</div>
 												<div>
@@ -231,46 +390,62 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 												</div>
 											</div>
 										</td>
-										<td>
-											<div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-												{item.mapels.map((m, i) => (
-													<div key={i}>
-														<span className={`${styles.badgeMapel} ${getBadgeColor(i)}`}>{m.nama}</span>
-													</div>
-												))}
-											</div>
-										</td>
-										<td style={{ lineHeight: 1.5 }}>
-											<div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-												{item.mapels.map((m, i) => (
-													<div key={i} style={{ minHeight: "22px" }}>
-														{m.kelasTarget.join(", ")}
-													</div>
-												))}
-											</div>
-										</td>
-										<td>
-											<div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+
+										{/* DETAIL PENUGASAN: MAPEL + KELAS + AKSI DALAM 1 CARD */}
+										<td style={{ verticalAlign: "top", paddingTop: "1rem", paddingBottom: "1rem" }}>
+											<div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
 												{item.mapels.map((m, i) => (
 													<div
 														key={i}
-														style={{ display: "flex", gap: "0.75rem", minHeight: "22px", alignItems: "center" }}
+														style={{
+															display: "flex",
+															justifyContent: "space-between",
+															alignItems: "center",
+															backgroundColor: "#f9fafb",
+															border: "1px solid #e5e7eb",
+															padding: "0.75rem 1rem",
+															borderRadius: "0.5rem",
+														}}
 													>
-														<Edit2
-															size={16}
-															className={styles.actionIcon}
-															onClick={() => openEditModal(item.guru, m)}
-															style={{ cursor: "pointer", color: "#6b7280" }}
-														/>
-														<Trash2
-															size={16}
-															className={styles.actionIcon}
-															onClick={() => {
-																setDeleteData({ guruId: item.guru.id, mapelId: m.id, namaMapel: m.nama });
-																setIsDeleteModalOpen(true);
-															}}
-															style={{ cursor: "pointer", color: "#ef4444" }}
-														/>
+														{/* BAGIAN KIRI: Mapel & Kelas Target */}
+														<div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+															<div>
+																<span className={`${styles.badgeMapel} ${getBadgeColor(i)}`}>{m.nama}</span>
+															</div>
+															<div
+																style={{
+																	fontSize: "0.75rem",
+																	color: "#6b7280",
+																	display: "flex",
+																	alignItems: "center",
+																	gap: "0.35rem",
+																}}
+															>
+																<span>
+																	Target Kelas:{" "}
+																	<strong style={{ color: "#374151", fontWeight: 600 }}>
+																		{m.kelasTarget.join(", ")}
+																	</strong>
+																</span>
+															</div>
+														</div>
+
+														{/* BAGIAN KANAN: Tombol Aksi */}
+														<div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+															<button className={styles.btnActionList} onClick={() => openEditModal(item.guru, m)}>
+																<Edit2 size={14} />{" "}
+																<span style={{ display: "none", sm: { display: "block" } }}>Edit</span>
+															</button>
+															<button
+																className={styles.btnActionListDanger}
+																onClick={() => {
+																	setDeleteData({ guruId: item.guru.id, mapelId: m.id, namaMapel: m.nama });
+																	setIsDeleteModalOpen(true);
+																}}
+															>
+																<Trash2 size={14} />
+															</button>
+														</div>
 													</div>
 												))}
 											</div>
@@ -289,7 +464,7 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 					<div className={styles.modalContainer}>
 						<div className={styles.modalHeader}>
 							<h2 className={styles.modalTitle}>
-								{modalMode === "create" ? "Assign Mata Pelajaran Baru" : "Edit Pemetaan Kelas"}
+								{modalMode === "create" ? "Assign Mata Pelajaran Baru" : "Edit Pemetaan Mapel & Kelas"}
 							</h2>
 							<button
 								onClick={() => setIsModalOpen(false)}
@@ -360,7 +535,7 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 									)}
 								</div>
 
-								{/* STEP 2: PILIH MAPEL (REVISI: FORM INPUT AUTOFILL MODERN) */}
+								{/* STEP 2: PILIH MAPEL (DAPAT DIEDIT KAPAN SAJA) */}
 								<div className={styles.stepHeader} style={{ marginTop: "2rem" }}>
 									<div className={styles.stepNumber}>2</div>
 									<div className={styles.stepTitle}>Pilih Mata Pelajaran</div>
@@ -371,30 +546,36 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 									</label>
 									<div
 										className={styles.formInput}
-										style={{
-											display: "flex",
-											gap: "0.5rem",
-											alignItems: "center",
-											backgroundColor: modalMode === "edit" ? "#f3f4f6" : "white",
-										}}
-										onClick={() => modalMode === "create" && setIsMapelDropdownOpen(true)}
+										style={{ display: "flex", gap: "0.5rem", alignItems: "center", backgroundColor: "white" }}
+										onClick={() => setIsMapelDropdownOpen(true)}
 									>
 										<Search size={16} color="#9ca3af" />
 										<input
 											type="text"
-											placeholder="Ketik nama mata pelajaran untuk memicu autofill..."
+											placeholder="Ketik nama mata pelajaran..."
 											value={selectedMapel ? selectedMapel.nama : searchMapelForm}
 											onChange={(e) => {
 												setSearchMapelForm(e.target.value);
 												setSelectedMapel(null);
 												setIsMapelDropdownOpen(true);
 											}}
-											disabled={modalMode === "edit"}
 											style={{ border: "none", outline: "none", width: "100%", backgroundColor: "transparent" }}
 										/>
+										{selectedMapel && (
+											<X
+												size={14}
+												color="#9ca3af"
+												style={{ cursor: "pointer" }}
+												onClick={(e) => {
+													e.stopPropagation();
+													setSelectedMapel(null);
+													setSearchMapelForm("");
+													setIsMapelDropdownOpen(true);
+												}}
+											/>
+										)}
 									</div>
-									{/* Panel Rekomendasi Autofill Melayang Modern */}
-									{isMapelDropdownOpen && modalMode === "create" && (
+									{isMapelDropdownOpen && (
 										<div className={styles.dropdownList}>
 											{mapelList.filter((m) => m.nama.toLowerCase().includes(searchMapelForm.toLowerCase())).length ===
 											0 ? (
@@ -404,6 +585,7 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 											) : (
 												mapelList
 													.filter((m) => m.nama.toLowerCase().includes(searchMapelForm.toLowerCase()))
+													.slice(0, 5)
 													.map((m) => (
 														<div
 															key={m.id}

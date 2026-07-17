@@ -1,0 +1,548 @@
+.pageContainer {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	padding: 1rem 0;
+}
+.pageHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+}
+.pageTitle {
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: #0a2540;
+	margin-bottom: 0.25rem;
+}
+.pageSubtitle {
+	color: #6b7280;
+	font-size: 0.875rem;
+}
+
+/* Filter Section */
+.filterCard {
+	background-color: #ffffff;
+	border-radius: 0.75rem;
+	padding: 1.25rem 1.5rem;
+	border: 1px solid #e5e7eb;
+	display: flex;
+	gap: 1.5rem;
+	align-items: flex-end;
+	flex-wrap: wrap;
+}
+.filterGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	flex: 1;
+	min-width: 200px;
+}
+.filterLabel {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: #374151;
+}
+.filterSelect {
+	padding: 0.625rem 0.75rem;
+	border: 1px solid #d1d5db;
+	border-radius: 0.5rem;
+	outline: none;
+	background-color: white;
+	font-size: 0.875rem;
+	color: #111827;
+}
+.btnFilter {
+	background-color: #0a2540;
+	color: white;
+	padding: 0.625rem 1.5rem;
+	border-radius: 0.5rem;
+	font-weight: 500;
+	border: none;
+	cursor: pointer;
+	transition: 0.2s;
+	height: 38px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+}
+.btnFilter:hover {
+	background-color: #1e3a8a;
+}
+
+/* Tombol Back */
+.btnBack {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	color: #4b5563;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	border: none;
+	background: transparent;
+	padding: 0;
+	margin-bottom: 0.5rem;
+	transition: 0.2s;
+}
+.btnBack:hover {
+	color: #111827;
+}
+
+/* === CLASS CARDS LIST VIEW === */
+.sectionTitleContainer {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin-top: 1rem;
+	margin-bottom: 1rem;
+}
+.sectionTitle {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: #111827;
+}
+.badgeKurikulum {
+	background-color: #e0e7ff;
+	color: #3730a3;
+	padding: 0.25rem 0.75rem;
+	border-radius: 9999px;
+	font-size: 0.75rem;
+	font-weight: 600;
+}
+
+.classGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: 1.5rem;
+}
+.classCard {
+	background-color: #ffffff;
+	border: 1px solid #e5e7eb;
+	border-radius: 0.75rem;
+	padding: 1.25rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+	box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+	transition: all 0.2s;
+}
+.classCard:hover {
+	border-color: #cbd5e1;
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+	transform: translateY(-2px);
+}
+
+.classCardHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+}
+.classTitle {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: #111827;
+	margin: 0;
+}
+.studentBadge {
+	background-color: #dbeafe;
+	color: #1e40af;
+	padding: 0.35rem 0.6rem;
+	border-radius: 0.5rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	line-height: 1.2;
+}
+.waliKelasInfo {
+	display: flex;
+	gap: 0.5rem;
+	color: #4b5563;
+	font-size: 0.875rem;
+	align-items: flex-start;
+	line-height: 1.4;
+}
+
+.btnOutlineCard {
+	width: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.6rem;
+	border: 1px solid #0a2540;
+	color: #0a2540;
+	background-color: transparent;
+	border-radius: 0.5rem;
+	font-weight: 600;
+	font-size: 0.875rem;
+	cursor: pointer;
+	transition: 0.2s;
+}
+.btnOutlineCard:hover {
+	background-color: #f8fafc;
+}
+
+/* === SCHEDULE GRID VIEW === */
+.scheduleWrapper {
+	background-color: #ffffff;
+	border: 1px solid #e5e7eb;
+	border-radius: 0.75rem;
+	overflow: hidden;
+	margin-top: 0.5rem;
+}
+.scheduleHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1.25rem 1.5rem;
+	border-bottom: 1px solid #e5e7eb;
+}
+.scheduleTitle {
+	font-size: 1.125rem;
+	font-weight: 700;
+	color: #111827;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+.badgeSiswa {
+	background-color: #dbeafe;
+	color: #1e40af;
+	padding: 0.25rem 0.6rem;
+	border-radius: 9999px;
+	font-size: 0.75rem;
+	font-weight: 600;
+}
+.scheduleActions {
+	display: flex;
+	gap: 1rem;
+	color: #6b7280;
+	cursor: pointer;
+}
+
+/* Table Grid */
+.scheduleTable {
+	width: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+}
+.scheduleTable th {
+	background-color: #ffffff;
+	padding: 1rem;
+	border-bottom: 1px solid #e5e7eb;
+	border-right: 1px solid #e5e7eb;
+	font-weight: 600;
+	color: #111827;
+	text-align: center;
+}
+.scheduleTable th:first-child {
+	width: 100px;
+}
+.scheduleTable th:last-child {
+	border-right: none;
+}
+.scheduleTable td {
+	border-bottom: 1px solid #e5e7eb;
+	border-right: 1px solid #e5e7eb;
+	padding: 0.75rem;
+	vertical-align: top;
+	height: 120px;
+}
+.scheduleTable td:last-child {
+	border-right: none;
+}
+.timeCol {
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	gap: 0.25rem;
+}
+.timeText {
+	font-weight: 700;
+	color: #111827;
+	font-size: 0.875rem;
+}
+.jamBadge {
+	background-color: #e0e7ff;
+	color: #3730a3;
+	font-size: 0.65rem;
+	padding: 0.15rem 0.5rem;
+	border-radius: 4px;
+	font-weight: 600;
+}
+
+/* Cards & Empty Slots */
+.cardSlot {
+	padding: 0.75rem;
+	border-radius: 0.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	cursor: pointer;
+	height: 100%;
+	border: 1px solid transparent;
+	transition: 0.2s;
+	position: relative;
+}
+.cardSlot:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+.cardBlue {
+	background-color: #eff6ff;
+	border-color: #bfdbfe;
+}
+.cardWhite {
+	background-color: #ffffff;
+	border-color: #d1d5db;
+}
+.cardYellow {
+	background-color: #fefce8;
+	border-color: #fef08a;
+}
+
+.mapelName {
+	font-weight: 700;
+	font-size: 0.875rem;
+	color: #111827;
+	margin-bottom: 0.25rem;
+	display: flex;
+	justify-content: space-between;
+}
+.guruName,
+.roomName {
+	font-size: 0.75rem;
+	color: #4b5563;
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+.deleteIcon {
+	color: #9ca3af;
+	cursor: pointer;
+}
+.deleteIcon:hover {
+	color: #ef4444;
+}
+
+.emptySlot {
+	height: 100%;
+	min-height: 80px;
+	border: 1.5px dashed #d1d5db;
+	border-radius: 0.5rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	color: #9ca3af;
+	cursor: pointer;
+	transition: 0.2s;
+	background-color: #f9fafb;
+	font-size: 0.875rem;
+	font-weight: 500;
+}
+.emptySlot:hover {
+	border-color: #0ea5e9;
+	color: #0ea5e9;
+	background-color: #f0f9ff;
+}
+
+/* Istirahat Row */
+.breakRow td {
+	background-color: #f9fafb;
+	padding: 0.75rem;
+	text-align: center;
+	font-weight: 600;
+	color: #6b7280;
+	font-size: 0.875rem;
+	letter-spacing: 0.05em;
+	border-bottom: 1px solid #e5e7eb;
+}
+
+/* Buttons & Modal */
+.btnPrimary {
+	background-color: #0a2540;
+	color: white;
+	padding: 0.6rem 1.25rem;
+	border-radius: 0.5rem;
+	font-weight: 500;
+	font-size: 0.875rem;
+	border: none;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.modalOverlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 50;
+}
+.modalContainer {
+	background-color: #ffffff;
+	border-radius: 0.75rem;
+	width: 100%;
+	max-width: 500px;
+	box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+.modalHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1.25rem 1.5rem;
+	border-bottom: 1px solid #e5e7eb;
+}
+.modalTitle {
+	font-size: 1.125rem;
+	font-weight: 600;
+	color: #111827;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.modalBody {
+	padding: 1.5rem;
+}
+.modalFooter {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.75rem;
+	padding: 1.25rem 1.5rem;
+	border-top: 1px solid #e5e7eb;
+	background-color: #f9fafb;
+	border-bottom-left-radius: 0.75rem;
+	border-bottom-right-radius: 0.75rem;
+}
+.formGroup {
+	margin-bottom: 1.25rem;
+}
+.formRow {
+	display: flex;
+	gap: 1rem;
+}
+.formLabel {
+	display: block;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: #374151;
+	margin-bottom: 0.5rem;
+}
+.formInput {
+	width: 100%;
+	padding: 0.625rem 0.75rem;
+	border: 1px solid #d1d5db;
+	border-radius: 0.5rem;
+	outline: none;
+	font-size: 0.875rem;
+}
+.btnOutline {
+	background-color: transparent;
+	color: #374151;
+	border: 1px solid #d1d5db;
+	padding: 0.6rem 1.25rem;
+	border-radius: 0.5rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+}
+
+/* === PRINT & DOWNLOAD MODAL STYLES === */
+.exportOptions {
+	display: flex;
+	gap: 1.5rem;
+	justify-content: center;
+	padding: 1rem 0;
+}
+.btnExportCard {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e5e7eb;
+	border-radius: 0.75rem;
+	background-color: #ffffff;
+	cursor: pointer;
+	transition: all 0.2s;
+	width: 140px;
+}
+.btnExportCard:hover {
+	border-color: #9ca3af;
+	background-color: #f9fafb;
+	transform: translateY(-3px);
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+.exportCardTitle {
+	font-weight: 600;
+	font-size: 0.875rem;
+	color: #374151;
+}
+
+/* === MEDIA PRINT (Sembunyikan Elemen yang Tidak Perlu Saat Dicetak) === */
+@media print {
+	/* Sembunyikan semua elemen di luar jadwal */
+	body * {
+		visibility: hidden;
+	}
+
+	/* Tampilkan hanya pembungkus jadwal dan isinya */
+	.scheduleWrapper,
+	.scheduleWrapper * {
+		visibility: visible;
+	}
+
+	/* Posisikan jadwal di pojok kiri atas kertas */
+	.scheduleWrapper {
+		position: absolute;
+		left: 0;
+		top: 0;
+		width: 100%;
+		border: none !important;
+		box-shadow: none !important;
+		margin: 0 !important;
+	}
+
+	/* Sembunyikan tombol-tombol aksi dan slot kosong */
+	.scheduleActions,
+	.emptySlot,
+	.deleteIcon {
+		display: none !important;
+	}
+
+	/* Hapus warna background kartu agar hemat tinta, ubah jadi garis tegas */
+	.cardSlot {
+		background-color: transparent !important;
+		border: 1px solid #000000 !important;
+		break-inside: avoid;
+	}
+
+	.scheduleTable th,
+	.scheduleTable td,
+	.breakRow td {
+		border-color: #000000 !important;
+		color: #000000 !important;
+	}
+
+	.jamBadge,
+	.badgeSiswa {
+		background-color: transparent !important;
+		border: 1px solid #000 !important;
+		color: #000 !important;
+	}
+}

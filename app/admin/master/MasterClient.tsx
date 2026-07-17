@@ -389,7 +389,7 @@ export default function MasterClient({
 						<button className={styles.btnSecondary} onClick={() => setIsUploadModalOpen(true)}>
 							<Users size={16} />
 							{activeTab === "siswa"
-								? "Assign Kelas Massal"
+								? "Import Siswa Massal"
 								: activeTab === "guru"
 									? "Import Guru Massal"
 									: "Import Mapel Massal"}
@@ -841,7 +841,7 @@ export default function MasterClient({
 						<div className={styles.modalHeader}>
 							<h2 className={styles.modalTitle}>
 								{activeTab === "siswa"
-									? "Assign Kelas Massal"
+									? "Import Siswa Massal"
 									: activeTab === "guru"
 										? "Import Data Guru Massal"
 										: "Import Mapel Massal"}

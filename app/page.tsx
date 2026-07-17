@@ -14,7 +14,7 @@ export default async function Home() {
 		case "ADMIN_TU":
 			redirect("/admin");
 		case "GURU":
-			redirect("/guru");
+			redirect("/teacher");
 		case "WALI_KELAS":
 			redirect("/wali-kelas");
 		case "WAKA":

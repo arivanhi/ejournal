@@ -44,43 +44,6 @@ export async function assignMapelAction(guruId: string, mapelId: string, kelasId
 		return { success: false, message: "Terjadi kesalahan pada server." };
 	}
 }
-// Fungsi untuk mengedit pemetaan (Hapus yang lama, buat yang baru)
-export async function editMapelAction(guruId: string, mapelId: string, kelasIds: string[]) {
-	try {
-		const tahunAjaranAktif = await prisma.tahunAjaran.findFirst({ where: { isActive: true } });
-		if (!tahunAjaranAktif) return { success: false, message: "Tidak ada Tahun Ajaran aktif!" };
-
-		if (kelasIds.length === 0) return { success: false, message: "Pilih minimal satu kelas target!" };
-
-		await prisma.$transaction(async (tx) => {
-			// 1. Bersihkan pemetaan lama untuk guru dan mapel ini di tahun ajaran aktif
-			await tx.jadwalPelajaran.deleteMany({
-				where: { guruId, mapelId, tahunAjaranId: tahunAjaranAktif.id },
-			});
-
-			// 2. Buat pemetaan baru berdasarkan kelas yang dicentang
-			for (const kelasId of kelasIds) {
-				await tx.jadwalPelajaran.create({
-					data: {
-						guruId,
-						mapelId,
-						kelasId,
-						tahunAjaranId: tahunAjaranAktif.id,
-						hari: 0,
-						waktuMulai: "-",
-						waktuSelesai: "-",
-					},
-				});
-			}
-		});
-
-		revalidatePath("/admin/mapel");
-		return { success: true, message: "Pemetaan kelas berhasil diperbarui!" };
-	} catch (error) {
-		console.error("Error edit Mapel:", error);
-		return { success: false, message: "Terjadi kesalahan saat memperbarui pemetaan." };
-	}
-}
 
 // Fungsi untuk menghapus seluruh pemetaan mapel dari seorang guru
 export async function deleteMapelAction(guruId: string, mapelId: string) {
@@ -97,5 +60,43 @@ export async function deleteMapelAction(guruId: string, mapelId: string) {
 	} catch (error) {
 		console.error("Error delete Mapel:", error);
 		return { success: false, message: "Terjadi kesalahan saat menghapus pemetaan." };
+	}
+}
+
+// Fungsi untuk mengedit pemetaan (Hapus yang lama, buat yang baru)
+export async function editMapelAction(guruId: string, mapelIdBaru: string, kelasIds: string[], mapelIdLama: string) {
+	try {
+		const tahunAjaranAktif = await prisma.tahunAjaran.findFirst({ where: { isActive: true } });
+		if (!tahunAjaranAktif) return { success: false, message: "Tidak ada Tahun Ajaran aktif!" };
+
+		if (kelasIds.length === 0) return { success: false, message: "Pilih minimal satu kelas target!" };
+
+		await prisma.$transaction(async (tx) => {
+			// 1. Bersihkan pemetaan lama menggunakan mapelIdLama
+			await tx.jadwalPelajaran.deleteMany({
+				where: { guruId, mapelId: mapelIdLama, tahunAjaranId: tahunAjaranAktif.id },
+			});
+
+			// 2. Buat pemetaan baru berdasarkan mapelIdBaru dan kelas yang dicentang
+			for (const kelasId of kelasIds) {
+				await tx.jadwalPelajaran.create({
+					data: {
+						guruId,
+						mapelId: mapelIdBaru,
+						kelasId,
+						tahunAjaranId: tahunAjaranAktif.id,
+						hari: 0,
+						waktuMulai: "-",
+						waktuSelesai: "-",
+					},
+				});
+			}
+		});
+
+		revalidatePath("/admin/mapel");
+		return { success: true, message: "Pemetaan kelas berhasil diperbarui!" };
+	} catch (error) {
+		console.error("Error edit Mapel:", error);
+		return { success: false, message: "Terjadi kesalahan saat memperbarui pemetaan." };
 	}
 }
