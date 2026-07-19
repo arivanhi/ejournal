@@ -3,80 +3,162 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-// Fungsi 1: Saat tombol "Isi Jurnal" / "Buka Jurnal" dipencet
-export async function bukaAtauBuatJurnalAction(jadwalId: string) {
+// Fungsi 1: Buat Jurnal Baru berdasarkan Input Form
+export async function buatJurnalAction(data: {
+	jadwalId: string;
+	tanggal: string; // Format YYYY-MM-DD
+	materi: string;
+	tujuan: string;
+	catatan: string;
+}) {
 	try {
-		// Cek apakah hari ini sudah ada jurnal untuk jadwal ini
-		const hariIni = new Date();
-		hariIni.setHours(0, 0, 0, 0);
-		const besok = new Date(hariIni);
+		const inputDate = new Date(data.tanggal);
+		// Pastikan jam diset ke 00:00 agar rapi
+		inputDate.setHours(0, 0, 0, 0);
+
+		// Cek apakah sudah ada jurnal di jadwal dan tanggal yang sama persis
+		const besok = new Date(inputDate);
 		besok.setDate(besok.getDate() + 1);
 
-		let jurnal = await prisma.jurnalMengajar.findFirst({
+		const existingJurnal = await prisma.jurnalMengajar.findFirst({
 			where: {
-				jadwalId: jadwalId,
-				tanggal: { gte: hariIni, lt: besok },
-			},
-			include: {
-				presensi: true,
-				jadwal: { include: { kelas: { include: { riwayatSiswa: { include: { siswa: true } } } }, mapel: true } },
+				jadwalId: data.jadwalId,
+				tanggal: { gte: inputDate, lt: besok },
 			},
 		});
 
-		// Jika belum ada, buat DRAFT baru
-		if (!jurnal) {
-			jurnal = await prisma.jurnalMengajar.create({
-				data: { jadwalId: jadwalId, status: "DRAFT" },
-				include: {
-					presensi: true,
-					jadwal: { include: { kelas: { include: { riwayatSiswa: { include: { siswa: true } } } }, mapel: true } },
-				},
-			});
+		if (existingJurnal) {
+			return {
+				success: false,
+				message: "Jurnal untuk kelas dan tanggal tersebut sudah ada. Silakan edit di tabel bawah.",
+			};
 		}
 
+		const jurnal = await prisma.jurnalMengajar.create({
+			data: {
+				jadwalId: data.jadwalId,
+				tanggal: inputDate,
+				materiBab: data.materi + (data.tujuan ? `\nTujuan: ${data.tujuan}` : ""),
+				catatan: data.catatan,
+				status: "SUBMITTED", // Langsung disubmit
+			},
+		});
+
+		revalidatePath("/teacher/jurnal");
 		return { success: true, data: jurnal };
 	} catch (error) {
-		return { success: false, message: "Gagal membuka jurnal." };
+		return { success: false, message: "Gagal menyimpan jurnal." };
 	}
 }
 
-// Fungsi 2: Generate Token QR Presensi
+// Fungsi 2: Generate Token QR Presensi (QR Dinamis, Kode Manual Statis)
 export async function aktifkanPresensiQR(jurnalId: string) {
 	try {
-		const token = `QR_${jurnalId}_${Date.now()}`;
+		const jurnal = await prisma.jurnalMengajar.findUnique({ where: { id: jurnalId } });
+		if (!jurnal) throw new Error("Jurnal tidak ditemukan");
+
+		let manualCode = "";
+
+		// Cek apakah sebelumnya sesi ini sudah pernah punya QR/Kode Manual
+		if (jurnal.qrToken) {
+			const parts = jurnal.qrToken.split("_");
+			// Asumsi format token: QR_jurnalId_KODEMANUAL_timestamp
+			if (parts.length >= 3) {
+				manualCode = parts[2]; // Ambil & pertahankan kode statis yang lama
+			} else {
+				manualCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+			}
+		} else {
+			// Jika baru pertama kali buka QR, buat 6 digit huruf/angka acak
+			manualCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+		}
+
+		// Rangkai token baru dengan timestamp yang selalu berubah
+		const token = `QR_${jurnalId}_${manualCode}_${Date.now()}`;
+
 		await prisma.jurnalMengajar.update({
 			where: { id: jurnalId },
 			data: { qrToken: token },
 		});
+
 		revalidatePath("/teacher/jurnal");
+		revalidatePath("/teacher/presensi");
+
 		return { success: true, token };
 	} catch (error) {
 		return { success: false, message: "Gagal mengaktifkan QR." };
 	}
 }
 
-// Fungsi 3: Simpan / Submit Jurnal
-export async function simpanJurnalAction(
+export async function simpanPresensiManualAction(
 	jurnalId: string,
-	materi: string,
-	tujuan: string,
-	catatan: string,
-	submitStatus: "DRAFT" | "SUBMITTED",
+	presensiData: { siswaId: string; status: string }[],
 ) {
 	try {
+		// Karena kita mengubah banyak data sekaligus, kita lakukan loop
+		for (const data of presensiData) {
+			// Cek apakah siswa ini sudah punya record presensi di jurnal ini
+			const existing = await prisma.presensiSiswa.findFirst({
+				where: { jurnalId: jurnalId, siswaId: data.siswaId },
+			});
+
+			if (existing) {
+				// Jika sudah ada (misal sebelumnya Alpha, mau diubah jadi Hadir), kita Update
+				await prisma.presensiSiswa.update({
+					where: { id: existing.id },
+					data: { status: data.status },
+				});
+			} else {
+				// Jika belum ada record sama sekali, kita Create
+				await prisma.presensiSiswa.create({
+					data: {
+						jurnalId: jurnalId,
+						siswaId: data.siswaId,
+						status: data.status,
+						waktuScan: new Date(), // Catat waktu saat guru mengabsenkan
+					},
+				});
+			}
+		}
+
+		revalidatePath("/teacher/jurnal");
+		return { success: true };
+	} catch (error) {
+		console.error("Error saving presensi:", error);
+		return { success: false, message: "Gagal menyimpan perubahan presensi." };
+	}
+}
+
+// Fungsi 4: Update/Edit Jurnal (Tanggal & Topik Materi)
+export async function updateJurnalAction(jurnalId: string, data: { tanggal: string; materi: string }) {
+	try {
+		const inputDate = new Date(data.tanggal);
+		inputDate.setHours(0, 0, 0, 0);
+
 		await prisma.jurnalMengajar.update({
 			where: { id: jurnalId },
 			data: {
-				materiBab: materi + (tujuan ? `\nTujuan: ${tujuan}` : ""),
-				catatan: catatan,
-				status: submitStatus,
-				// Jika disubmit, tutup akses QR
-				qrToken: submitStatus === "SUBMITTED" ? null : undefined,
+				tanggal: inputDate,
+				materiBab: data.materi,
 			},
 		});
 		revalidatePath("/teacher/jurnal");
 		return { success: true };
 	} catch (error) {
-		return { success: false, message: "Gagal menyimpan jurnal." };
+		return { success: false, message: "Gagal memperbarui jurnal." };
+	}
+}
+
+// Fungsi 5: Tutup Presensi QR
+export async function tutupPresensiQR(jurnalId: string) {
+	try {
+		await prisma.jurnalMengajar.update({
+			where: { id: jurnalId },
+			data: { qrToken: null },
+		});
+		revalidatePath("/teacher/jurnal");
+		return { success: true };
+	} catch (error) {
+		return { success: false, message: "Gagal menutup QR." };
 	}
 }

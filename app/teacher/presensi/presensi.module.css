@@ -1,0 +1,762 @@
+/* === LAYOUT UTAMA (Sama dengan Jurnal) === */
+.layoutWrapper {
+	display: flex;
+	min-height: 100vh;
+	background-color: #f8fafc;
+	font-family: "Inter", sans-serif;
+}
+.sidebar {
+	width: 260px;
+	background-color: #0a2540;
+	color: white;
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+	position: sticky;
+	top: 0;
+	height: 100vh;
+	z-index: 20;
+}
+.sidebarHeader {
+	padding: 1.5rem;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.logoWrapper {
+	width: 40px;
+	height: 40px;
+	background-color: white;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+}
+.logoImage {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.schoolName {
+	font-weight: 700;
+	font-size: 1.125rem;
+	line-height: 1.2;
+}
+.portalName {
+	font-size: 0.75rem;
+	color: #9ca3af;
+	font-weight: 400;
+}
+.menuContainer {
+	padding: 1.5rem 0;
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	overflow-y: auto;
+}
+.menuItem {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.875rem 1.5rem;
+	color: #d1d5db;
+	text-decoration: none;
+	font-size: 0.875rem;
+	font-weight: 500;
+	transition: 0.2s;
+	border-left: 3px solid transparent;
+}
+.menuItem:hover {
+	background-color: rgba(255, 255, 255, 0.05);
+	color: white;
+}
+.menuItemActive {
+	background-color: rgba(255, 255, 255, 0.1);
+	color: white;
+	border-left-color: #fef08a;
+}
+.menuSection {
+	padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+	font-size: 0.7rem;
+	font-weight: 600;
+	color: #6b7280;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+.sidebarFooter {
+	padding: 1.5rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.logoutBtn {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	color: #d1d5db;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	background: none;
+	border: none;
+	padding: 0;
+}
+.mainContent {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	max-width: calc(100vw - 260px);
+}
+.topbar {
+	background-color: #ffffff;
+	padding: 1rem 2rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	border-bottom: 1px solid #e5e7eb;
+	position: sticky;
+	top: 0;
+	z-index: 10;
+}
+.greeting {
+	font-size: 1rem;
+	font-weight: 700;
+	color: #0a2540;
+	margin: 0;
+}
+.topbarActions {
+	display: flex;
+	align-items: center;
+	gap: 1.25rem;
+	color: #4b5563;
+}
+.profileAvatar {
+	width: 36px;
+	height: 36px;
+	background-color: #e5e7eb;
+	border-radius: 50%;
+}
+.dashboardContainer {
+	padding: 2rem;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.pageTitle {
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin-bottom: 0.35rem;
+}
+.pageSubtitle {
+	color: #64748b;
+	font-size: 0.875rem;
+	margin-bottom: 2rem;
+}
+
+/* === STATE 1: EMPTY STATE === */
+.emptyStateWrapper {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 60vh;
+}
+.emptyStateCard {
+	background: white;
+	padding: 4rem 3rem;
+	border-radius: 1rem;
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+	text-align: center;
+	border: 1px solid #e2e8f0;
+	max-width: 450px;
+	width: 100%;
+}
+.emptyIconCircle {
+	width: 120px;
+	height: 120px;
+	background-color: #f1f5f9;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0 auto 1.5rem auto;
+	color: #0f172a;
+	border: 12px solid #e2e8f0;
+}
+.emptyTitle {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin-bottom: 0.75rem;
+}
+.emptyDesc {
+	color: #64748b;
+	font-size: 0.875rem;
+	margin-bottom: 2rem;
+	line-height: 1.5;
+}
+.btnPrimary {
+	background-color: #0f172a;
+	color: white;
+	padding: 0.75rem 1.5rem;
+	border-radius: 0.5rem;
+	font-weight: 600;
+	font-size: 0.875rem;
+	border: none;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	text-decoration: none;
+	transition: 0.2s;
+}
+.btnPrimary:hover {
+	background-color: #1e293b;
+}
+
+/* === STATE 2: LIST CARDS === */
+.cardGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+	gap: 1.5rem;
+}
+.qrCard {
+	background: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	border: 1px solid #e2e8f0;
+	transition: 0.2s;
+}
+.qrCard:hover {
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+	transform: translateY(-2px);
+}
+.qrCardHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: 1rem;
+}
+.badgeActive {
+	background-color: #d1fae5;
+	color: #047857;
+	padding: 0.25rem 0.6rem;
+	border-radius: 9999px;
+	font-size: 0.65rem;
+	font-weight: 800;
+	text-transform: uppercase;
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+.pulseDot {
+	width: 6px;
+	height: 6px;
+	background-color: #10b981;
+	border-radius: 50%;
+	box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+	animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+	70% {
+		box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+	}
+	100% {
+		box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+	}
+}
+.iconTop {
+	color: #3b82f6;
+	background: #eff6ff;
+	padding: 0.5rem;
+	border-radius: 0.5rem;
+}
+.qrCardTitle {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin-bottom: 1rem;
+}
+.qrCardInfo {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	font-size: 0.875rem;
+	color: #475569;
+	margin-bottom: 1.5rem;
+}
+.qrCardInfoItem {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.btnFull {
+	width: 100%;
+	display: flex;
+	justify-content: center;
+}
+
+/* === STATE 3: LIVE DETAIL DASHBOARD === */
+.headerDetail {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: 2rem;
+}
+.detailTitleGroup {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 0.5rem;
+}
+.detailTitle {
+	font-size: 1.75rem;
+	font-weight: 800;
+	color: #0f172a;
+}
+.badgeProgress {
+	background-color: #d1fae5;
+	color: #047857;
+	padding: 0.35rem 0.75rem;
+	border-radius: 9999px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+.detailMeta {
+	color: #64748b;
+	font-size: 0.875rem;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+.detailMeta span {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+.btnDanger {
+	background-color: #ef4444;
+	color: white;
+	padding: 0.6rem 1.25rem;
+	border-radius: 0.5rem;
+	font-weight: 600;
+	font-size: 0.875rem;
+	border: none;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	transition: 0.2s;
+}
+.btnDanger:hover {
+	background-color: #dc2626;
+}
+
+.liveLayout {
+	display: grid;
+	grid-template-columns: 2fr 1fr;
+	gap: 2rem;
+	align-items: start;
+}
+
+/* Left Box: QR Display */
+.qrDisplayBox {
+	background: white;
+	border-radius: 1rem;
+	padding: 3rem 2rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.qrInstructionTitle {
+	font-size: 1.5rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin-bottom: 0.5rem;
+}
+.qrInstructionSub {
+	color: #64748b;
+	font-size: 0.875rem;
+	margin-bottom: 2.5rem;
+}
+.qrImageContainer {
+	padding: 1.5rem;
+	border: 2px solid #e2e8f0;
+	border-radius: 1rem;
+	background: white;
+	margin-bottom: 2.5rem;
+	display: inline-block;
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+.qrImage {
+	width: 250px;
+	height: 250px;
+}
+
+/* Progress Bar */
+.progressContainer {
+	width: 100%;
+	max-width: 400px;
+	margin: 0 auto 2rem auto;
+	text-align: left;
+}
+.progressHeader {
+	display: flex;
+	justify-content: space-between;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #0f172a;
+	margin-bottom: 0.5rem;
+}
+.progressTrack {
+	height: 8px;
+	background: #e2e8f0;
+	border-radius: 999px;
+	overflow: hidden;
+}
+.progressBar {
+	height: 100%;
+	background: #0f172a;
+	border-radius: 999px;
+	transition: width 1s linear;
+}
+
+/* Manual Entry Code */
+.manualCodeBox {
+	display: inline-block;
+	text-align: center;
+}
+.manualCodeLabel {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: #64748b;
+	margin-bottom: 0.5rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+.manualCodeValue {
+	background: #eff6ff;
+	color: #1e3a8a;
+	font-size: 1.25rem;
+	font-weight: 800;
+	padding: 0.75rem 1.5rem;
+	border-radius: 0.5rem;
+	letter-spacing: 0.1em;
+	border: 1px dashed #bfdbfe;
+}
+
+/* Right Box: Stats & Scans */
+.sideColumn {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+}
+.sideCard {
+	background: white;
+	border-radius: 1rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+.sideCardTitle {
+	font-size: 1rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin-bottom: 1.5rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+.badgeLive {
+	background: #eff6ff;
+	color: #3b82f6;
+	padding: 0.2rem 0.5rem;
+	border-radius: 4px;
+	font-size: 0.7rem;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+
+/* Circular Stat Hack */
+.statRow {
+	display: flex;
+	align-items: center;
+	gap: 1.5rem;
+	margin-bottom: 1.5rem;
+}
+.circleStat {
+	width: 80px;
+	height: 80px;
+	border-radius: 50%;
+	border: 8px solid #0f172a;
+	border-right-color: #e2e8f0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: #0f172a;
+}
+.statNumbers {
+	display: flex;
+	flex-direction: column;
+}
+.statFraction {
+	font-size: 1.5rem;
+	font-weight: 800;
+	color: #0f172a;
+}
+.statFraction small {
+	font-size: 1rem;
+	color: #64748b;
+	font-weight: 600;
+}
+.statLabel {
+	font-size: 0.75rem;
+	color: #64748b;
+	font-weight: 600;
+}
+
+.alertBox {
+	background: #fef2f2;
+	border: 1px solid #fecaca;
+	border-radius: 0.5rem;
+	padding: 1rem;
+}
+.alertHeader {
+	font-size: 0.8rem;
+	font-weight: 700;
+	color: #b91c1c;
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	margin-bottom: 0.5rem;
+}
+.alertList {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	font-size: 0.8rem;
+	color: #ef4444;
+	font-weight: 500;
+	padding-left: 1.5rem;
+	margin: 0;
+}
+
+/* Recent Scans List */
+.scanList {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+.scanItem {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+.scanAvatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: #f1f5f9;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	color: #64748b;
+	font-size: 0.875rem;
+	flex-shrink: 0;
+}
+.scanAvatarImage {
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	object-fit: cover;
+}
+.scanInfo {
+	flex: 1;
+}
+.scanName {
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin-bottom: 0.1rem;
+}
+.scanNis {
+	font-size: 0.75rem;
+	color: #64748b;
+}
+.scanTime {
+	text-align: right;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: #10b981;
+}
+.scanTimeSub {
+	display: block;
+	font-size: 0.65rem;
+	color: #94a3b8;
+	font-weight: 500;
+}
+
+/* === BUTTON BACK === */
+.btnBack {
+	background: none;
+	border: none;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 1.5rem;
+	font-weight: 600;
+	color: #475569;
+	font-size: 0.875rem;
+	padding: 0;
+	transition: 0.2s;
+}
+.btnBack:hover {
+	color: #0a2540;
+}
+
+/* === MODAL CONFIRMATION === */
+.modalOverlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(15, 23, 42, 0.6);
+	backdrop-filter: blur(2px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 9999;
+	animation: fadeIn 0.2s ease-out;
+}
+.modalContent {
+	background: white;
+	width: 400px;
+	max-width: 90%;
+	border-radius: 1rem;
+	padding: 2rem;
+	box-shadow:
+		0 20px 25px -5px rgba(0, 0, 0, 0.1),
+		0 10px 10px -5px rgba(0, 0, 0, 0.04);
+	animation: slideUp 0.2s ease-out;
+}
+.modalTitle {
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin-bottom: 0.75rem;
+}
+.modalMessage {
+	font-size: 0.875rem;
+	color: #475569;
+	line-height: 1.5;
+	margin-bottom: 2rem;
+}
+.modalActions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 1rem;
+}
+.btnOutlineFull {
+	width: auto;
+	background-color: transparent;
+	color: #0a2540;
+	border: 1px solid #cbd5e1;
+	padding: 0.5rem 1.5rem;
+	border-radius: 0.5rem;
+	font-weight: 600;
+	font-size: 0.875rem;
+	cursor: pointer;
+	transition: 0.2s;
+}
+.btnOutlineFull:hover {
+	background-color: #f1f5f9;
+}
+
+/* === TOAST NOTIFICATION === */
+.toastContainer {
+	position: fixed;
+	bottom: 2rem;
+	right: 2rem;
+	z-index: 10000;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	pointer-events: none;
+}
+.toast {
+	background: white;
+	border-radius: 0.5rem;
+	padding: 1rem 1.25rem;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	box-shadow:
+		0 10px 15px -3px rgba(0, 0, 0, 0.1),
+		0 4px 6px -2px rgba(0, 0, 0, 0.05);
+	border-left: 4px solid;
+	animation:
+		slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+		fadeOut 0.5s ease-in forwards 3s;
+	pointer-events: auto;
+	min-width: 250px;
+}
+.toastSuccess {
+	border-left-color: #10b981;
+}
+.toastError {
+	border-left-color: #ef4444;
+}
+.toastText {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #0f172a;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+@keyframes slideUp {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+@keyframes slideInRight {
+	from {
+		transform: translateX(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+@keyframes fadeOut {
+	to {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+}

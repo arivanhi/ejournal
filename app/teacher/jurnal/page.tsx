@@ -1,4 +1,3 @@
-// app/teacher/jurnal/page.tsx
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -19,7 +18,7 @@ export default async function JurnalPage() {
 	if (!currentUser || !currentUser.guru) redirect("/teacher/dashboard");
 	const tahunAjaranAktif = await prisma.tahunAjaran.findFirst({ where: { isActive: true } });
 
-	// AMBIL SEMUA JADWAL (Tanpa filter hari)
+	// AMBIL SEMUA JADWAL BESERTA DATA SISWA & PRESENSI
 	const jadwalSemua = tahunAjaranAktif
 		? await prisma.jadwalPelajaran.findMany({
 				where: {
@@ -29,12 +28,25 @@ export default async function JurnalPage() {
 				},
 				include: {
 					mapel: true,
-					kelas: true,
-					jurnal: true, // Ambil semua jurnal terkait jadwal ini
+					// Tarik data kelas beserta daftar siswanya
+					kelas: {
+						include: {
+							riwayatSiswa: {
+								where: { tahunAjaranId: tahunAjaranAktif.id },
+								include: {
+									siswa: { include: { user: true } }, // Ambil nama siswanya
+								},
+							},
+						},
+					},
+					// Tarik data jurnal beserta riwayat presensinya
+					jurnal: {
+						include: { presensi: true },
+					},
 				},
 				orderBy: [{ hari: "asc" }, { waktuMulai: "asc" }],
 			})
 		: [];
 
-	return <JurnalClient jadwalSemua={jadwalSemua} />;
+	return <JurnalClient jadwalSemua={jadwalSemua} user={currentUser} isWaliKelas={currentUser.role === "WALI_KELAS"} />;
 }

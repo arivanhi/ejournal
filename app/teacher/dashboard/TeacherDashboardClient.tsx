@@ -154,11 +154,11 @@ export default function TeacherDashboardClient({
 							<Link href="/teacher/data-siswa" className={styles.menuItem}>
 								<Users size={18} /> Data Siswa
 							</Link>
-							<Link href="/teacher/setelan" className={styles.menuItem}>
-								<Settings size={18} /> Setelan
-							</Link>
 						</>
 					)}
+					<Link href="/teacher/setelan" className={styles.menuItem}>
+						<Settings size={18} /> Setelan
+					</Link>
 				</nav>
 
 				<div className={styles.sidebarFooter}>
