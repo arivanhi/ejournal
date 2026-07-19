@@ -30,7 +30,14 @@ import { signOut } from "next-auth/react";
 // Perhatikan kita memanggil aktifkanPresensiQR untuk merefresh token secara real!
 import { tutupPresensiQR, aktifkanPresensiQR } from "../jurnal/actions";
 
-type ModalConfig = { isOpen: boolean; title: string; message: string; onConfirm: () => void } | null;
+type ModalConfig = {
+	isOpen: boolean;
+	title: string;
+	message: string;
+	withInput?: boolean;
+	onConfirm: (val?: string) => void;
+} | null;
+
 type ToastConfig = { id: number; message: string; type: "success" | "error" };
 
 export default function PresensiClient({
@@ -44,6 +51,7 @@ export default function PresensiClient({
 }) {
 	const router = useRouter();
 
+	const [modalInputValue, setModalInputValue] = useState("");
 	const [selectedSession, setSelectedSession] = useState<any>(null);
 	const [modal, setModal] = useState<ModalConfig>(null);
 	const [toasts, setToasts] = useState<ToastConfig[]>([]);
@@ -106,15 +114,16 @@ export default function PresensiClient({
 		return `${mulai} - ${selesai} WIB`;
 	};
 
-	const handleTutupPresensi = async () => {
+	const handleTutupPresensi = async (catatanKBM: string) => {
 		if (!selectedSession) return;
 		setLoading(true);
-		const res = await tutupPresensiQR(selectedSession.id);
+		// Panggil actions dengan parameter catatanKBM
+		const res = await tutupPresensiQR(selectedSession.id, catatanKBM);
 		setLoading(false);
 		setModal(null);
 
 		if (res.success) {
-			showToast("Sesi presensi berhasil ditutup.", "success");
+			showToast("Sesi presensi ditutup & Catatan disimpan.", "success");
 			setSelectedSession(null);
 			router.refresh();
 		} else {
@@ -123,12 +132,14 @@ export default function PresensiClient({
 	};
 
 	const triggerModalTutup = () => {
+		setModalInputValue("");
 		setModal({
 			isOpen: true,
 			title: "Tutup Sesi Presensi?",
 			message:
-				"Siswa tidak akan bisa lagi menggunakan pemindaian QR untuk mendaftarkan kehadiran mereka pada sesi ini. Anda yakin?",
-			onConfirm: handleTutupPresensi,
+				"Siswa tidak akan bisa lagi menggunakan pemindaian QR. Tambahkan catatan kejadian atau evaluasi KBM hari ini (Opsional):",
+			withInput: true,
+			onConfirm: (val?: string) => handleTutupPresensi(val || ""),
 		});
 	};
 
@@ -185,6 +196,26 @@ export default function PresensiClient({
 							<AlertTriangle size={24} color="#f59e0b" /> {modal.title}
 						</div>
 						<div className={styles.modalMessage}>{modal.message}</div>
+
+						{/* FORM CATATAN */}
+						{modal.withInput && (
+							<div style={{ marginBottom: "1.5rem" }}>
+								<textarea
+									style={{
+										minHeight: "80px",
+										width: "100%",
+										padding: "0.75rem",
+										borderRadius: "0.5rem",
+										border: "1px solid #cbd5e1",
+										outline: "none",
+									}}
+									placeholder="Ketik catatan di sini (opsional)..."
+									value={modalInputValue}
+									onChange={(e) => setModalInputValue(e.target.value)}
+								/>
+							</div>
+						)}
+
 						<div className={styles.modalActions}>
 							<button
 								className={styles.btnOutlineFull}
@@ -197,7 +228,7 @@ export default function PresensiClient({
 							<button
 								className={styles.btnDanger}
 								style={{ width: "auto", margin: 0, padding: "0.5rem 1.5rem" }}
-								onClick={modal.onConfirm}
+								onClick={() => modal.onConfirm(modalInputValue)}
 								disabled={loading}
 							>
 								{loading ? "Memproses..." : "Ya, Tutup Presensi"}

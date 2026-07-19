@@ -149,16 +149,26 @@ export async function updateJurnalAction(jurnalId: string, data: { tanggal: stri
 	}
 }
 
-// Fungsi 5: Tutup Presensi QR
-export async function tutupPresensiQR(jurnalId: string) {
+// Fungsi 5: Tutup Presensi QR & Simpan Catatan KBM
+export async function tutupPresensiQR(jurnalId: string, catatan: string = "") {
 	try {
+		const updateData: any = { qrToken: null };
+
+		// Jika guru mengisi catatan di modal, simpan ke database
+		if (catatan.trim() !== "") {
+			updateData.catatan = catatan;
+		}
+
 		await prisma.jurnalMengajar.update({
 			where: { id: jurnalId },
-			data: { qrToken: null },
+			data: updateData,
 		});
+
 		revalidatePath("/teacher/jurnal");
+		revalidatePath("/teacher/presensi");
+		revalidatePath("/teacher/riwayat");
 		return { success: true };
 	} catch (error) {
-		return { success: false, message: "Gagal menutup QR." };
+		return { success: false, message: "Gagal menutup QR dan menyimpan catatan." };
 	}
 }

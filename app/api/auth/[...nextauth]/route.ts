@@ -44,11 +44,14 @@ export const authOptions: NextAuthOptions = {
 	],
 	callbacks: {
 		// Memasukkan data custom ke dalam Token JWT
-		async jwt({ token, user }) {
+		async jwt({ token, user, trigger, session }) {
 			if (user) {
 				token.id = user.id;
 				token.username = user.username;
 				token.role = user.role;
+			}
+			if (trigger === "update" && session?.name) {
+				token.name = session.name;
 			}
 			return token;
 		},

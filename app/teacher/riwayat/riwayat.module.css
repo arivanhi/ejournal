@@ -1,0 +1,757 @@
+/* === LAYOUT UTAMA === */
+.layoutWrapper {
+	display: flex;
+	min-height: 100vh;
+	background-color: #f8fafc;
+	font-family: "Inter", sans-serif;
+}
+.sidebar {
+	width: 260px;
+	background-color: #0a2540;
+	color: white;
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+	position: sticky;
+	top: 0;
+	height: 100vh;
+	z-index: 20;
+}
+.sidebarHeader {
+	padding: 1.5rem;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.logoWrapper {
+	width: 40px;
+	height: 40px;
+	background-color: white;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+}
+.logoImage {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.schoolName {
+	font-weight: 700;
+	font-size: 1.125rem;
+	line-height: 1.2;
+}
+.portalName {
+	font-size: 0.75rem;
+	color: #9ca3af;
+	font-weight: 400;
+}
+.menuContainer {
+	padding: 1.5rem 0;
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	overflow-y: auto;
+}
+.menuItem {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.875rem 1.5rem;
+	color: #d1d5db;
+	text-decoration: none;
+	font-size: 0.875rem;
+	font-weight: 500;
+	transition: 0.2s;
+	border-left: 3px solid transparent;
+}
+.menuItem:hover {
+	background-color: rgba(255, 255, 255, 0.05);
+	color: white;
+}
+.menuItemActive {
+	background-color: rgba(255, 255, 255, 0.1);
+	color: white;
+	border-left-color: #fef08a;
+}
+.menuSection {
+	padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+	font-size: 0.7rem;
+	font-weight: 600;
+	color: #6b7280;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+.sidebarFooter {
+	padding: 1.5rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.logoutBtn {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	color: #d1d5db;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	background: none;
+	border: none;
+	padding: 0;
+}
+
+.mainContent {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	max-width: calc(100vw - 260px);
+}
+.topbar {
+	background-color: #ffffff;
+	padding: 1rem 2rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	border-bottom: 1px solid #e5e7eb;
+	position: sticky;
+	top: 0;
+	z-index: 10;
+}
+.greeting {
+	font-size: 1rem;
+	font-weight: 700;
+	color: #0a2540;
+	margin: 0;
+}
+.topbarActions {
+	display: flex;
+	align-items: center;
+	gap: 1.25rem;
+	color: #4b5563;
+}
+.profileAvatar {
+	width: 36px;
+	height: 36px;
+	background-color: #e5e7eb;
+	border-radius: 50%;
+}
+.dashboardContainer {
+	padding: 2rem;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+/* === BREADCRUMB & HEADER === */
+.breadcrumb {
+	font-size: 0.875rem;
+	color: #64748b;
+	margin-bottom: 0.5rem;
+}
+.breadcrumb span {
+	color: #0f172a;
+	font-weight: 600;
+}
+.pageTitle {
+	font-size: 1.75rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin-bottom: 0.35rem;
+}
+.pageSubtitle {
+	color: #64748b;
+	font-size: 0.875rem;
+	margin-bottom: 1.5rem;
+}
+
+/* === FILTER BOX === */
+.filterBox {
+	background: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	display: flex;
+	gap: 1.5rem;
+	align-items: flex-end;
+	margin-bottom: 2rem;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.filterGroup {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+.filterLabel {
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: #475569;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+.filterSelect {
+	padding: 0.75rem 1rem;
+	border-radius: 0.5rem;
+	border: 1px solid #cbd5e1;
+	font-size: 0.875rem;
+	color: #0f172a;
+	font-weight: 500;
+	outline: none;
+	background: #f8fafc;
+	cursor: pointer;
+	width: 100%;
+	transition: 0.2s;
+}
+.filterSelect:focus {
+	border-color: #3b82f6;
+	background: white;
+}
+.btnPrimary {
+	background-color: #0a2540;
+	color: white;
+	padding: 0.75rem 1.5rem;
+	border-radius: 0.5rem;
+	font-weight: 600;
+	font-size: 0.875rem;
+	border: none;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	transition: 0.2s;
+	white-space: nowrap;
+	height: fit-content;
+}
+.btnPrimary:hover {
+	background-color: #1e3a8a;
+}
+.btnOutline {
+	background-color: white;
+	color: #0a2540;
+	border: 1px solid #cbd5e1;
+	padding: 0.75rem 1.5rem;
+	border-radius: 0.5rem;
+	font-weight: 600;
+	font-size: 0.875rem;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	transition: 0.2s;
+}
+.btnOutline:hover {
+	background-color: #f1f5f9;
+}
+
+/* === CARDS LIST === */
+.cardGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+	gap: 1.5rem;
+}
+.riwayatCard {
+	background: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	display: flex;
+	flex-direction: column;
+	transition: 0.2s;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.riwayatCard:hover {
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+	transform: translateY(-2px);
+}
+.cardHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: 0.5rem;
+}
+.cardTitle {
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin-bottom: 0.25rem;
+	line-height: 1.3;
+}
+.cardSubtitle {
+	font-size: 0.875rem;
+	color: #64748b;
+	margin-bottom: 0.75rem;
+}
+.badgeSelesai {
+	background: #eff6ff;
+	color: #3b82f6;
+	padding: 0.25rem 0.6rem;
+	border-radius: 9999px;
+	font-size: 0.65rem;
+	font-weight: 700;
+	border: 1px solid #bfdbfe;
+}
+.cardMeta {
+	font-size: 0.75rem;
+	color: #64748b;
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	margin-bottom: 1.5rem;
+	font-weight: 500;
+}
+.cardStats {
+	border-top: 1px dashed #e2e8f0;
+	border-bottom: 1px dashed #e2e8f0;
+	padding: 1rem 0;
+	margin-bottom: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+.statRow {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 0.875rem;
+	color: #475569;
+}
+.statRow strong {
+	color: #0f172a;
+	font-size: 1.1rem;
+}
+.statRow .highlight {
+	color: #f59e0b;
+	font-size: 1.1rem;
+	font-weight: 800;
+}
+
+/* === DETAIL VIEW: STATS HEADER === */
+.statsGrid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 1rem;
+	margin-bottom: 2rem;
+}
+.statBox {
+	background: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.statBoxHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: #64748b;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+.statBoxValue {
+	font-size: 2.5rem;
+	font-weight: 800;
+	color: #0a2540;
+	display: flex;
+	align-items: baseline;
+	gap: 0.5rem;
+}
+.statBoxSub {
+	font-size: 0.875rem;
+	color: #64748b;
+	font-weight: 600;
+}
+.statBadge {
+	background: #d1fae5;
+	color: #047857;
+	font-size: 0.65rem;
+	padding: 0.2rem 0.5rem;
+	border-radius: 999px;
+	vertical-align: middle;
+	margin-left: 0.5rem;
+}
+
+/* === TABS NAV === */
+.tabsContainer {
+	display: flex;
+	gap: 2rem;
+	border-bottom: 2px solid #e2e8f0;
+	margin-bottom: 1.5rem;
+}
+.tabBtn {
+	background: none;
+	border: none;
+	padding: 0.75rem 0;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #64748b;
+	cursor: pointer;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -2px;
+	transition: 0.2s;
+}
+.tabBtn:hover {
+	color: #0f172a;
+}
+.tabActive {
+	color: #0a2540;
+	border-bottom-color: #0a2540;
+}
+
+/* === TABLE === */
+.tableContainer {
+	background: white;
+	border-radius: 0.75rem;
+	border: 1px solid #e2e8f0;
+	overflow: hidden;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.tableStyle {
+	width: 100%;
+	border-collapse: collapse;
+	text-align: left;
+	font-size: 0.875rem;
+}
+.tableStyle th {
+	background-color: #ffffff;
+	padding: 1rem 1.5rem;
+	color: #64748b;
+	font-weight: 700;
+	border-bottom: 1px solid #e2e8f0;
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+.tableStyle td {
+	padding: 1rem 1.5rem;
+	border-bottom: 1px solid #e2e8f0;
+	color: #334155;
+	vertical-align: middle;
+}
+.tableStyle tr:last-child td {
+	border-bottom: none;
+}
+
+/* Progress Bar in Table */
+.progressWrapper {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	width: 100%;
+}
+.progressTrack {
+	flex: 1;
+	height: 6px;
+	background: #e2e8f0;
+	border-radius: 999px;
+	overflow: hidden;
+}
+.progressBar {
+	height: 100%;
+	border-radius: 999px;
+	transition: width 0.5s;
+}
+.progressText {
+	font-weight: 700;
+	color: #0f172a;
+	font-size: 0.875rem;
+	min-width: 40px;
+}
+
+/* Status Badge in Table */
+.badgeStatus {
+	padding: 0.35rem 0.75rem;
+	border-radius: 9999px;
+	font-size: 0.7rem;
+	font-weight: 700;
+	display: inline-block;
+	text-align: center;
+	border: 1px solid transparent;
+}
+.badgeSangatBaik {
+	background: #d1fae5;
+	color: #047857;
+	border-color: #a7f3d0;
+}
+.badgeBaik {
+	background: #fef3c7;
+	color: #b45309;
+	border-color: #fde68a;
+}
+.badgeKurang {
+	background: #fee2e2;
+	color: #b91c1c;
+	border-color: #fecaca;
+}
+
+/* === TAB: JURNAL MENGAJAR (TIMELINE CARD) === */
+.jurnalListContainer {
+	padding: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+	background: #f8fafc;
+	border-bottom-left-radius: 0.75rem;
+	border-bottom-right-radius: 0.75rem;
+}
+.jurnalLogCard {
+	background: white;
+	border: 1px solid #e2e8f0;
+	border-radius: 0.75rem;
+	overflow: hidden;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	transition: 0.2s;
+}
+.jurnalLogCard:hover {
+	border-color: #cbd5e1;
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+.jurnalLogHeader {
+	background: #f1f5f9;
+	padding: 1rem 1.5rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	border-bottom: 1px solid #e2e8f0;
+}
+.jurnalLogTitle {
+	font-weight: 800;
+	color: #0f172a;
+	font-size: 1rem;
+}
+.jurnalLogDate {
+	font-size: 0.875rem;
+	color: #64748b;
+	font-weight: 600;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.jurnalLogBody {
+	padding: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+}
+.jurnalLogSection strong {
+	display: block;
+	font-size: 0.75rem;
+	color: #64748b;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin-bottom: 0.5rem;
+}
+.jurnalLogSection p {
+	margin: 0;
+	font-size: 0.875rem;
+	color: #0f172a;
+	line-height: 1.6;
+}
+.jurnalLogStats {
+	display: flex;
+	gap: 1.5rem;
+	font-size: 0.75rem;
+	font-weight: 700;
+	padding-top: 1rem;
+	border-top: 1px dashed #e2e8f0;
+}
+
+/* === TAB: ANALISA HASIL === */
+.analisaContainer {
+	padding: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	background: #f8fafc;
+	border-bottom-left-radius: 0.75rem;
+	border-bottom-right-radius: 0.75rem;
+}
+.analisaGrid {
+	display: grid;
+	grid-template-columns: 2fr 1fr;
+	gap: 1.5rem;
+	align-items: start;
+}
+
+/* Chart Card (Grafik) */
+.chartCard {
+	background: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.chartHeader {
+	margin-bottom: 1.5rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+}
+.chartTitle {
+	font-size: 1.125rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin-bottom: 0.25rem;
+}
+.chartSubtitle {
+	font-size: 0.875rem;
+	color: #64748b;
+}
+
+/* CSS Bar Chart Murni */
+.barChart {
+	display: flex;
+	align-items: flex-end;
+	gap: 1rem;
+	height: 180px;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid #e2e8f0;
+	padding-top: 1.5rem;
+	overflow-x: auto;
+}
+.barCol {
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	align-items: center;
+	gap: 0.5rem;
+	flex: 1;
+	min-width: 45px;
+	height: 100%;
+	position: relative;
+}
+.barValue {
+	font-size: 0.7rem;
+	font-weight: 800;
+	color: #0f172a;
+	position: absolute;
+	top: -1.25rem;
+}
+.barTrack {
+	width: 100%;
+	max-width: 40px;
+	background: #f1f5f9;
+	border-radius: 4px 4px 0 0;
+	flex: 1;
+	display: flex;
+	align-items: flex-end;
+}
+.barFill {
+	width: 100%;
+	background: #3b82f6;
+	border-radius: 4px 4px 0 0;
+	transition: height 0.5s ease-out;
+	min-height: 2px;
+}
+.barFillWarning {
+	background: #f59e0b;
+}
+.barFillDanger {
+	background: #ef4444;
+}
+.barLabel {
+	font-size: 0.7rem;
+	font-weight: 700;
+	color: #64748b;
+	text-align: center;
+}
+
+/* Rangkuman Catatan */
+.noteSummaryCard {
+	background: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	height: 100%;
+}
+.noteList {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	margin-top: 1.5rem;
+}
+.noteItem {
+	padding: 1rem;
+	background: #f8fafc;
+	border-radius: 0.5rem;
+	border-left: 4px solid #3b82f6;
+}
+.noteMeta {
+	font-size: 0.75rem;
+	color: #64748b;
+	font-weight: 700;
+	margin-bottom: 0.35rem;
+}
+.noteText {
+	font-size: 0.875rem;
+	color: #0f172a;
+	line-height: 1.5;
+	margin: 0;
+}
+
+/* Early Warning Card */
+.warningCard {
+	background: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #fecaca;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.warningHeader {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 1.25rem;
+	color: #b91c1c;
+	font-weight: 800;
+	font-size: 1.125rem;
+}
+.warningList {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+.warningItem {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding-bottom: 1rem;
+	border-bottom: 1px dashed #fecaca;
+}
+.warningItem:last-child {
+	border-bottom: none;
+	padding-bottom: 0;
+}
+.warningName {
+	font-weight: 700;
+	color: #0f172a;
+	font-size: 0.875rem;
+	margin-bottom: 0.25rem;
+}
+.warningNis {
+	font-size: 0.75rem;
+	color: #64748b;
+}
+.warningStat {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+}
+.warningPct {
+	font-size: 1.125rem;
+	font-weight: 800;
+	color: #ef4444;
+}
+.warningAbsen {
+	font-size: 0.7rem;
+	color: #64748b;
+	font-weight: 600;
+}
