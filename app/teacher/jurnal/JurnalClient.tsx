@@ -348,11 +348,11 @@ export default function JurnalClient({
 				</div>
 			)}
 
-			{/* Sisa UI Sidebar, Topbar, Daftar Kelas, Tabel, dan View Manual (Dipersingkat agar respon aman, struktur Anda sudah benar sebelumnya, saya sertakan penuh) */}
+			{/* === SIDEBAR === */}
 			<aside className={styles.sidebar}>
 				<div className={styles.sidebarHeader}>
 					<div className={styles.logoWrapper}>
-						<img src="/logo.jpg" alt="Logo" className={styles.logoImage} />
+						<img src="/logo.jpg" alt="Logo SMAN 2 Brebes" className={styles.logoImage} />
 					</div>
 					<div>
 						<div className={styles.schoolName}>
@@ -362,6 +362,7 @@ export default function JurnalClient({
 						<div className={styles.portalName}>Teacher Portal</div>
 					</div>
 				</div>
+
 				<nav className={styles.menuContainer}>
 					<Link href="/teacher/dashboard" className={styles.menuItem}>
 						<LayoutDashboard size={18} /> Dashboard
@@ -387,6 +388,7 @@ export default function JurnalClient({
 						</>
 					)}
 				</nav>
+
 				<div className={styles.sidebarFooter}>
 					<button className={styles.logoutBtn} onClick={() => signOut({ callbackUrl: "/login" })}>
 						<LogOut size={18} /> Keluar
@@ -394,17 +396,23 @@ export default function JurnalClient({
 				</div>
 			</aside>
 
+			{/* === MAIN CONTENT === */}
 			<main className={styles.mainContent}>
 				<header className={styles.topbar}>
-					<h1 className={styles.greeting}>E-Journal & Presensi</h1>
+					<h1 className={styles.greeting} style={{ fontSize: "1rem" }}>
+						E-Journal & Presensi
+					</h1>
 					<div className={styles.topbarActions}>
 						<Bell size={20} style={{ cursor: "pointer" }} />
 						<HelpCircle size={20} style={{ cursor: "pointer" }} />
-						<div className={styles.profileAvatar}></div>
+						<div className={styles.profileAvatar}>
+							<div style={{ width: "100%", height: "100%", backgroundColor: "#dbeafe" }}></div>
+						</div>
 					</div>
 				</header>
 
 				<div className={styles.dashboardContainer}>
+					{/* === VIEW 1: DAFTAR KELAS === */}
 					{viewMode === "list" && (
 						<div>
 							<div className={styles.pageHeader}>
@@ -414,61 +422,79 @@ export default function JurnalClient({
 										Pilih mata pelajaran di bawah ini untuk mengisi jurnal dan melihat riwayat presensi.
 									</p>
 								</div>
+								<div style={{ display: "flex", gap: "1rem" }}>
+									<select className={styles.filterSelect}>
+										<option>Semester Ganjil</option>
+									</select>
+									<select className={styles.filterSelect}>
+										<option>Tahun Ajaran 2023/2024</option>
+									</select>
+								</div>
 							</div>
-							<div className={styles.cardGrid}>
-								{jadwalSemua.map((jadwal: any) => {
-									const hariIniStr = new Date().toISOString().split("T")[0];
-									const jurnalHariIni = jadwal.jurnal?.find(
-										(j: any) => new Date(j.tanggal).toISOString().split("T")[0] === hariIniStr,
-									);
-									const isSubmitted = !!jurnalHariIni;
-									let cardClass = isSubmitted ? styles.statusSelesai : styles.statusBelum;
-									let badgeClass = isSubmitted ? styles.badgeSelesai : styles.badgeBelum;
-									let statusText = isSubmitted ? "Jurnal Hari Ini Selesai" : "Jurnal Belum Diisi";
-									const hariText =
-										["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][jadwal.hari] || "";
 
-									return (
-										<div key={jadwal.id} className={`${styles.jurnalCard} ${cardClass}`}>
-											<div className={styles.cardHeader}>
-												<div className={styles.iconBox}>
-													<Beaker size={20} />
+							{!jadwalSemua || jadwalSemua.length === 0 ? (
+								<div className={styles.emptyStateContainer}>Anda tidak memiliki jadwal mengajar pada semester ini.</div>
+							) : (
+								<div className={styles.cardGrid}>
+									{jadwalSemua.map((jadwal: any) => {
+										const hariIniStr = new Date().toISOString().split("T")[0];
+										const jurnalHariIni = jadwal.jurnal?.find(
+											(j: any) => new Date(j.tanggal).toISOString().split("T")[0] === hariIniStr,
+										);
+										const isSubmitted = !!jurnalHariIni;
+
+										let cardClass = isSubmitted ? styles.statusSelesai : styles.statusBelum;
+										let badgeClass = isSubmitted ? styles.badgeSelesai : styles.badgeBelum;
+										let statusText = isSubmitted ? "Sudah Diisi" : "Belum Diisi";
+										const hariText =
+											["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][jadwal.hari] || "";
+
+										return (
+											<div key={jadwal.id} className={`${styles.jurnalCard} ${cardClass}`}>
+												<div className={styles.cardHeader}>
+													<div className={styles.iconBox}>
+														<Beaker size={20} />
+													</div>
+													<div style={{ display: "flex", flexDirection: "column" }}>
+														<div className={styles.mapelTitle}>{jadwal.mapel.nama}</div>
+														<div className={styles.mapelSubtitle}>{jadwal.kelas.nama}</div>
+														<div className={`${styles.badgeStatus} ${badgeClass}`}>{statusText}</div>
+													</div>
 												</div>
-												<div style={{ display: "flex", flexDirection: "column" }}>
-													<div className={styles.mapelTitle}>{jadwal.mapel.nama}</div>
-													<div className={styles.mapelSubtitle}>{jadwal.kelas.nama}</div>
-													<div className={`${styles.badgeStatus} ${badgeClass}`}>{statusText}</div>
+
+												<div className={styles.cardBody}>
+													<div className={styles.infoRow}>
+														<Clock size={14} />
+														<span>
+															<strong style={{ color: "#1e293b" }}>{hariText},</strong>{" "}
+															{formatWaktu(jadwal.waktuMulai, jadwal.waktuSelesai)} WIB
+														</span>
+													</div>
+													<div className={styles.infoRow}>
+														<MapPin size={14} /> {jadwal.ruang || "-"}
+													</div>
+												</div>
+
+												<div style={{ marginTop: "auto", paddingTop: "1rem" }}>
+													<button className={styles.btnPrimaryFull} onClick={() => handleBukaKelas(jadwal)}>
+														Kelola Jurnal
+													</button>
 												</div>
 											</div>
-											<div className={styles.cardBody}>
-												<div className={styles.infoRow}>
-													<Clock size={14} />
-													<span>
-														<strong style={{ color: "#1e293b" }}>{hariText},</strong>{" "}
-														{formatWaktu(jadwal.waktuMulai, jadwal.waktuSelesai)} WIB
-													</span>
-												</div>
-												<div className={styles.infoRow}>
-													<MapPin size={14} /> Ruang Kelas {jadwal.ruang || "-"}
-												</div>
-											</div>
-											<div style={{ marginTop: "auto", paddingTop: "1rem" }}>
-												<button className={styles.btnPrimaryFull} onClick={() => handleBukaKelas(jadwal)}>
-													Kelola Jurnal
-												</button>
-											</div>
-										</div>
-									);
-								})}
-							</div>
+										);
+									})}
+								</div>
+							)}
 						</div>
 					)}
 
+					{/* === VIEW 2: FORM & RIWAYAT === */}
 					{viewMode === "detail" && activeJadwal && (
 						<div>
 							<button className={styles.btnBack} onClick={() => setViewMode("list")}>
 								<ArrowLeft size={16} /> Kembali ke Daftar Mata Pelajaran
 							</button>
+
 							<div className={styles.pageHeader} style={{ marginBottom: "1.5rem" }}>
 								<div>
 									<h1 className={styles.pageTitle} style={{ fontSize: "1.5rem" }}>
@@ -478,7 +504,7 @@ export default function JurnalClient({
 										<Clock
 											size={14}
 											style={{ display: "inline", marginRight: "0.25rem", verticalAlign: "text-bottom" }}
-										/>{" "}
+										/>
 										Jadwal Reguler:{" "}
 										{["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][activeJadwal.hari]} (
 										{formatWaktu(activeJadwal.waktuMulai, activeJadwal.waktuSelesai)} WIB)
@@ -498,6 +524,7 @@ export default function JurnalClient({
 								>
 									Buat Jurnal Pertemuan Baru
 								</div>
+
 								<div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "2rem", alignItems: "start" }}>
 									<div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
 										<div>
@@ -511,6 +538,7 @@ export default function JurnalClient({
 											/>
 										</div>
 									</div>
+
 									<div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
 										<div>
 											<label className={styles.formLabel}>Topik Materi *</label>
@@ -522,6 +550,7 @@ export default function JurnalClient({
 												placeholder="Tuliskan materi yang diajarkan hari ini..."
 											/>
 										</div>
+
 										<div style={{ display: "flex", justifyContent: "flex-end" }}>
 											<button
 												className={styles.btnPrimaryFull}
@@ -570,6 +599,7 @@ export default function JurnalClient({
 														day: "numeric",
 													});
 													const isQRAktif = !!jurnalItem.qrToken;
+
 													const hariIniStr = new Date().toISOString().split("T")[0];
 													const tanggalJurnalStr = new Date(jurnalItem.tanggal).toISOString().split("T")[0];
 													const isHariIni = hariIniStr === tanggalJurnalStr;
@@ -650,6 +680,7 @@ export default function JurnalClient({
 																	alignItems: "center",
 																}}
 															>
+																{/* Tombol Edit Jurnal (Teks saja untuk hemat ruang) */}
 																<button
 																	style={{
 																		background: "none",
@@ -664,6 +695,8 @@ export default function JurnalClient({
 																>
 																	<Edit size={16} />
 																</button>
+
+																{/* Toggle QR Button */}
 																{isQRAktif ? (
 																	<button
 																		className={styles.btnOutlineFull}
@@ -701,6 +734,7 @@ export default function JurnalClient({
 																		<QrCode size={14} /> Buka QR
 																	</button>
 																)}
+
 																<button
 																	className={styles.btnPrimaryFull}
 																	style={{
@@ -734,12 +768,14 @@ export default function JurnalClient({
 						</div>
 					)}
 
+					{/* === VIEW 3: DETAIL PRESENSI (MANUAL) === */}
 					{viewMode === "presensi" && activeJurnal && activeJadwal && (
 						<div>
 							<div style={{ fontSize: "0.875rem", color: "#64748b", marginBottom: "1rem" }}>
 								Jurnal Mengajar &gt; {activeJadwal.mapel.nama} {activeJadwal.kelas.nama} &gt;{" "}
 								<span style={{ fontWeight: 600, color: "#0f172a" }}>Detail Presensi</span>
 							</div>
+
 							<div
 								style={{
 									display: "flex",
@@ -761,18 +797,202 @@ export default function JurnalClient({
 											gap: "0.5rem",
 										}}
 									>
-										<CalendarDays size={16} />{" "}
+										<CalendarDays size={16} />
 										{new Date(activeJurnal.tanggal).toLocaleDateString("id-ID", {
 											weekday: "long",
 											day: "numeric",
 											month: "long",
 											year: "numeric",
 										})}{" "}
-										| {formatWaktu(activeJadwal.waktuMulai, activeJadwal.waktuSelesai)} WIB
+										|{formatWaktu(activeJadwal.waktuMulai, activeJadwal.waktuSelesai)} WIB
+									</div>
+								</div>
+								<button
+									className={styles.btnOutlineFull}
+									style={{ width: "auto", margin: 0, padding: "0.5rem 1rem", backgroundColor: "white" }}
+								>
+									<Download size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: "0.5rem" }} />{" "}
+									Export PDF
+								</button>
+							</div>
+
+							{/* RINGKASAN REAL-TIME DARI STATE `presensiEdits` */}
+							<div
+								style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}
+							>
+								<div
+									className={styles.summaryCard}
+									style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
+								>
+									<div style={{ backgroundColor: "#e0f2fe", padding: "0.75rem", borderRadius: "50%" }}>
+										<Users size={24} color="#3b82f6" />
+									</div>
+									<div>
+										<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Total Siswa</div>
+										<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#0f172a" }}>
+											{activeJadwal.kelas?.riwayatSiswa?.length || 0}
+										</div>
+									</div>
+								</div>
+								<div
+									className={styles.summaryCard}
+									style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
+								>
+									<div style={{ backgroundColor: "#d1fae5", padding: "0.75rem", borderRadius: "50%" }}>
+										<CheckCircle2 size={24} color="#10b981" />
+									</div>
+									<div>
+										<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Hadir</div>
+										<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#10b981" }}>
+											{activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H")
+												.length || 0}
+										</div>
+									</div>
+								</div>
+								<div
+									className={styles.summaryCard}
+									style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
+								>
+									<div style={{ backgroundColor: "#fef3c7", padding: "0.75rem", borderRadius: "50%" }}>
+										<Clock size={24} color="#f59e0b" />
+									</div>
+									<div>
+										<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Izin/Sakit</div>
+										<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#f59e0b" }}>
+											{activeJadwal.kelas?.riwayatSiswa?.filter(
+												(rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
+											).length || 0}
+										</div>
+									</div>
+								</div>
+								<div
+									className={styles.summaryCard}
+									style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
+								>
+									<div style={{ backgroundColor: "#fee2e2", padding: "0.75rem", borderRadius: "50%" }}>
+										<X size={24} color="#ef4444" />
+									</div>
+									<div>
+										<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Alpha/Belum</div>
+										<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#ef4444" }}>
+											{(activeJadwal.kelas?.riwayatSiswa?.length || 0) -
+												(activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H")
+													.length || 0) -
+												(activeJadwal.kelas?.riwayatSiswa?.filter(
+													(rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
+												).length || 0)}
+										</div>
 									</div>
 								</div>
 							</div>
-							{/* ... (UI Manual Presensi Stats dan Table dibiarkan sama seperti sbelumnya agar kode lebih aman) ... */}
+
+							<div className={styles.tableCard}>
+								<div
+									className={styles.tableToolbar}
+									style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+								>
+									<div style={{ fontWeight: 700, color: "#0f172a" }}>Daftar Kehadiran</div>
+									<div style={{ position: "relative", width: "250px" }}>
+										<Search
+											size={16}
+											style={{
+												position: "absolute",
+												left: "0.75rem",
+												top: "50%",
+												transform: "translateY(-50%)",
+												color: "#94a3b8",
+											}}
+										/>
+										<input
+											type="text"
+											placeholder="Cari nama siswa..."
+											style={{
+												width: "100%",
+												padding: "0.5rem 1rem 0.5rem 2.25rem",
+												borderRadius: "0.5rem",
+												border: "1px solid #cbd5e1",
+												fontSize: "0.875rem",
+												outline: "none",
+											}}
+										/>
+									</div>
+								</div>
+								<table className={styles.tableStyle}>
+									<thead>
+										<tr>
+											<th>No</th>
+											<th>NIS</th>
+											<th>Nama Siswa</th>
+											<th>L/P</th>
+											<th>Status Terakhir</th>
+											<th style={{ textAlign: "center", width: "150px" }}>Aksi Manual</th>
+										</tr>
+									</thead>
+									<tbody>
+										{activeJadwal.kelas.riwayatSiswa.map((rs: any, index: number) => {
+											const siswa = rs.siswa;
+											const originalAbsensi = activeJurnal.presensi?.find((p: any) => p.siswaId === siswa.id);
+											const currentStatus = presensiEdits[siswa.id] || "";
+
+											let badgeStyle = { bg: "#f1f5f9", text: "#64748b", label: "Belum Absen" };
+											if (currentStatus === "H") badgeStyle = { bg: "#d1fae5", text: "#047857", label: "Hadir" };
+											else if (currentStatus === "I") badgeStyle = { bg: "#fef3c7", text: "#b45309", label: "Izin" };
+											else if (currentStatus === "S") badgeStyle = { bg: "#dbeafe", text: "#1d4ed8", label: "Sakit" };
+											else if (currentStatus === "A") badgeStyle = { bg: "#fee2e2", text: "#b91c1c", label: "Alpha" };
+
+											return (
+												<tr key={siswa.id}>
+													<td>{index + 1}</td>
+													<td style={{ fontWeight: 500 }}>{siswa.nis}</td>
+													<td style={{ fontWeight: 600, color: "#0f172a" }}>{siswa.user?.nama || "Nama Siswa"}</td>
+													<td>{siswa.jenisKelamin === "L" ? "L" : "P"}</td>
+													<td>
+														<span
+															style={{
+																background: badgeStyle.bg,
+																color: badgeStyle.text,
+																padding: "0.35rem 0.75rem",
+																borderRadius: "0.375rem",
+																fontSize: "0.75rem",
+																fontWeight: 700,
+															}}
+														>
+															{badgeStyle.label}{" "}
+															{originalAbsensi?.waktuScan && currentStatus === originalAbsensi.status
+																? `(${new Date(originalAbsensi.waktuScan).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })})`
+																: ""}
+														</span>
+													</td>
+													<td style={{ textAlign: "center" }}>
+														<select
+															className={styles.filterSelect}
+															style={{
+																width: "100%",
+																padding: "0.4rem",
+																cursor: "pointer",
+																fontWeight: 600,
+																color: badgeStyle.text,
+																borderColor: badgeStyle.text,
+															}}
+															value={currentStatus}
+															onChange={(e) => setPresensiEdits({ ...presensiEdits, [siswa.id]: e.target.value })}
+														>
+															<option value="" disabled>
+																Pilih Aksi
+															</option>
+															<option value="H">Hadir</option>
+															<option value="I">Izin</option>
+															<option value="S">Sakit</option>
+															<option value="A">Alpha</option>
+														</select>
+													</td>
+												</tr>
+											);
+										})}
+									</tbody>
+								</table>
+							</div>
+
 							<div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
 								<button
 									className={styles.btnOutlineFull}
