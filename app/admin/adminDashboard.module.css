@@ -1,5 +1,6 @@
 .dashboardContainer {
-	max-width: 1100px;
+	width: 100%;
+	max-width: 1440px; /* Sebelumnya 1100px, kita perlebar agar proporsional */
 	margin: 0 auto;
 }
 

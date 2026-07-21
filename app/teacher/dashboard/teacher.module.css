@@ -26,22 +26,19 @@
 	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .logoWrapper {
-	background-color: #ffffff;
-	padding: 0.25rem;
+	width: 40px;
+	height: 40px;
+	background-color: white;
 	border-radius: 50%;
 	display: flex;
-	justify-content: center;
 	align-items: center;
-	width: 2.5rem;
-	height: 2.5rem;
+	justify-content: center;
 	overflow: hidden;
 }
-
 .logoImage {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
-	border-radius: 50%;
 }
 .schoolName {
 	font-weight: 700;

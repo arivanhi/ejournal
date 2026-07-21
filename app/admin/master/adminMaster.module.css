@@ -1,6 +1,8 @@
 .pageContainer {
-	max-width: 1200px;
+	width: 100%;
+	max-width: 1440px; /* Lebarkan agar memenuhi layar proporsional */
 	margin: 0 auto;
+	padding: 2rem;
 }
 
 /* === HEADER SECTION === */

@@ -11,8 +11,13 @@ export default async function RiwayatPage() {
 
 	const sessionValue = session.user.name || session.user.email || "";
 	const currentUser = await prisma.user.findFirst({
-		where: { OR: [{ username: sessionValue }, { nama: sessionValue }] },
-		include: { guru: true },
+		where: {
+			OR: [{ username: sessionValue }, { nama: sessionValue }],
+			role: { in: ["GURU", "WALI_KELAS"] }, // <--- KUNCI PERBAIKAN: Paksa hanya cari akun Guru/Wali
+		},
+		include: {
+			guru: true, // (Bisa ditambahkan include jadwalPelajaran dsb jika halaman itu membutuhkannya)
+		},
 	});
 
 	if (!currentUser || !currentUser.guru) redirect("/teacher/dashboard");

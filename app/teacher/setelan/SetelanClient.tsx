@@ -141,11 +141,11 @@ export default function SetelanClient({ user, guru, isWaliKelas }: { user: any; 
 							<Link href="/teacher/data-siswa" className={styles.menuItem}>
 								<Users size={18} /> Data Siswa
 							</Link>
-							<Link href="/teacher/setelan" className={`${styles.menuItem} ${styles.menuItemActive}`}>
-								<Settings size={18} /> Setelan
-							</Link>
 						</>
 					)}
+					<Link href="/teacher/setelan" className={`${styles.menuItem} ${styles.menuItemActive}`}>
+						<Settings size={18} /> Setelan
+					</Link>
 				</nav>
 				<div className={styles.sidebarFooter}>
 					<button className={styles.logoutBtn} onClick={() => signOut({ callbackUrl: "/login" })}>

@@ -54,6 +54,7 @@ model TahunAjaran {
   
   riwayatSiswa    RiwayatKelasSiswa[]
   jadwalPelajaran JadwalPelajaran[]
+  mataPelajaran   MataPelajaran[]
 }
 
 model Kelas {
@@ -71,6 +72,7 @@ model MataPelajaran {
   nama            String
   
   jadwalPelajaran JadwalPelajaran[]
+  tahunAjaran     TahunAjaran[]
 }
 
 model PengaturanSekolah {

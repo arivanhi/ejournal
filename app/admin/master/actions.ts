@@ -535,3 +535,103 @@ export async function importMapelMassalAction(formData: FormData) {
 		return { success: false, message: "Gagal memproses file Excel Mapel." };
 	}
 }
+
+// ==========================================
+// ACTIONS UNTUK TAHUN AJARAN
+// ==========================================
+
+export async function tambahTahunAjarAction(data: { nama: string; isActive: boolean }) {
+	try {
+		// Jika tahun ajaran baru ini diset Aktif, kita bisa menonaktifkan yang lain dulu (opsional tapi disarankan)
+		if (data.isActive) {
+			await prisma.tahunAjaran.updateMany({
+				where: { isActive: true },
+				data: { isActive: false },
+			});
+		}
+
+		await prisma.tahunAjaran.create({
+			data: {
+				nama: data.nama,
+				isActive: data.isActive,
+			},
+		});
+
+		revalidatePath("/admin/master");
+		return { success: true, message: "Tahun Ajaran berhasil ditambahkan!" };
+	} catch (error) {
+		console.error("Error tambah tahun ajar:", error);
+		return { success: false, message: "Gagal menambahkan Tahun Ajaran." };
+	}
+}
+
+export async function editTahunAjarAction(id: string, data: { nama: string; isActive: boolean }) {
+	try {
+		// Jika diubah menjadi Aktif, nonaktifkan tahun ajaran yang lain
+		if (data.isActive) {
+			await prisma.tahunAjaran.updateMany({
+				where: { id: { not: id }, isActive: true },
+				data: { isActive: false },
+			});
+		}
+
+		await prisma.tahunAjaran.update({
+			where: { id },
+			data: {
+				nama: data.nama,
+				isActive: data.isActive,
+			},
+		});
+
+		revalidatePath("/admin/master");
+		return { success: true, message: "Tahun Ajaran berhasil diperbarui!" };
+	} catch (error) {
+		console.error("Error edit tahun ajar:", error);
+		return { success: false, message: "Gagal memperbarui Tahun Ajaran." };
+	}
+}
+
+export async function hapusTahunAjarAction(ids: string[]) {
+	try {
+		await prisma.tahunAjaran.deleteMany({
+			where: {
+				id: { in: ids },
+			},
+		});
+
+		revalidatePath("/admin/master");
+		return { success: true, message: `${ids.length} Tahun Ajaran berhasil dihapus!` };
+	} catch (error) {
+		console.error("Error hapus tahun ajar:", error);
+		return { success: false, message: "Gagal menghapus Tahun Ajaran. Pastikan data ini tidak sedang digunakan." };
+	}
+}
+
+// ==========================================
+// ACTIONS UNTUK PEMETAAN MAPEL - TAHUN AJAR
+// ==========================================
+
+export async function simpanPemetaanMapelAction(tahunAjarId: string, mapelIds: string[]) {
+	try {
+		// CATATAN PENTING:
+		// Kode Prisma di bawah ini menggunakan asumsi relasi Many-to-Many Implisit.
+		// Jika di database Bapak menggunakan tabel perantara khusus (misal: TahunAjaranMapel),
+		// kodenya perlu disesuaikan (deleteMany lalu createMany).
+
+		await prisma.tahunAjaran.update({
+			where: { id: tahunAjarId },
+			data: {
+				// Menghubungkan (sync) Tahun Ajaran dengan Mapel yang dicentang
+				mataPelajaran: {
+					set: mapelIds.map((id) => ({ id })),
+				},
+			},
+		});
+
+		revalidatePath("/admin/master");
+		return { success: true, message: "Pemetaan mata pelajaran berhasil disimpan!" };
+	} catch (error) {
+		console.error("Error simpan pemetaan:", error);
+		return { success: false, message: "Gagal menyimpan pemetaan. Pastikan relasi database sesuai." };
+	}
+}

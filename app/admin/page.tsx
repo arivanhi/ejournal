@@ -1,109 +1,69 @@
-import { Users, GraduationCap, CalendarCheck, Settings, BookCopy, ArrowRight } from "lucide-react";
-import styles from "./adminDashboard.module.css";
+import { getServerSession } from "next-auth";
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import AdminDashboard from "./AdminDashboard";
 
-export default function AdminDashboard() {
-	return (
-		<div className={styles.dashboardContainer}>
-			<div>
-				<h1 className={styles.pageTitle}>Ringkasan Dashboard</h1>
-				<p className={styles.pageSubtitle}>Statistik utama dan aksi administratif cepat untuk SMAN 2 Brebes.</p>
-			</div>
+export const dynamic = "force-dynamic";
 
-			<div className={styles.statsGrid}>
-				<div className={styles.statCard}>
-					<div className={styles.statHeader}>
-						<div className={`${styles.iconWrapper} ${styles.iconBlue}`}>
-							<Users size={20} />
-						</div>
-						<span className={styles.statLabel}>Total Siswa</span>
-					</div>
-					{/* Angka statis sementara, nanti di-fetch dari database Prisma */}
-					<div className={styles.statValue}>1.248</div>
-				</div>
+export default async function AdminDashboardPage() {
+	const session = await getServerSession();
+	if (!session || !session.user) redirect("/login");
 
-				<div className={styles.statCard}>
-					<div className={styles.statHeader}>
-						<div className={`${styles.iconWrapper} ${styles.iconYellow}`}>
-							<GraduationCap size={20} />
-						</div>
-						<span className={styles.statLabel}>Total Guru</span>
-					</div>
-					<div className={styles.statValue}>86</div>
-				</div>
+	const sessionValue = session.user.name || session.user.email || "";
 
-				<div className={styles.statCard}>
-					<div className={styles.statHeader}>
-						<div className={`${styles.iconWrapper} ${styles.iconIndigo}`}>
-							<CalendarCheck size={20} />
-						</div>
-						<span className={styles.statLabel}>Sesi Aktif Hari Ini</span>
-					</div>
-					<div className={styles.statValue}>42</div>
-				</div>
-			</div>
+	const currentUser = await prisma.user.findFirst({
+		where: { OR: [{ username: sessionValue }, { nama: sessionValue }] },
+	});
 
-			<div className={styles.bottomGrid}>
-				<div>
-					<h3 className={styles.sectionTitle}>Akses Cepat</h3>
-					<div className={styles.quickAccessGrid}>
-						<div className={styles.accessCard}>
-							<div className={styles.accessHeader}>
-								<div className={styles.accessIcon}>
-									<Settings size={18} />
-								</div>
-								<ArrowRight size={18} className={styles.arrowIcon} />
-							</div>
-							<h4 className={styles.accessTitle}>Manajemen Role</h4>
-							<p className={styles.accessDesc}>
-								Atur hak akses, berikan izin administratif, dan kelola peran pengguna di seluruh sistem.
-							</p>
-						</div>
+	if (!currentUser || currentUser.role !== "ADMIN_TU") {
+		redirect("/login");
+	}
 
-						<div className={styles.accessCard}>
-							<div className={styles.accessHeader}>
-								<div className={styles.accessIcon}>
-									<BookCopy size={18} />
-								</div>
-								<ArrowRight size={18} className={styles.arrowIcon} />
-							</div>
-							<h4 className={styles.accessTitle}>Manajemen Mapel</h4>
-							<p className={styles.accessDesc}>
-								Atur kurikulum, alokasikan guru ke mata pelajaran, dan kelola penjadwalan akademik.
-							</p>
-						</div>
-					</div>
-				</div>
+	// 1. AMBIL STATISTIK ANGKA
+	const totalSiswa = await prisma.siswa.count();
+	const totalGuru = await prisma.guru.count();
 
-				<div>
-					<h3 className={styles.sectionTitle}>Aktivitas Terkini</h3>
-					<div className={styles.activityCard}>
-						<div className={styles.timeline}>
-							<div className={styles.timelineItem}>
-								<div className={styles.timelineDot}></div>
-								<div className={styles.activityTitle}>Peran Diperbarui</div>
-								<div className={styles.activityDesc}>Budi Santoso ditugaskan sebagai Wali Kelas X-MIPA 1.</div>
-								<div className={styles.activityTime}>10 menit yang lalu</div>
-							</div>
+	const hariIni = new Date();
+	hariIni.setHours(0, 0, 0, 0);
 
-							<div className={styles.timelineItem}>
-								<div className={`${styles.timelineDot} ${styles.timelineDotInactive}`}></div>
-								<div className={styles.activityTitle}>Mata Pelajaran Ditambahkan</div>
-								<div className={styles.activityDesc}>Modul kurikulum baru 'Fisika Lanjutan' ditambahkan ke sistem.</div>
-								<div className={styles.activityTime}>2 jam yang lalu</div>
-							</div>
+	const sesiAktif = await prisma.jurnalMengajar.count({
+		where: { tanggal: { gte: hariIni } },
+	});
 
-							<div className={styles.timelineItem}>
-								<div className={`${styles.timelineDot} ${styles.timelineDotInactive}`}></div>
-								<div className={styles.activityTitle}>Pencadangan Sistem</div>
-								<div className={styles.activityDesc}>Pencadangan database otomatis berhasil diselesaikan.</div>
-								<div className={styles.activityTime}>Kemarin, 23:00</div>
-							</div>
-						</div>
+	// 2. AMBIL AKTIVITAS TERKINI (3 Data User Terakhir yang Ditambahkan/Diupdate)
+	const recentUsers = await prisma.user.findMany({
+		take: 3,
+		orderBy: { updatedAt: "desc" },
+		select: { id: true, nama: true, role: true, updatedAt: true, createdAt: true },
+	});
 
-						<button className={styles.btnFullLog}>Lihat Semua Log</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	);
+	// Format data tersebut menjadi array aktivitas untuk UI
+	const aktivitasTerkini = recentUsers.map((user) => {
+		// Jika selisih createdAt dan updatedAt kurang dari 1 detik, berarti akun baru
+		const isNew = user.createdAt.getTime() === user.updatedAt.getTime();
+
+		// Format waktu ke format Indonesia (Contoh: 21 Jul, 14:30)
+		const waktu = new Intl.DateTimeFormat("id-ID", {
+			day: "numeric",
+			month: "short",
+			hour: "2-digit",
+			minute: "2-digit",
+		}).format(user.updatedAt);
+
+		return {
+			id: user.id,
+			title: isNew ? "Pengguna Baru Terdaftar" : "Data Pengguna Diperbarui",
+			desc: `Akun ${user.nama} (${user.role.replace("_", " ")}) telah ${isNew ? "ditambahkan ke" : "diperbarui di"} sistem.`,
+			time: waktu,
+		};
+	});
+
+	const stats = {
+		siswa: totalSiswa,
+		guru: totalGuru,
+		sesi: sesiAktif,
+		aktivitas: aktivitasTerkini,
+	};
+
+	return <AdminDashboard stats={stats} />;
 }

@@ -1,16 +1,44 @@
+// app/admin/jadwal/page.tsx
+
 import { prisma } from "@/lib/prisma";
 import JadwalClient from "./JadwalClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function JadwalPage() {
-	const tahunAjaranAktif = await prisma.tahunAjaran.findFirst({ where: { isActive: true } });
+// Tambahkan searchParams untuk menangkap filter URL (contoh: ?tahunId=xxx)
+export default async function JadwalPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+	// Await searchParams di Next.js 15+
+	const resolvedParams = await searchParams;
+	const urlTahunId = typeof resolvedParams.tahunId === "string" ? resolvedParams.tahunId : null;
 
-	// 1. Ambil Kelas + Hitung Siswa + Nama Wali Kelas
+	// 1. Ambil SELURUH daftar Tahun Ajaran untuk mengisi Dropdown Filter
+	const semuaTahunAjaran = await prisma.tahunAjaran.findMany({
+		orderBy: { nama: "desc" },
+	});
+
+	// 2. Tentukan Tahun Ajaran mana yang sedang dilihat:
+	// Jika ada ID di URL, gunakan itu. Jika tidak, gunakan yang isActive: true.
+	let tahunAjaranTerpilih;
+	if (urlTahunId) {
+		tahunAjaranTerpilih = semuaTahunAjaran.find((t) => t.id === urlTahunId);
+	} else {
+		tahunAjaranTerpilih = semuaTahunAjaran.find((t) => t.isActive);
+	}
+
+	// Jika database benar-benar kosong, cegah error
+	if (!tahunAjaranTerpilih && semuaTahunAjaran.length > 0) {
+		tahunAjaranTerpilih = semuaTahunAjaran[0];
+	}
+
+	// 3. Ambil Kelas + Hitung Siswa + Nama Wali Kelas (Berdasarkan Tahun yang dipilih)
 	const kelasListDb = await prisma.kelas.findMany({
 		orderBy: { nama: "asc" },
 		include: {
-			riwayatSiswa: tahunAjaranAktif ? { where: { tahunAjaranId: tahunAjaranAktif.id } } : false,
+			riwayatSiswa: tahunAjaranTerpilih ? { where: { tahunAjaranId: tahunAjaranTerpilih.id } } : false,
 			waliKelas: { include: { guru: { include: { user: true } } } },
 		},
 	});
@@ -22,11 +50,11 @@ export default async function JadwalPage() {
 		waliKelas: k.waliKelas[0]?.guru?.user?.nama || "-",
 	}));
 
-	// 2. Ambil "Pemetaan Dasar" (Hari = 0) dari Manajemen Mapel
-	const pemetaanDasarDb = tahunAjaranAktif
+	// 4. Ambil "Pemetaan Dasar" (Hari = 0)
+	const pemetaanDasarDb = tahunAjaranTerpilih
 		? await prisma.jadwalPelajaran.findMany({
 				where: {
-					tahunAjaranId: tahunAjaranAktif.id,
+					tahunAjaranId: tahunAjaranTerpilih.id,
 					hari: 0,
 				},
 				include: { guru: { include: { user: true } }, mapel: true },
@@ -41,11 +69,11 @@ export default async function JadwalPage() {
 		guruNama: p.guru.user.nama,
 	}));
 
-	// 3. Ambil Jadwal Aktual (Hari != 0) yang sudah masuk kalender
-	const jadwalDb = tahunAjaranAktif
+	// 5. Ambil Jadwal Aktual (Hari != 0)
+	const jadwalDb = tahunAjaranTerpilih
 		? await prisma.jadwalPelajaran.findMany({
 				where: {
-					tahunAjaranId: tahunAjaranAktif.id,
+					tahunAjaranId: tahunAjaranTerpilih.id,
 					hari: { notIn: [0] },
 				},
 				include: { guru: { include: { user: true } }, mapel: true },
@@ -63,8 +91,9 @@ export default async function JadwalPage() {
 			kelasList={kelasListFormatted}
 			pemetaanDasar={pemetaanDasar}
 			jadwalExisting={jadwalExisting}
-			tahunAjaran={tahunAjaranAktif?.nama || "-"}
-			semester={tahunAjaranAktif?.nama || "-"}
+			// --- KUNCI: Lempar data Tahun Ajaran ke Client ---
+			daftarTahunAjaran={semuaTahunAjaran}
+			tahunAjaranAktifId={tahunAjaranTerpilih?.id || ""}
 		/>
 	);
 }

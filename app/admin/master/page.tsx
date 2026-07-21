@@ -48,7 +48,21 @@ export default async function MasterPage() {
 		kode: m.kode,
 		nama: m.nama,
 	}));
+	// --> TAMBAHKAN BARIS INI UNTUK MENARIK DATA TAHUN AJARAN <--
+	const dataTahunAjar = await prisma.tahunAjaran.findMany({
+		orderBy: { nama: "desc" }, // Mengurutkan dari tahun terbaru ke terlama
+		include: {
+			mataPelajaran: true,
+		},
+	});
 
 	// Kirim ketiga data ke Client Component
-	return <MasterClient initialSiswa={dataSiswa} initialGuru={dataGuru} initialMapel={dataMapel} />;
+	return (
+		<MasterClient
+			initialSiswa={dataSiswa}
+			initialGuru={dataGuru}
+			initialMapel={dataMapel}
+			initialTahunAjar={dataTahunAjar}
+		/>
+	);
 }

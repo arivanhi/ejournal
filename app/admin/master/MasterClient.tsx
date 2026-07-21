@@ -14,6 +14,7 @@ import {
 	AlertCircle,
 	UploadCloud,
 	ArrowUpDown,
+	Network, // Ikon tambahan untuk tombol Mapping
 } from "lucide-react";
 import styles from "./adminMaster.module.css";
 import * as XLSX from "xlsx";
@@ -30,6 +31,10 @@ import {
 	assignKelasMassalAction,
 	importGuruMassalAction,
 	importMapelMassalAction,
+	tambahTahunAjarAction,
+	editTahunAjarAction,
+	hapusTahunAjarAction,
+	simpanPemetaanMapelAction,
 } from "./actions";
 
 interface SiswaProps {
@@ -53,16 +58,26 @@ interface MapelProps {
 	nama: string;
 }
 
+interface TahunAjarProps {
+	id: string;
+	nama: string;
+	isActive: boolean;
+	mataPelajaran?: any[];
+}
+
 export default function MasterClient({
 	initialSiswa,
 	initialGuru,
 	initialMapel,
+	initialTahunAjar, // <-- Tambahkan baris ini
 }: {
 	initialSiswa: SiswaProps[];
 	initialGuru: GuruProps[];
 	initialMapel: MapelProps[];
+	initialTahunAjar: TahunAjarProps[]; // <-- Tambahkan baris ini
 }) {
-	const [activeTab, setActiveTab] = useState<"siswa" | "guru" | "mapel">("siswa");
+	// 1. TAMBAH STATE TAHUN AJAR
+	const [activeTab, setActiveTab] = useState<"siswa" | "guru" | "mapel" | "tahunAjar">("siswa");
 
 	// States untuk Modal
 	const [isModalOpen, setIsModalOpen] = useState(false);
@@ -95,6 +110,12 @@ export default function MasterClient({
 	const [jenisKelamin, setJenisKelamin] = useState("");
 	const [kelasAwal, setKelasAwal] = useState("");
 	const [statusGuru, setStatusGuru] = useState(true);
+	const [namaTahun, setNamaTahun] = useState("");
+	const [isActiveTahun, setIsActiveTahun] = useState(true);
+	// --- TAMBAHKAN 3 STATE INI UNTUK MAPPING ---
+	const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
+	const [selectedTahunAjarId, setSelectedTahunAjarId] = useState("");
+	const [mappedMapelIds, setMappedMapelIds] = useState<string[]>([]);
 
 	// --- FILTER & LOGIKA DATA ---
 	const uniqueClasses = Array.from(new Set(initialSiswa.map((s) => s.kelasSkarang)))
@@ -123,6 +144,9 @@ export default function MasterClient({
 		(mapel) =>
 			mapel.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			mapel.kode.toLowerCase().includes(searchQuery.toLowerCase()),
+	);
+	const filteredTahunAjar = (initialTahunAjar || []).filter((tahun) =>
+		tahun.nama.toLowerCase().includes(searchQuery.toLowerCase()),
 	);
 
 	// --- LOGIKA SORTING ---
@@ -171,6 +195,11 @@ export default function MasterClient({
 		let valB = sortBy === "kode" ? b.kode : b.nama;
 		return valA < valB ? (sortOrder === "asc" ? -1 : 1) : valA > valB ? (sortOrder === "asc" ? 1 : -1) : 0;
 	});
+	const sortedTahunAjar = [...filteredTahunAjar].sort((a, b) => {
+		let valA = sortBy === "nama" ? a.nama : a.isActive ? "1" : "0";
+		let valB = sortBy === "nama" ? b.nama : b.isActive ? "1" : "0";
+		return valA < valB ? (sortOrder === "asc" ? -1 : 1) : valA > valB ? (sortOrder === "asc" ? 1 : -1) : 0;
+	});
 
 	// --- LOGIKA CENTANG MASSAL ---
 	const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -180,7 +209,9 @@ export default function MasterClient({
 					? sortedSiswa.map((s) => s.id)
 					: activeTab === "guru"
 						? sortedGuru.map((g) => g.id)
-						: sortedMapel.map((m) => m.id);
+						: activeTab === "mapel"
+							? sortedMapel.map((m) => m.id)
+							: sortedTahunAjar.map((t) => t.id);
 			setSelectedIds(allIds);
 		} else setSelectedIds([]);
 	};
@@ -190,14 +221,14 @@ export default function MasterClient({
 		else setSelectedIds((prev) => prev.filter((selectedId) => selectedId !== id));
 	};
 
-	const handleTabChange = (tab: "siswa" | "guru" | "mapel") => {
+	const handleTabChange = (tab: "siswa" | "guru" | "mapel" | "tahunAjar") => {
 		setActiveTab(tab);
 		resetForm();
 		setSelectedIds([]);
 		setSearchQuery("");
 		setFilterKelas("Semua Kelas");
 		setFilterStatusGuru("Semua Status");
-		setSortBy(tab === "siswa" ? "kelas" : tab === "guru" ? "npp" : "kode");
+		setSortBy(tab === "siswa" ? "kelas" : tab === "guru" ? "npp" : tab === "mapel" ? "kode" : "tahun");
 		setSortOrder("asc");
 	};
 
@@ -210,6 +241,8 @@ export default function MasterClient({
 		setStatusGuru(true);
 		setEditingId("");
 		setModalMode("create");
+		setNamaTahun("");
+		setIsActiveTahun(true);
 	};
 
 	// --- LOGIKA EDIT BUTTON ---
@@ -242,10 +275,55 @@ export default function MasterClient({
 		setIsModalOpen(true);
 	};
 
+	const handleEditTahun = (tahun: TahunAjarProps) => {
+		setModalMode("edit");
+		setEditingId(tahun.id);
+		setNamaTahun(tahun.nama);
+		setIsActiveTahun(tahun.isActive);
+		setIsModalOpen(true);
+	};
+
 	// --- LOGIKA HAPUS BUTTON ---
 	const confirmDelete = (ids: string[]) => {
 		setIdsToDelete(ids);
 		setIsDeleteModalOpen(true);
+	};
+
+	// --- LOGIKA MAPPING MAPEL ---
+	const handleOpenMapping = (tahun: TahunAjarProps) => {
+		setSelectedTahunAjarId(tahun.id);
+
+		// Ubah mapels menjadi mataPelajaran
+		if (tahun.mataPelajaran && tahun.mataPelajaran.length > 0) {
+			setMappedMapelIds(tahun.mataPelajaran.map((m: any) => m.id));
+		} else {
+			setMappedMapelIds([]);
+		}
+		setIsMappingModalOpen(true);
+	};
+
+	const handleToggleMapelMapping = (mapelId: string, isChecked: boolean) => {
+		if (isChecked) {
+			setMappedMapelIds((prev) => [...prev, mapelId]);
+		} else {
+			setMappedMapelIds((prev) => prev.filter((id) => id !== mapelId));
+		}
+	};
+
+	const handleSimpanMapping = async (e: React.FormEvent) => {
+		e.preventDefault();
+		setLoading(true);
+
+		const hasil = await simpanPemetaanMapelAction(selectedTahunAjarId, mappedMapelIds);
+
+		setLoading(false);
+		if (hasil.success) {
+			setToast({ show: true, message: hasil.message, type: "success" });
+			setIsMappingModalOpen(false);
+		} else {
+			setToast({ show: true, message: hasil.message, type: "error" });
+		}
+		setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 3000);
 	};
 
 	const executeDelete = async () => {
@@ -253,7 +331,8 @@ export default function MasterClient({
 		let hasil;
 		if (activeTab === "siswa") hasil = await hapusSiswaAction(idsToDelete);
 		else if (activeTab === "guru") hasil = await hapusGuruAction(idsToDelete);
-		else hasil = await hapusMapelAction(idsToDelete);
+		else if (activeTab === "mapel") hasil = await hapusMapelAction(idsToDelete);
+		else if (activeTab === "tahunAjar") hasil = await hapusTahunAjarAction(idsToDelete);
 
 		setLoading(false);
 		setIsDeleteModalOpen(false);
@@ -278,9 +357,12 @@ export default function MasterClient({
 		} else if (activeTab === "guru") {
 			if (modalMode === "create") hasil = await tambahGuruAction({ nipNpp: identifier, nama, jenisKelamin });
 			else hasil = await editGuruAction(editingId, { nipNpp: identifier, nama, jenisKelamin, status: statusGuru });
-		} else {
+		} else if (activeTab === "mapel") {
 			if (modalMode === "create") hasil = await tambahMapelAction({ kode: identifier, nama });
 			else hasil = await editMapelAction(editingId, { kode: identifier, nama });
+		} else if (activeTab === "tahunAjar") {
+			if (modalMode === "create") hasil = await tambahTahunAjarAction({ nama: namaTahun, isActive: isActiveTahun });
+			else hasil = await editTahunAjarAction(editingId, { nama: namaTahun, isActive: isActiveTahun });
 		}
 
 		setLoading(false);
@@ -328,8 +410,7 @@ export default function MasterClient({
 		} else if (activeTab === "guru") {
 			templateData = [{ NPP: "198501232010011001", Nama_Lengkap: "Drs. Hartono, M.Pd", Jenis_Kelamin: "Laki-laki" }];
 			fileName = "Template_Import_Guru_Massal.xlsx";
-		} else {
-			// Template khusus Mapel
+		} else if (activeTab === "mapel") {
 			templateData = [
 				{ Kode_Mapel: "MAT-WAJIB", Nama_Mapel: "Matematika Wajib" },
 				{ Kode_Mapel: "BIG-LINMAT", Nama_Mapel: "Bahasa Inggris Lintas Minat" },
@@ -356,18 +437,18 @@ export default function MasterClient({
 		let hasil;
 		if (activeTab === "siswa") hasil = await assignKelasMassalAction(formData);
 		else if (activeTab === "guru") hasil = await importGuruMassalAction(formData);
-		else hasil = await importMapelMassalAction(formData); // Jalankan Aksi Mapel
+		else hasil = await importMapelMassalAction(formData);
 
 		setLoading(false);
-		if (hasil.success) {
+		if (hasil?.success) {
 			setToast({ show: true, message: hasil.message, type: "success" });
 			setIsUploadModalOpen(false);
 			setFileExcel(null);
-		} else setToast({ show: true, message: hasil.message, type: "error" });
+		} else setToast({ show: true, message: hasil?.message || "Error saat upload", type: "error" });
 		setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 3000);
 	};
 
-	const titleLabels = { siswa: "Siswa", guru: "Guru", mapel: "Mata Pelajaran" };
+	const titleLabels = { siswa: "Siswa", guru: "Guru", mapel: "Mata Pelajaran", tahunAjar: "Tahun Ajar" };
 
 	return (
 		<>
@@ -385,15 +466,17 @@ export default function MasterClient({
 							</button>
 						)}
 
-						{/* KUNCI PERBAIKAN: Tombol ini sekarang tampil di SEMUA tab secara dinamis */}
-						<button className={styles.btnSecondary} onClick={() => setIsUploadModalOpen(true)}>
-							<Users size={16} />
-							{activeTab === "siswa"
-								? "Import Siswa Massal"
-								: activeTab === "guru"
-									? "Import Guru Massal"
-									: "Import Mapel Massal"}
-						</button>
+						{/* Sembunyikan tombol Import Massal jika berada di tab Tahun Ajar */}
+						{activeTab !== "tahunAjar" && (
+							<button className={styles.btnSecondary} onClick={() => setIsUploadModalOpen(true)}>
+								<Users size={16} />
+								{activeTab === "siswa"
+									? "Import Siswa Massal"
+									: activeTab === "guru"
+										? "Import Guru Massal"
+										: "Import Mapel Massal"}
+							</button>
+						)}
 
 						<button
 							className={styles.btnPrimary}
@@ -427,126 +510,217 @@ export default function MasterClient({
 					>
 						Data Mapel
 					</button>
+
+					{/* TAB BARU: TAHUN AJAR */}
+					<button
+						className={`${styles.tabButton} ${activeTab === "tahunAjar" ? styles.tabButtonActive : ""}`}
+						onClick={() => handleTabChange("tahunAjar")}
+					>
+						Data Tahun Ajar
+					</button>
 				</div>
 
 				{/* MAIN CONTENT CARD */}
 				<div className={styles.contentCard}>
 					{/* FILTER SECTION */}
-					<div className={styles.filterSection}>
-						{activeTab === "siswa" && (
-							<div className={styles.filterGroup}>
-								<label className={styles.filterLabel}>Filter Kelas</label>
-								<select
-									className={styles.filterSelect}
-									value={filterKelas}
-									onChange={(e) => setFilterKelas(e.target.value)}
-								>
-									<option value="Semua Kelas">Semua Kelas</option>
-									{uniqueClasses.map((kelas) => (
-										<option key={kelas} value={kelas}>
-											{kelas}
-										</option>
-									))}
-									<option value="Belum Diassign">Belum Diassign</option>
-								</select>
-							</div>
-						)}
-						{activeTab === "guru" && (
-							<div className={styles.filterGroup}>
-								<label className={styles.filterLabel}>Status Guru</label>
-								<select
-									className={styles.filterSelect}
-									value={filterStatusGuru}
-									onChange={(e) => setFilterStatusGuru(e.target.value)}
-								>
-									<option value="Semua Status">Semua Status</option>
-									<option value="Aktif">Aktif Mengajar</option>
-									<option value="Nonaktif">Nonaktif / Cuti</option>
-								</select>
-							</div>
-						)}
-						{activeTab === "mapel" && <div className={styles.filterGroup}></div>}
+					{activeTab !== "tahunAjar" && (
+						<div className={styles.filterSection}>
+							{activeTab === "siswa" && (
+								<div className={styles.filterGroup}>
+									<label className={styles.filterLabel}>Filter Kelas</label>
+									<select
+										className={styles.filterSelect}
+										value={filterKelas}
+										onChange={(e) => setFilterKelas(e.target.value)}
+									>
+										<option value="Semua Kelas">Semua Kelas</option>
+										{uniqueClasses.map((kelas) => (
+											<option key={kelas} value={kelas}>
+												{kelas}
+											</option>
+										))}
+										<option value="Belum Diassign">Belum Diassign</option>
+									</select>
+								</div>
+							)}
+							{activeTab === "guru" && (
+								<div className={styles.filterGroup}>
+									<label className={styles.filterLabel}>Status Guru</label>
+									<select
+										className={styles.filterSelect}
+										value={filterStatusGuru}
+										onChange={(e) => setFilterStatusGuru(e.target.value)}
+									>
+										<option value="Semua Status">Semua Status</option>
+										<option value="Aktif">Aktif Mengajar</option>
+										<option value="Nonaktif">Nonaktif / Cuti</option>
+									</select>
+								</div>
+							)}
+							{activeTab === "mapel" && <div className={styles.filterGroup}></div>}
 
-						<div className={styles.searchGroup}>
-							<Search size={18} className={styles.searchIcon} />
-							<input
-								type="text"
-								placeholder={`Cari ${activeTab === "mapel" ? "kode atau nama mapel" : activeTab === "siswa" ? "nama atau NISN" : "nama atau NPP"}...`}
-								className={styles.searchInput}
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-							/>
+							<div className={styles.searchGroup}>
+								<Search size={18} className={styles.searchIcon} />
+								<input
+									type="text"
+									placeholder={`Cari ${activeTab === "mapel" ? "kode atau nama mapel" : activeTab === "siswa" ? "nama atau NISN" : "nama atau NPP"}...`}
+									className={styles.searchInput}
+									value={searchQuery}
+									onChange={(e) => setSearchQuery(e.target.value)}
+								/>
+							</div>
 						</div>
-					</div>
+					)}
 
 					{/* TABLE SECTION */}
 					<div className={styles.tableWrapper}>
 						<table className={styles.dataTable}>
 							<thead>
-								<tr>
-									<th style={{ width: "40px" }}>
-										<input
-											type="checkbox"
-											className={styles.checkbox}
-											onChange={handleSelectAll}
-											checked={
-												selectedIds.length > 0 &&
-												selectedIds.length ===
-													(activeTab === "siswa"
-														? sortedSiswa.length
-														: activeTab === "guru"
-															? sortedGuru.length
-															: sortedMapel.length)
-											}
-										/>
-									</th>
-									{activeTab !== "mapel" ? (
-										<>
-											<th
-												style={{ cursor: "pointer" }}
-												onClick={() => handleSort(activeTab === "siswa" ? "nisn" : "npp")}
-											>
-												<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-													{activeTab === "siswa" ? "NISN / NIS" : "NIP / NPP"} <ArrowUpDown size={12} />
-												</div>
-											</th>
-											<th style={{ cursor: "pointer" }} onClick={() => handleSort("nama")}>
-												<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-													Nama Lengkap <ArrowUpDown size={12} />
-												</div>
-											</th>
-											<th style={{ cursor: "pointer" }} onClick={() => handleSort("jenisKelamin")}>
-												<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-													Jenis Kelamin <ArrowUpDown size={12} />
-												</div>
-											</th>
-											<th
-												style={{ cursor: "pointer" }}
-												onClick={() => handleSort(activeTab === "siswa" ? "kelas" : "status")}
-											>
-												<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-													{activeTab === "siswa" ? "Kelas Saat Ini" : "Status"} <ArrowUpDown size={12} />
-												</div>
-											</th>
-										</>
-									) : (
-										<>
-											<th style={{ cursor: "pointer" }} onClick={() => handleSort("kode")}>
-												<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-													Kode Mapel <ArrowUpDown size={12} />
-												</div>
-											</th>
-											<th style={{ cursor: "pointer" }} onClick={() => handleSort("nama")}>
-												<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-													Nama Mata Pelajaran <ArrowUpDown size={12} />
-												</div>
-											</th>
-										</>
-									)}
-									<th>Aksi</th>
-								</tr>
+								{activeTab === "tahunAjar" ? (
+									<tr>
+										<th style={{ width: "40px" }}>
+											<input
+												type="checkbox"
+												className={styles.checkbox}
+												onChange={handleSelectAll}
+												checked={selectedIds.length > 0 && selectedIds.length === sortedTahunAjar.length}
+											/>
+										</th>
+										<th style={{ cursor: "pointer" }} onClick={() => handleSort("nama")}>
+											<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+												Nama Tahun Ajaran & Semester <ArrowUpDown size={12} />
+											</div>
+										</th>
+										<th style={{ cursor: "pointer" }} onClick={() => handleSort("status")}>
+											<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+												Status <ArrowUpDown size={12} />
+											</div>
+										</th>
+										<th style={{ textAlign: "right" }}>Aksi Pemetaan</th>
+									</tr>
+								) : (
+									<tr>
+										<th style={{ width: "40px" }}>
+											<input
+												type="checkbox"
+												className={styles.checkbox}
+												onChange={handleSelectAll}
+												checked={
+													selectedIds.length > 0 &&
+													selectedIds.length ===
+														(activeTab === "siswa"
+															? sortedSiswa.length
+															: activeTab === "guru"
+																? sortedGuru.length
+																: sortedMapel.length)
+												}
+											/>
+										</th>
+										{activeTab !== "mapel" ? (
+											<>
+												<th
+													style={{ cursor: "pointer" }}
+													onClick={() => handleSort(activeTab === "siswa" ? "nisn" : "npp")}
+												>
+													<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+														{activeTab === "siswa" ? "NISN / NIS" : "NIP / NPP"} <ArrowUpDown size={12} />
+													</div>
+												</th>
+												<th style={{ cursor: "pointer" }} onClick={() => handleSort("nama")}>
+													<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+														Nama Lengkap <ArrowUpDown size={12} />
+													</div>
+												</th>
+												<th style={{ cursor: "pointer" }} onClick={() => handleSort("jenisKelamin")}>
+													<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+														Jenis Kelamin <ArrowUpDown size={12} />
+													</div>
+												</th>
+												<th
+													style={{ cursor: "pointer" }}
+													onClick={() => handleSort(activeTab === "siswa" ? "kelas" : "status")}
+												>
+													<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+														{activeTab === "siswa" ? "Kelas Saat Ini" : "Status"} <ArrowUpDown size={12} />
+													</div>
+												</th>
+											</>
+										) : (
+											<>
+												<th style={{ cursor: "pointer" }} onClick={() => handleSort("kode")}>
+													<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+														Kode Mapel <ArrowUpDown size={12} />
+													</div>
+												</th>
+												<th style={{ cursor: "pointer" }} onClick={() => handleSort("nama")}>
+													<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+														Nama Mata Pelajaran <ArrowUpDown size={12} />
+													</div>
+												</th>
+											</>
+										)}
+										<th>Aksi</th>
+									</tr>
+								)}
 							</thead>
 							<tbody>
+								{/* RENDER KHUSUS TAHUN AJAR (PLACEHOLDER) */}
+								{activeTab === "tahunAjar" &&
+									(sortedTahunAjar.length === 0 ? (
+										<tr>
+											<td colSpan={4} style={{ textAlign: "center", color: "#6b7280", padding: "2rem" }}>
+												Tidak ada data Tahun Ajaran.
+											</td>
+										</tr>
+									) : (
+										sortedTahunAjar.map((tahun) => (
+											<tr key={tahun.id}>
+												<td>
+													<input
+														type="checkbox"
+														className={styles.checkbox}
+														checked={selectedIds.includes(tahun.id)}
+														onChange={(e) => handleSelectRow(tahun.id, e.target.checked)}
+													/>
+												</td>
+												<td style={{ fontWeight: 600, color: "#111827", fontSize: "0.95rem" }}>{tahun.nama}</td>
+												<td>
+													<span className={tahun.isActive ? styles.badgeActive : styles.badgeUnassigned}>
+														{tahun.isActive ? "Aktif" : "Tidak Aktif"}
+													</span>
+												</td>
+												<td>
+													<div
+														style={{
+															display: "flex",
+															gap: "0.75rem",
+															justifyContent: "flex-end",
+															alignItems: "center",
+														}}
+													>
+														<button
+															className={styles.btnSecondary}
+															style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem", height: "auto" }}
+															onClick={() => handleOpenMapping(tahun)} // <--- UBAH BAGIAN INI
+														>
+															<Network size={14} /> Pemetaan Mapel
+														</button>
+														<div
+															style={{ width: "1px", height: "20px", backgroundColor: "#e5e7eb", margin: "0 4px" }}
+														></div>
+														<Edit2 size={16} className={styles.actionIcon} onClick={() => handleEditTahun(tahun)} />
+														<Trash2
+															size={16}
+															className={styles.actionIcon}
+															style={{ color: "#ef4444" }}
+															onClick={() => confirmDelete([tahun.id])}
+														/>
+													</div>
+												</td>
+											</tr>
+										))
+									))}
+
 								{activeTab === "siswa" &&
 									(sortedSiswa.length === 0 ? (
 										<tr>
@@ -679,7 +853,9 @@ export default function MasterClient({
 								? sortedSiswa.length
 								: activeTab === "guru"
 									? sortedGuru.length
-									: sortedMapel.length}{" "}
+									: activeTab === "mapel"
+										? sortedMapel.length
+										: 0}{" "}
 							data
 						</div>
 						<div className={styles.paginationControls}>
@@ -695,6 +871,7 @@ export default function MasterClient({
 				</div>
 			</div>
 
+			{/* MODAL DAN TOAST TETAP SAMA, TIDAK ADA PERUBAHAN */}
 			{/* === MODAL TAMBAH / EDIT FORM === */}
 			{isModalOpen && (
 				<div className={styles.modalOverlay}>
@@ -710,110 +887,145 @@ export default function MasterClient({
 
 						<form onSubmit={handleSimpanData}>
 							<div className={styles.modalBody}>
-								<div className={styles.formGroup}>
-									<label className={styles.formLabel}>
-										{activeTab === "siswa"
-											? "NISN (Username)"
-											: activeTab === "guru"
-												? "NIP / NPP (Username)"
-												: "Kode Mata Pelajaran"}
-									</label>
-									<input
-										type="text"
-										required
-										value={identifier}
-										onChange={(e) => setIdentifier(e.target.value)}
-										className={styles.formInput}
-										placeholder={activeTab === "mapel" ? "Contoh: BIG-01, MAT-WAJIB" : "Masukkan Nomor Identitas..."}
-									/>
-								</div>
+								{/* KHUSUS UNTUK TAHUN AJAR - Placeholder Form Sementara */}
+								{activeTab === "tahunAjar" ? (
+									<>
+										<div className={styles.formGroup}>
+											<label className={styles.formLabel}>Nama Tahun Ajaran & Semester</label>
+											<input
+												type="text"
+												required
+												value={namaTahun}
+												onChange={(e) => setNamaTahun(e.target.value)}
+												className={styles.formInput}
+												placeholder="Contoh: 2026/2027 Ganjil"
+											/>
+										</div>
+										<div className={styles.formGroup}>
+											<label className={styles.formLabel}>Status Aktif</label>
+											<select
+												required
+												value={isActiveTahun ? "true" : "false"}
+												onChange={(e) => setIsActiveTahun(e.target.value === "true")}
+												className={styles.formSelect}
+											>
+												<option value="true">Aktif (Berjalan Saat Ini)</option>
+												<option value="false">Tidak Aktif (Riwayat Lama)</option>
+											</select>
+										</div>
+									</>
+								) : (
+									<>
+										<div className={styles.formGroup}>
+											<label className={styles.formLabel}>
+												{activeTab === "siswa"
+													? "NISN (Username)"
+													: activeTab === "guru"
+														? "NIP / NPP (Username)"
+														: "Kode Mata Pelajaran"}
+											</label>
+											<input
+												type="text"
+												required
+												value={identifier}
+												onChange={(e) => setIdentifier(e.target.value)}
+												className={styles.formInput}
+												placeholder={
+													activeTab === "mapel" ? "Contoh: BIG-01, MAT-WAJIB" : "Masukkan Nomor Identitas..."
+												}
+											/>
+										</div>
 
-								{activeTab === "siswa" && (
-									<div className={styles.formGroup}>
-										<label className={styles.formLabel}>NIS Sekolah</label>
-										<input
-											type="text"
-											required
-											value={nis}
-											onChange={(e) => setNis(e.target.value)}
-											className={styles.formInput}
-											placeholder="Masukkan NIS Sekolah"
-										/>
-									</div>
-								)}
+										{activeTab === "siswa" && (
+											<div className={styles.formGroup}>
+												<label className={styles.formLabel}>NIS Sekolah</label>
+												<input
+													type="text"
+													required
+													value={nis}
+													onChange={(e) => setNis(e.target.value)}
+													className={styles.formInput}
+													placeholder="Masukkan NIS Sekolah"
+												/>
+											</div>
+										)}
 
-								<div className={styles.formGroup}>
-									<label className={styles.formLabel}>
-										{activeTab === "mapel" ? "Nama Mata Pelajaran" : "Nama Lengkap"}
-									</label>
-									<input
-										type="text"
-										required
-										value={nama}
-										onChange={(e) => setNama(e.target.value)}
-										className={styles.formInput}
-										placeholder={activeTab === "mapel" ? "Contoh: Bahasa Inggris Lintas Minat" : "Contoh: Budi Santoso"}
-									/>
-								</div>
+										<div className={styles.formGroup}>
+											<label className={styles.formLabel}>
+												{activeTab === "mapel" ? "Nama Mata Pelajaran" : "Nama Lengkap"}
+											</label>
+											<input
+												type="text"
+												required
+												value={nama}
+												onChange={(e) => setNama(e.target.value)}
+												className={styles.formInput}
+												placeholder={
+													activeTab === "mapel" ? "Contoh: Bahasa Inggris Lintas Minat" : "Contoh: Budi Santoso"
+												}
+											/>
+										</div>
 
-								{activeTab !== "mapel" && (
-									<div className={styles.formGroup}>
-										<label className={styles.formLabel}>Jenis Kelamin</label>
-										<select
-											required
-											value={jenisKelamin}
-											onChange={(e) => setJenisKelamin(e.target.value)}
-											className={styles.formSelect}
-										>
-											<option value="" disabled>
-												Pilih Jenis Kelamin
-											</option>
-											<option value="Laki-laki">Laki-laki</option>
-											<option value="Perempuan">Perempuan</option>
-										</select>
-									</div>
-								)}
+										{activeTab !== "mapel" && (
+											<div className={styles.formGroup}>
+												<label className={styles.formLabel}>Jenis Kelamin</label>
+												<select
+													required
+													value={jenisKelamin}
+													onChange={(e) => setJenisKelamin(e.target.value)}
+													className={styles.formSelect}
+												>
+													<option value="" disabled>
+														Pilih Jenis Kelamin
+													</option>
+													<option value="Laki-laki">Laki-laki</option>
+													<option value="Perempuan">Perempuan</option>
+												</select>
+											</div>
+										)}
 
-								{activeTab === "guru" && modalMode === "edit" && (
-									<div className={styles.formGroup}>
-										<label className={styles.formLabel}>Status Mengajar</label>
-										<select
-											required
-											value={statusGuru ? "true" : "false"}
-											onChange={(e) => setStatusGuru(e.target.value === "true")}
-											className={styles.formSelect}
-										>
-											<option value="true">Aktif Mengajar</option>
-											<option value="false">Nonaktif / Cuti</option>
-										</select>
-									</div>
-								)}
+										{activeTab === "guru" && modalMode === "edit" && (
+											<div className={styles.formGroup}>
+												<label className={styles.formLabel}>Status Mengajar</label>
+												<select
+													required
+													value={statusGuru ? "true" : "false"}
+													onChange={(e) => setStatusGuru(e.target.value === "true")}
+													className={styles.formSelect}
+												>
+													<option value="true">Aktif Mengajar</option>
+													<option value="false">Nonaktif / Cuti</option>
+												</select>
+											</div>
+										)}
 
-								{activeTab === "siswa" && (
-									<div className={styles.formGroup}>
-										<label className={styles.formLabel}>Kelas</label>
-										<input
-											type="text"
-											required
-											value={kelasAwal}
-											onChange={(e) => setKelasAwal(e.target.value)}
-											className={styles.formInput}
-											placeholder="Contoh: X MIPA 1"
-											list="daftar-kelas"
-										/>
-										<datalist id="daftar-kelas">
-											{uniqueClasses.map((kelas) => (
-												<option key={kelas} value={kelas} />
-											))}
-										</datalist>
-									</div>
-								)}
+										{activeTab === "siswa" && (
+											<div className={styles.formGroup}>
+												<label className={styles.formLabel}>Kelas</label>
+												<input
+													type="text"
+													required
+													value={kelasAwal}
+													onChange={(e) => setKelasAwal(e.target.value)}
+													className={styles.formInput}
+													placeholder="Contoh: X MIPA 1"
+													list="daftar-kelas"
+												/>
+												<datalist id="daftar-kelas">
+													{uniqueClasses.map((kelas) => (
+														<option key={kelas} value={kelas} />
+													))}
+												</datalist>
+											</div>
+										)}
 
-								{modalMode === "create" && activeTab !== "mapel" && (
-									<div className={styles.formGroup}>
-										<label className={styles.formLabel}>Password Default</label>
-										<input type="text" disabled className={styles.formInput} value="smanda123" />
-									</div>
+										{modalMode === "create" && activeTab !== "mapel" && (
+											<div className={styles.formGroup}>
+												<label className={styles.formLabel}>Password Default</label>
+												<input type="text" disabled className={styles.formInput} value="smanda123" />
+											</div>
+										)}
+									</>
 								)}
 							</div>
 							<div className={styles.modalFooter}>
@@ -834,7 +1046,7 @@ export default function MasterClient({
 				</div>
 			)}
 
-			{/* === MODAL POP-UP UPLOAD EXCEL DRAG & DROP === */}
+			{/* SISA MODAL IMPORT DAN DELETE TETAP SAMA */}
 			{isUploadModalOpen && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContainer}>
@@ -856,7 +1068,6 @@ export default function MasterClient({
 								<X size={20} />
 							</button>
 						</div>
-
 						<form onSubmit={handleUploadExcel}>
 							<div className={styles.modalBody}>
 								<div
@@ -893,7 +1104,6 @@ export default function MasterClient({
 										<li>Seret atau unggah file tersebut kembali ke form ini.</li>
 									</ol>
 								</div>
-
 								<div className={styles.formGroup} style={{ marginBottom: "1.5rem" }}>
 									<button
 										type="button"
@@ -904,7 +1114,6 @@ export default function MasterClient({
 										⬇️ Download Template Excel (.xlsx)
 									</button>
 								</div>
-
 								<div className={styles.formGroup}>
 									<label className={styles.formLabel}>Unggah File Excel</label>
 									<div
@@ -955,7 +1164,6 @@ export default function MasterClient({
 				</div>
 			)}
 
-			{/* MODAL KONFIRMASI HAPUS */}
 			{isDeleteModalOpen && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContainer} style={{ maxWidth: "400px" }}>
@@ -992,8 +1200,88 @@ export default function MasterClient({
 					</div>
 				</div>
 			)}
+			{/* === MODAL PEMETAAN (MAPPING) MAPEL === */}
+			{isMappingModalOpen && (
+				<div className={styles.modalOverlay}>
+					<div className={styles.modalContainer}>
+						<div className={styles.modalHeader}>
+							<h2 className={styles.modalTitle}>Pemetaan Mata Pelajaran</h2>
+							<button onClick={() => setIsMappingModalOpen(false)} className={styles.closeBtn}>
+								<X size={20} />
+							</button>
+						</div>
 
-			{/* TOAST NOTIFICATION */}
+						<form onSubmit={handleSimpanMapping}>
+							<div className={styles.modalBody}>
+								<p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "1rem" }}>
+									Pilih mata pelajaran yang akan diajarkan pada Tahun Ajaran ini.
+								</p>
+
+								{/* Kotak Daftar Mapel yang bisa di-scroll */}
+								<div
+									style={{
+										maxHeight: "300px",
+										overflowY: "auto",
+										border: "1px solid #e5e7eb",
+										borderRadius: "0.5rem",
+										padding: "0.5rem",
+									}}
+								>
+									{initialMapel.length === 0 ? (
+										<div style={{ padding: "1rem", textAlign: "center", color: "#9ca3af" }}>
+											Belum ada data Mata Pelajaran.
+										</div>
+									) : (
+										initialMapel.map((mapel) => (
+											<label
+												key={mapel.id}
+												style={{
+													display: "flex",
+													alignItems: "center",
+													gap: "0.75rem",
+													padding: "0.75rem",
+													borderBottom: "1px solid #f3f4f6",
+													cursor: "pointer",
+												}}
+											>
+												<input
+													type="checkbox"
+													className={styles.checkbox}
+													checked={mappedMapelIds.includes(mapel.id)}
+													onChange={(e) => handleToggleMapelMapping(mapel.id, e.target.checked)}
+												/>
+												<div style={{ display: "flex", flexDirection: "column" }}>
+													<span style={{ fontWeight: 600, color: "#374151", fontSize: "0.9rem" }}>{mapel.nama}</span>
+													<span style={{ fontSize: "0.75rem", color: "#6b7280" }}>Kode: {mapel.kode}</span>
+												</div>
+											</label>
+										))
+									)}
+								</div>
+
+								<div style={{ marginTop: "1rem", fontSize: "0.8rem", color: "#10b981", fontWeight: 600 }}>
+									Total terpilih: {mappedMapelIds.length} Mata Pelajaran
+								</div>
+							</div>
+
+							<div className={styles.modalFooter}>
+								<button
+									type="button"
+									disabled={loading}
+									onClick={() => setIsMappingModalOpen(false)}
+									className={styles.btnCancel}
+								>
+									Batal
+								</button>
+								<button type="submit" disabled={loading} className={styles.btnPrimary}>
+									{loading ? "Menyimpan..." : "Simpan Pemetaan"}
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			)}
+
 			{toast.show && (
 				<div className={styles.toastOverlay}>
 					<div className={`${styles.toastContent} ${toast.type === "error" ? styles.toastError : ""}`}>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation"; // <-- IMPORT BARU UNTUK ROUTING
+
 import {
 	Plus,
 	Printer,
@@ -19,14 +21,15 @@ import {
 } from "lucide-react";
 import styles from "./jadwal.module.css";
 import { simpanJadwalAction, hapusJadwalAction } from "./actions";
-import * as XLSX from "xlsx"; // Pastikan library ini sudah ter-install (npm install xlsx)
+import * as XLSX from "xlsx";
 
+// --- INTERFACE DIPERBARUI ---
 interface PropJadwal {
 	kelasList: { id: string; nama: string; jumlahSiswa: number; waliKelas: string }[];
 	pemetaanDasar: { kelasId: string; mapelId: string; mapelNama: string; guruId: string; guruNama: string }[];
 	jadwalExisting: any[];
-	tahunAjaran: string;
-	semester: string;
+	daftarTahunAjaran: { id: string; nama: string; isActive: boolean }[]; // <-- BARU
+	tahunAjaranAktifId: string; // <-- BARU
 }
 
 const HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
@@ -38,20 +41,31 @@ const SLOT_WAKTU = [
 	{ jam: "13:00 - 14:30", label: "Jam 7-8", isBreak: false },
 ];
 
-export default function JadwalClient({ kelasList, pemetaanDasar, jadwalExisting, tahunAjaran, semester }: PropJadwal) {
+export default function JadwalClient({
+	kelasList,
+	pemetaanDasar,
+	jadwalExisting,
+	daftarTahunAjaran,
+	tahunAjaranAktifId,
+}: PropJadwal) {
+	const router = useRouter(); // <-- INISIALISASI ROUTER
+
 	const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
 	const [selectedKelasId, setSelectedKelasId] = useState("");
 	const [activeKelasName, setActiveKelasName] = useState("");
 	const [activeSiswaCount, setActiveSiswaCount] = useState(0);
+
 	const [filterTingkat, setFilterTingkat] = useState("Semua");
+	// <-- STATE BARU UNTUK FILTER TAHUN AJARAN -->
+	const [selectedTahunId, setSelectedTahunId] = useState(tahunAjaranAktifId);
 
 	// State Modals
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 	const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
 
-	// State Modal Print & Download (BARU)
+	// State Modal Print & Download
 	const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 	const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
@@ -141,14 +155,13 @@ export default function JadwalClient({ kelasList, pemetaanDasar, jadwalExisting,
 		setDeleteDataId(null);
 	};
 
-	// --- LOGIKA EXPORT & PRINT (BARU) ---
+	// --- LOGIKA EXPORT & PRINT ---
 	const handlePrint = () => {
 		setIsPrintModalOpen(false);
-		window.print(); // Memanggil fungsi cetak bawaan browser
+		window.print();
 	};
 
 	const exportToExcel = () => {
-		// 1. Siapkan struktur data untuk Excel
 		const excelData: any[] = [];
 
 		SLOT_WAKTU.forEach((slot) => {
@@ -173,7 +186,6 @@ export default function JadwalClient({ kelasList, pemetaanDasar, jadwalExisting,
 			}
 		});
 
-		// 2. Buat file Excel dan unduh
 		const ws = XLSX.utils.json_to_sheet(excelData);
 		const wb = XLSX.utils.book_new();
 		XLSX.utils.book_append_sheet(wb, ws, `Jadwal ${activeKelasName}`);
@@ -184,8 +196,6 @@ export default function JadwalClient({ kelasList, pemetaanDasar, jadwalExisting,
 
 	const exportToPDF = () => {
 		setIsDownloadModalOpen(false);
-		// Untuk PDF murni client-side, cara paling rapi dan ringan adalah menggunakan print dialog
-		// dengan mengarahkan user untuk memilih "Save as PDF" (Simpan sebagai PDF).
 		setTimeout(() => {
 			window.print();
 		}, 300);
@@ -212,9 +222,11 @@ export default function JadwalClient({ kelasList, pemetaanDasar, jadwalExisting,
 	if (viewMode === "list") {
 		const filteredKelasList = kelasList.filter((k) => filterTingkat === "Semua" || k.nama.startsWith(filterTingkat));
 
+		// Cari nama Tahun Ajaran yang sedang dipilih untuk ditampilkan sebagai Badge
+		const tahunAjaranTerpilih = daftarTahunAjaran.find((t) => t.id === selectedTahunId);
+
 		return (
 			<div className={styles.pageContainer}>
-				{/* Konten Halaman List (Sama seperti sebelumnya) */}
 				<div className={styles.pageHeader}>
 					<div>
 						<h1 className={styles.pageTitle}>Manajemen Jadwal Pelajaran</h1>
@@ -236,29 +248,72 @@ export default function JadwalClient({ kelasList, pemetaanDasar, jadwalExisting,
 							<option value="XII ">Kelas XII</option>
 						</select>
 					</div>
+
+					{/* --- DROPDOWN TAHUN AJARAN DINAMIS --- */}
 					<div className={styles.formGroup} style={{ marginBottom: 0, flex: 1 }}>
 						<label className={styles.formLabel}>Tahun Ajaran</label>
-						<select className={styles.formInput} disabled>
-							<option>
-								{tahunAjaran} - {semester}
-							</option>
+						<select
+							className={styles.formInput}
+							value={selectedTahunId}
+							onChange={(e) => {
+								const newTahunId = e.target.value;
+								setSelectedTahunId(newTahunId);
+								// Langsung navigasi secara dinamis tanpa tombol!
+								router.push(`/admin/jadwal?tahunId=${newTahunId}`);
+							}}
+							// Tambahkan sedikit styling agar terlihat menonjol
+							style={{ border: "1px solid #0369a1", backgroundColor: "#f0f9ff" }}
+						>
+							{daftarTahunAjaran.length === 0 ? (
+								<option value="">Belum ada Tahun Ajaran</option>
+							) : (
+								daftarTahunAjaran.map((tahun) => (
+									<option key={tahun.id} value={tahun.id}>
+										{tahun.nama} {tahun.isActive ? "(Aktif)" : ""}
+									</option>
+								))
+							)}
 						</select>
 					</div>
-					<button className={styles.btnFilter}>
-						<Filter size={16} /> Terapkan Filter
-					</button>
+
+					{/* TOMBOL "TERAPKAN FILTER" TELAH DIHAPUS */}
 				</div>
 
-				<div className={styles.sectionTitleContainer}>
-					<h2 className={styles.sectionTitle}>
+				<div
+					className={styles.sectionTitleContainer}
+					style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}
+				>
+					<h2 className={styles.sectionTitle} style={{ margin: 0 }}>
 						{filterTingkat === "Semua" ? "Semua Kelas" : `Tingkat ${filterTingkat.trim()}`}
 					</h2>
-					<span className={styles.badgeKurikulum}>Kurikulum Merdeka</span>
+
+					{/* --- INDIKATOR TAHUN AJARAN YANG SEDANG DILIHAT --- */}
+					<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+						<span className={styles.badgeKurikulum}>Kurikulum Merdeka</span>
+						{tahunAjaranTerpilih && (
+							<span
+								style={{
+									backgroundColor: "#1e3a8a",
+									color: "white",
+									padding: "0.25rem 0.75rem",
+									borderRadius: "9999px",
+									fontSize: "0.75rem",
+									fontWeight: 600,
+									display: "flex",
+									alignItems: "center",
+									gap: "0.3rem",
+								}}
+							>
+								<Calendar size={12} /> {tahunAjaranTerpilih.nama} {tahunAjaranTerpilih.isActive ? " (Aktif)" : ""}
+							</span>
+						)}
+					</div>
 				</div>
 
 				<div className={styles.classGrid}>
 					{filteredKelasList.map((kelas) => (
 						<div key={kelas.id} className={styles.classCard}>
+							{/* ... (Isi classCard tetap sama persis seperti sebelumnya) ... */}
 							<div className={styles.classCardHeader}>
 								<h3 className={styles.classTitle}>{kelas.nama}</h3>
 								<div className={styles.studentBadge}>
@@ -439,12 +494,10 @@ export default function JadwalClient({ kelasList, pemetaanDasar, jadwalExisting,
 								Pilih format dokumen untuk jadwal kelas <strong>{activeKelasName}</strong>:
 							</p>
 							<div className={styles.exportOptions}>
-								{/* Opsi Excel */}
 								<div className={styles.btnExportCard} onClick={exportToExcel}>
 									<FileSpreadsheet size={40} color="#16a34a" />
 									<span className={styles.exportCardTitle}>Excel (.xlsx)</span>
 								</div>
-								{/* Opsi PDF */}
 								<div className={styles.btnExportCard} onClick={exportToPDF}>
 									<FileText size={40} color="#ef4444" />
 									<span className={styles.exportCardTitle}>PDF (.pdf)</span>
@@ -458,7 +511,6 @@ export default function JadwalClient({ kelasList, pemetaanDasar, jadwalExisting,
 				</div>
 			)}
 
-			{/* SISA MODAL LAINNYA (Tambah, Hapus, Error) TETAP SAMA */}
 			{isModalOpen && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContainer}>
