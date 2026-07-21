@@ -362,8 +362,12 @@ export default function JadwalClient({
 						Jadwal Kelas: {activeKelasName} <span className={styles.badgeSiswa}>{activeSiswaCount} Siswa</span>
 					</div>
 					<div className={styles.scheduleActions}>
-						<Printer size={20} onClick={() => setIsPrintModalOpen(true)} title="Cetak Jadwal" />
-						<Download size={20} onClick={() => setIsDownloadModalOpen(true)} title="Unduh Jadwal" />
+						<span title="Cetak Jadwal" style={{ cursor: "pointer", display: "flex" }}>
+							<Printer size={20} onClick={() => setIsPrintModalOpen(true)} />
+						</span>
+						<span title="Unduh Jadwal" style={{ cursor: "pointer", display: "flex" }}>
+							<Download size={20} onClick={() => setIsDownloadModalOpen(true)} />
+						</span>
 					</div>
 				</div>
 
