@@ -27,7 +27,6 @@ import styles from "./presensi.module.css";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 
-// Perhatikan kita memanggil aktifkanPresensiQR untuk merefresh token secara real!
 import { tutupPresensiQR, aktifkanPresensiQR } from "../jurnal/actions";
 
 type ModalConfig = {
@@ -39,6 +38,20 @@ type ModalConfig = {
 } | null;
 
 type ToastConfig = { id: number; message: string; type: "success" | "error" };
+
+// --- MAP WAKTU UNTUK MENDETEKSI SESI (Jam ke X-Y) ---
+const JAM_MAP = [
+	{ jam: 1, start: "07:00", end: "07:45" },
+	{ jam: 2, start: "07:45", end: "08:30" },
+	{ jam: 3, start: "08:30", end: "09:15" },
+	{ jam: 4, start: "09:15", end: "10:00" },
+	{ jam: 5, start: "10:30", end: "11:15" },
+	{ jam: 6, start: "11:15", end: "12:00" },
+	{ jam: 7, start: "13:00", end: "13:45" },
+	{ jam: 8, start: "13:45", end: "14:30" },
+	{ jam: 9, start: "14:30", end: "15:15" },
+	{ jam: 10, start: "15:15", end: "16:00" },
+];
 
 export default function PresensiClient({
 	activeSessions,
@@ -57,7 +70,6 @@ export default function PresensiClient({
 	const [toasts, setToasts] = useState<ToastConfig[]>([]);
 	const [loading, setLoading] = useState(false);
 
-	// Fungsi Toast
 	const showToast = (message: string, type: "success" | "error" = "success") => {
 		const id = Date.now();
 		setToasts((prev) => [...prev, { id, message, type }]);
@@ -66,7 +78,6 @@ export default function PresensiClient({
 		}, 3500);
 	};
 
-	// Tentukan View Mode saat render
 	let viewMode = "empty";
 	if (activeSessions.length > 0 && !selectedSession) viewMode = "list";
 	if (activeSessions.length > 0 && selectedSession) viewMode = "detail";
@@ -87,11 +98,10 @@ export default function PresensiClient({
 		const timer = setInterval(() => {
 			setTimeLeft((prev) => {
 				if (prev <= 1) {
-					// Waktunya merombak token QR di Database secara senyap!
 					aktifkanPresensiQR(selectedSession.id).then(() => {
 						router.refresh();
 					});
-					return 60; // Kembalikan ke 60 detik
+					return 60;
 				}
 				return prev - 1;
 			});
@@ -108,16 +118,34 @@ export default function PresensiClient({
 		}
 	}, [activeSessions]);
 
-	// --- FUNGSI AKSI ---
-	const formatWaktu = (mulai: string, selesai: string) => {
-		if (mulai.includes("-")) return `${mulai} WIB`;
+	// --- FUNGSI REVERSE-MAPPING UNTUK MENAMPILKAN JAM X-Y ---
+	const getFormatWaktuAktual = (session: any) => {
+		const mulai = session.waktuMulai;
+		const selesai = session.waktuSelesai;
+
+		// Fallback jika tidak ada waktu riil di jurnal
+		if (!mulai || !selesai) {
+			const jadwalMulai = session.jadwal?.jam || session.jadwal?.waktuMulai || "";
+			return isNaN(parseInt(jadwalMulai)) ? jadwalMulai : `Jam ${jadwalMulai}`;
+		}
+
+		const startMatch = JAM_MAP.find((m) => m.start === mulai);
+		const endMatch = JAM_MAP.find((m) => m.end === selesai);
+
+		if (startMatch && endMatch) {
+			const sesiStr =
+				startMatch.jam === endMatch.jam ? `Jam ${startMatch.jam}` : `Jam ${startMatch.jam}-${endMatch.jam}`;
+			return `${sesiStr} (${mulai} - ${selesai} WIB)`;
+		}
+
+		// Fallback jika input gurunya di luar standar (misal: 07:15)
 		return `${mulai} - ${selesai} WIB`;
 	};
 
+	// --- FUNGSI AKSI ---
 	const handleTutupPresensi = async (catatanKBM: string) => {
 		if (!selectedSession) return;
 		setLoading(true);
-		// Panggil actions dengan parameter catatanKBM
 		const res = await tutupPresensiQR(selectedSession.id, catatanKBM);
 		setLoading(false);
 		setModal(null);
@@ -171,7 +199,6 @@ export default function PresensiClient({
 
 	return (
 		<div className={styles.layoutWrapper}>
-			{/* === TOAST NOTIFICATION CONTAINER === */}
 			<div className={styles.toastContainer}>
 				{toasts.map((toast) => (
 					<div
@@ -188,7 +215,6 @@ export default function PresensiClient({
 				))}
 			</div>
 
-			{/* === MODAL KONFIRMASI === */}
 			{modal && modal.isOpen && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContent}>
@@ -197,7 +223,6 @@ export default function PresensiClient({
 						</div>
 						<div className={styles.modalMessage}>{modal.message}</div>
 
-						{/* FORM CATATAN */}
 						{modal.withInput && (
 							<div style={{ marginBottom: "1.5rem" }}>
 								<textarea
@@ -238,7 +263,6 @@ export default function PresensiClient({
 				</div>
 			)}
 
-			{/* === SIDEBAR KIRI === */}
 			<aside className={styles.sidebar}>
 				<div className={styles.sidebarHeader}>
 					<div className={styles.logoWrapper}>
@@ -284,7 +308,6 @@ export default function PresensiClient({
 				</div>
 			</aside>
 
-			{/* === MAIN CONTENT === */}
 			<main className={styles.mainContent}>
 				<header className={styles.topbar}>
 					<h1 className={styles.greeting}>E-Journal & Presensi</h1>
@@ -342,7 +365,8 @@ export default function PresensiClient({
 												<MapPin size={14} /> {session.jadwal.ruang || "Ruang Kelas"}
 											</div>
 											<div className={styles.qrCardInfoItem}>
-												<Clock size={14} /> {formatWaktu(session.jadwal.waktuMulai, session.jadwal.waktuSelesai)}
+												{/* IMPLEMENTASI KODE FORMAT WAKTU BARU */}
+												<Clock size={14} /> {getFormatWaktuAktual(session)}
 											</div>
 											<div className={styles.qrCardInfoItem}>
 												<UsersRound size={14} /> {session.jadwal.kelas.riwayatSiswa?.length || 0} Siswa Terdaftar
@@ -363,7 +387,6 @@ export default function PresensiClient({
 					{/* === STATE 3: LIVE DETAIL DASHBOARD === */}
 					{viewMode === "detail" && selectedSession && (
 						<div>
-							{/* TOMBOL KEMBALI */}
 							<button className={styles.btnBack} onClick={() => setSelectedSession(null)}>
 								<ArrowLeft size={16} /> Kembali ke Daftar QR Aktif
 							</button>
@@ -380,8 +403,8 @@ export default function PresensiClient({
 									</div>
 									<div className={styles.detailMeta}>
 										<span>
-											<Clock size={14} />{" "}
-											{formatWaktu(selectedSession.jadwal.waktuMulai, selectedSession.jadwal.waktuSelesai)}
+											{/* IMPLEMENTASI KODE FORMAT WAKTU BARU */}
+											<Clock size={14} /> {getFormatWaktuAktual(selectedSession)}
 										</span>
 										<span>
 											<MapPin size={14} /> {selectedSession.jadwal.ruang || "Ruang Kelas"}
@@ -430,10 +453,7 @@ export default function PresensiClient({
 
 									<div className={styles.manualCodeBox}>
 										<div className={styles.manualCodeLabel}>Kode Entri Manual</div>
-										<div className={styles.manualCodeValue}>
-											{/* Kita mengambil indeks ke-2 karena susunan tokennya: QR_ID_KODEMANUAL_WAKTU */}
-											{selectedSession.qrToken.split("_")[2] || "KODE-EROR"}
-										</div>
+										<div className={styles.manualCodeValue}>{selectedSession.qrToken.split("_")[2] || "KODE-EROR"}</div>
 									</div>
 								</div>
 

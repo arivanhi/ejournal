@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation"; // <-- IMPORT BARU UNTUK ROUTING
+import { useRouter } from "next/navigation";
 
 import {
 	Plus,
@@ -23,22 +23,27 @@ import styles from "./jadwal.module.css";
 import { simpanJadwalAction, hapusJadwalAction } from "./actions";
 import * as XLSX from "xlsx";
 
-// --- INTERFACE DIPERBARUI ---
 interface PropJadwal {
 	kelasList: { id: string; nama: string; jumlahSiswa: number; waliKelas: string }[];
 	pemetaanDasar: { kelasId: string; mapelId: string; mapelNama: string; guruId: string; guruNama: string }[];
 	jadwalExisting: any[];
-	daftarTahunAjaran: { id: string; nama: string; isActive: boolean }[]; // <-- BARU
-	tahunAjaranAktifId: string; // <-- BARU
+	daftarTahunAjaran: { id: string; nama: string; isActive: boolean }[];
+	tahunAjaranAktifId: string;
 }
 
 const HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
+
 const SLOT_WAKTU = [
-	{ jam: "07:00 - 08:30", label: "Jam 1-2", isBreak: false },
-	{ jam: "08:30 - 10:00", label: "Jam 3-4", isBreak: false },
-	{ jam: "10:00 - 10:30", label: "ISTIRAHAT PERTAMA", isBreak: true },
-	{ jam: "10:30 - 12:00", label: "Jam 5-6", isBreak: false },
-	{ jam: "13:00 - 14:30", label: "Jam 7-8", isBreak: false },
+	{ jam: "1", label: "1" },
+	{ jam: "2", label: "2" },
+	{ jam: "3", label: "3" },
+	{ jam: "4", label: "4" },
+	{ jam: "5", label: "5" },
+	{ jam: "6", label: "6" },
+	{ jam: "7", label: "7" },
+	{ jam: "8", label: "8" },
+	{ jam: "9", label: "9" },
+	{ jam: "10", label: "10" },
 ];
 
 export default function JadwalClient({
@@ -48,7 +53,7 @@ export default function JadwalClient({
 	daftarTahunAjaran,
 	tahunAjaranAktifId,
 }: PropJadwal) {
-	const router = useRouter(); // <-- INISIALISASI ROUTER
+	const router = useRouter();
 
 	const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
@@ -57,15 +62,12 @@ export default function JadwalClient({
 	const [activeSiswaCount, setActiveSiswaCount] = useState(0);
 
 	const [filterTingkat, setFilterTingkat] = useState("Semua");
-	// <-- STATE BARU UNTUK FILTER TAHUN AJARAN -->
 	const [selectedTahunId, setSelectedTahunId] = useState(tahunAjaranAktifId);
 
 	// State Modals
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 	const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
-
-	// State Modal Print & Download
 	const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 	const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
@@ -73,13 +75,16 @@ export default function JadwalClient({
 	const [deleteDataId, setDeleteDataId] = useState<string | null>(null);
 	const [errorMessage, setErrorMessage] = useState("");
 
+	// State Drag and Drop
+	const [draggedJadwal, setDraggedJadwal] = useState<any>(null);
+
 	// Form States
 	const [formId, setFormId] = useState("");
 	const [formMapel, setFormMapel] = useState("");
 	const [formGuru, setFormGuru] = useState("");
 	const [formGuruName, setFormGuruName] = useState("");
 	const [formHari, setFormHari] = useState("Senin");
-	const [formJam, setFormJam] = useState(SLOT_WAKTU[0].jam);
+	const [formJam, setFormJam] = useState(SLOT_WAKTU[1].jam);
 	const [formRuang, setFormRuang] = useState("");
 
 	const masukKeJadwal = (kelasId: string, kelasNama: string, jumlahSiswa: number) => {
@@ -90,6 +95,8 @@ export default function JadwalClient({
 	};
 
 	const openModal = (hari: string, jam: string, existingJadwal?: any) => {
+		if (hari === "Senin" && jam === "1") return;
+
 		setFormHari(hari);
 		setFormJam(jam);
 		if (existingJadwal) {
@@ -155,7 +162,68 @@ export default function JadwalClient({
 		setDeleteDataId(null);
 	};
 
-	// --- LOGIKA EXPORT & PRINT ---
+	// --- FUNGSI DRAG AND DROP DENGAN FITUR COPY (ALT) ---
+	const handleDragStart = (e: React.DragEvent, jadwal: any) => {
+		setDraggedJadwal(jadwal);
+		// Izinkan pindah maupun copy
+		e.dataTransfer.effectAllowed = "copyMove";
+		setTimeout(() => {
+			(e.target as HTMLElement).style.opacity = "0.5";
+		}, 0);
+	};
+
+	const handleDragEnd = (e: React.DragEvent) => {
+		(e.target as HTMLElement).style.opacity = "1";
+		setDraggedJadwal(null);
+	};
+
+	const handleDragOver = (e: React.DragEvent) => {
+		e.preventDefault();
+		// Beri efek visual 'plus' jika Alt ditahan, 'panah' jika tidak
+		e.dataTransfer.dropEffect = e.altKey ? "copy" : "move";
+	};
+
+	const handleDrop = async (e: React.DragEvent, targetHari: string, targetJam: string) => {
+		e.preventDefault();
+		if (!draggedJadwal) return;
+
+		// Cek apakah tombol Alt ditekan saat dilepas
+		const isCopyOperation = e.altKey;
+
+		// Cegah pindah/copy ke tempat yang sama
+		if (
+			draggedJadwal.hari === targetHari &&
+			(draggedJadwal.jam === targetJam || draggedJadwal.waktuMulai === targetJam)
+		) {
+			return;
+		}
+
+		if (targetHari === "Senin" && targetJam === "1") {
+			alert("Sesi ini khusus untuk Upacara Bendera. Tidak dapat menempatkan jadwal ke sini.");
+			return;
+		}
+
+		setLoading(true);
+		const hasil = await simpanJadwalAction({
+			// JIKA COPY: Kosongkan ID agar server membuat record baru. JIKA PINDAH: Kirim ID lama.
+			id: isCopyOperation ? "" : draggedJadwal.id,
+			kelasId: selectedKelasId,
+			mapelId: draggedJadwal.mapelId,
+			guruId: draggedJadwal.guruId,
+			hari: targetHari,
+			jam: targetJam,
+			ruang: draggedJadwal.ruang || "",
+		});
+		setLoading(false);
+		setDraggedJadwal(null);
+
+		if (!hasil.success) {
+			setErrorMessage(hasil.message);
+			setIsErrorModalOpen(true);
+		}
+	};
+	// ----------------------------------------------------
+
 	const handlePrint = () => {
 		setIsPrintModalOpen(false);
 		window.print();
@@ -165,25 +233,20 @@ export default function JadwalClient({
 		const excelData: any[] = [];
 
 		SLOT_WAKTU.forEach((slot) => {
-			if (slot.isBreak) {
-				excelData.push({
-					"Jam Pelajaran": slot.jam,
-					Senin: "ISTIRAHAT",
-					Selasa: "ISTIRAHAT",
-					Rabu: "ISTIRAHAT",
-					Kamis: "ISTIRAHAT",
-					Jumat: "ISTIRAHAT",
-				});
-			} else {
-				const rowData: any = { "Jam Pelajaran": slot.jam };
-				HARI.forEach((hari) => {
-					const jadwal = jadwalKelasAktif.find((j) => j.hari === hari && j.waktuMulai === slot.jam);
+			const rowData: any = { "Sesi/Jam": slot.jam };
+			HARI.forEach((hari) => {
+				if (hari === "Senin" && slot.jam === "1") {
+					rowData[hari] = "UPACARA BENDERA";
+				} else {
+					const jadwal = jadwalKelasAktif.find(
+						(j) => j.hari === hari && (j.waktuMulai === slot.jam || j.jam === slot.jam),
+					);
 					rowData[hari] = jadwal
 						? `${jadwal.mapel.nama}\n(${jadwal.guru.user.nama})\nRuang: ${jadwal.ruang || "-"}`
 						: "-";
-				});
-				excelData.push(rowData);
-			}
+				}
+			});
+			excelData.push(rowData);
 		});
 
 		const ws = XLSX.utils.json_to_sheet(excelData);
@@ -221,8 +284,6 @@ export default function JadwalClient({
 
 	if (viewMode === "list") {
 		const filteredKelasList = kelasList.filter((k) => filterTingkat === "Semua" || k.nama.startsWith(filterTingkat));
-
-		// Cari nama Tahun Ajaran yang sedang dipilih untuk ditampilkan sebagai Badge
 		const tahunAjaranTerpilih = daftarTahunAjaran.find((t) => t.id === selectedTahunId);
 
 		return (
@@ -249,7 +310,6 @@ export default function JadwalClient({
 						</select>
 					</div>
 
-					{/* --- DROPDOWN TAHUN AJARAN DINAMIS --- */}
 					<div className={styles.formGroup} style={{ marginBottom: 0, flex: 1 }}>
 						<label className={styles.formLabel}>Tahun Ajaran</label>
 						<select
@@ -258,10 +318,8 @@ export default function JadwalClient({
 							onChange={(e) => {
 								const newTahunId = e.target.value;
 								setSelectedTahunId(newTahunId);
-								// Langsung navigasi secara dinamis tanpa tombol!
 								router.push(`/admin/jadwal?tahunId=${newTahunId}`);
 							}}
-							// Tambahkan sedikit styling agar terlihat menonjol
 							style={{ border: "1px solid #0369a1", backgroundColor: "#f0f9ff" }}
 						>
 							{daftarTahunAjaran.length === 0 ? (
@@ -275,8 +333,6 @@ export default function JadwalClient({
 							)}
 						</select>
 					</div>
-
-					{/* TOMBOL "TERAPKAN FILTER" TELAH DIHAPUS */}
 				</div>
 
 				<div
@@ -287,7 +343,6 @@ export default function JadwalClient({
 						{filterTingkat === "Semua" ? "Semua Kelas" : `Tingkat ${filterTingkat.trim()}`}
 					</h2>
 
-					{/* --- INDIKATOR TAHUN AJARAN YANG SEDANG DILIHAT --- */}
 					<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
 						<span className={styles.badgeKurikulum}>Kurikulum Merdeka</span>
 						{tahunAjaranTerpilih && (
@@ -313,7 +368,6 @@ export default function JadwalClient({
 				<div className={styles.classGrid}>
 					{filteredKelasList.map((kelas) => (
 						<div key={kelas.id} className={styles.classCard}>
-							{/* ... (Isi classCard tetap sama persis seperti sebelumnya) ... */}
 							<div className={styles.classCardHeader}>
 								<h3 className={styles.classTitle}>{kelas.nama}</h3>
 								<div className={styles.studentBadge}>
@@ -361,7 +415,19 @@ export default function JadwalClient({
 					<div className={styles.scheduleTitle}>
 						Jadwal Kelas: {activeKelasName} <span className={styles.badgeSiswa}>{activeSiswaCount} Siswa</span>
 					</div>
-					<div className={styles.scheduleActions}>
+					<div className={styles.scheduleActions} style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+						{/* TIP UI */}
+						<div
+							style={{
+								fontSize: "0.75rem",
+								color: "#6b7280",
+								fontStyle: "italic",
+								borderRight: "1px solid #e5e7eb",
+								paddingRight: "1rem",
+							}}
+						>
+							💡 Tahan tombol <strong>Alt</strong> sambil drag untuk duplikat
+						</div>
 						<span title="Cetak Jadwal" style={{ cursor: "pointer", display: "flex" }}>
 							<Printer size={20} onClick={() => setIsPrintModalOpen(true)} />
 						</span>
@@ -370,6 +436,12 @@ export default function JadwalClient({
 						</span>
 					</div>
 				</div>
+
+				{loading && (
+					<div style={{ textAlign: "center", color: "#1e3a8a", margin: "10px 0", fontWeight: "bold" }}>
+						Menyinkronkan data...
+					</div>
+				)}
 
 				<table className={styles.scheduleTable}>
 					<thead>
@@ -383,68 +455,92 @@ export default function JadwalClient({
 						</tr>
 					</thead>
 					<tbody>
-						{SLOT_WAKTU.map((slot, idx) =>
-							slot.isBreak ? (
-								<tr key={idx} className={styles.breakRow}>
-									<td colSpan={1}>
-										{slot.jam.split(" - ")[0]} -<br />
-										{slot.jam.split(" - ")[1]}
-									</td>
-									<td colSpan={5}>🍴 {slot.label}</td>
-								</tr>
-							) : (
-								<tr key={idx}>
-									<td>
-										<div className={styles.timeCol}>
-											<span className={styles.timeText}>{slot.jam.split(" - ")[0]}</span>
-											<span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>-</span>
-											<span className={styles.timeText}>{slot.jam.split(" - ")[1]}</span>
-											<span className={styles.jamBadge}>{slot.label}</span>
-										</div>
-									</td>
-									{HARI.map((hari) => {
-										const jadwalSlot = jadwalKelasAktif.find((j) => j.hari === hari && j.waktuMulai === slot.jam);
+						{SLOT_WAKTU.map((slot, idx) => (
+							<tr key={idx}>
+								<td>
+									<div className={styles.timeCol}>
+										<span className={styles.timeText} style={{ fontSize: "1.1rem", fontWeight: 700 }}>
+											{slot.label}
+										</span>
+									</div>
+								</td>
+								{HARI.map((hari) => {
+									if (hari === "Senin" && slot.jam === "1") {
 										return (
 											<td key={`${hari}-${slot.jam}`}>
-												{jadwalSlot ? (
-													<div
-														className={`${styles.cardSlot} ${getCardColor(jadwalSlot.mapel.nama)}`}
-														onClick={() => openModal(hari, slot.jam, jadwalSlot)}
-													>
-														<div className={styles.mapelName}>
-															{jadwalSlot.mapel.nama}
-															<Trash2
-																size={14}
-																className={styles.deleteIcon}
-																onClick={(e) => confirmDelete(jadwalSlot.id, e)}
-															/>
-														</div>
-														<div className={styles.guruName}>
-															<User size={12} /> {jadwalSlot.guru.user.nama}
-														</div>
-														{jadwalSlot.ruang && (
-															<div className={styles.roomName}>
-																<MapPin size={12} /> {jadwalSlot.ruang}
-															</div>
-														)}
+												<div
+													className={`${styles.cardSlot} ${styles.cardBlue}`}
+													style={{ cursor: "not-allowed", justifyContent: "center", minHeight: "80px" }}
+												>
+													<div className={styles.mapelName} style={{ textAlign: "center", width: "100%" }}>
+														Upacara Bendera
 													</div>
-												) : (
-													<div className={styles.emptySlot} onClick={() => openModal(hari, slot.jam)}>
-														<Plus size={20} />
-														<span>Tambah</span>
+													<div style={{ fontSize: "0.75rem", textAlign: "center", color: "#1e40af", marginTop: "4px" }}>
+														(Wajib)
 													</div>
-												)}
+												</div>
 											</td>
 										);
-									})}
-								</tr>
-							),
-						)}
+									}
+
+									const jadwalSlot = jadwalKelasAktif.find(
+										(j) => j.hari === hari && (j.waktuMulai === slot.jam || j.jam === slot.jam),
+									);
+
+									return (
+										<td
+											key={`${hari}-${slot.jam}`}
+											onDragOver={handleDragOver}
+											onDrop={(e) => handleDrop(e, hari, slot.jam)}
+										>
+											{jadwalSlot ? (
+												<div
+													className={`${styles.cardSlot} ${getCardColor(jadwalSlot.mapel.nama)}`}
+													onClick={() => openModal(hari, slot.jam, jadwalSlot)}
+													draggable
+													onDragStart={(e) => handleDragStart(e, jadwalSlot)}
+													onDragEnd={handleDragEnd}
+													style={{ cursor: "grab" }}
+												>
+													<div className={styles.mapelName}>
+														{jadwalSlot.mapel.nama}
+														<Trash2
+															size={14}
+															className={styles.deleteIcon}
+															onClick={(e) => confirmDelete(jadwalSlot.id, e)}
+														/>
+													</div>
+													<div className={styles.guruName}>
+														<User size={12} /> {jadwalSlot.guru.user.nama}
+													</div>
+													{jadwalSlot.ruang && (
+														<div className={styles.roomName}>
+															<MapPin size={12} /> {jadwalSlot.ruang}
+														</div>
+													)}
+												</div>
+											) : (
+												<div
+													className={styles.emptySlot}
+													onClick={() => openModal(hari, slot.jam)}
+													style={{
+														opacity: draggedJadwal ? 0.8 : 1,
+														borderStyle: draggedJadwal ? "dashed" : "solid",
+														borderColor: draggedJadwal ? "#3b82f6" : "#e5e7eb",
+													}}
+												>
+													<Plus size={20} />
+													<span>Tambah</span>
+												</div>
+											)}
+										</td>
+									);
+								})}
+							</tr>
+						))}
 					</tbody>
 				</table>
 			</div>
-
-			{/* --- MODAL DAFTAR DI BAWAH --- */}
 
 			{/* MODAL PRINT KONFIRMASI */}
 			{isPrintModalOpen && (
@@ -515,6 +611,7 @@ export default function JadwalClient({
 				</div>
 			)}
 
+			{/* MODAL TAMBAH/EDIT */}
 			{isModalOpen && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContainer}>
@@ -574,7 +671,12 @@ export default function JadwalClient({
 											required
 											className={styles.formInput}
 											value={formHari}
-											onChange={(e) => setFormHari(e.target.value)}
+											onChange={(e) => {
+												setFormHari(e.target.value);
+												if (e.target.value === "Senin" && formJam === "1") {
+													setFormJam("2");
+												}
+											}}
 										>
 											{HARI.map((h) => (
 												<option key={h} value={h}>
@@ -591,9 +693,9 @@ export default function JadwalClient({
 											value={formJam}
 											onChange={(e) => setFormJam(e.target.value)}
 										>
-											{SLOT_WAKTU.filter((s) => !s.isBreak).map((s) => (
+											{SLOT_WAKTU.filter((s) => !(formHari === "Senin" && s.jam === "1")).map((s) => (
 												<option key={s.jam} value={s.jam}>
-													{s.jam}
+													{s.label}
 												</option>
 											))}
 										</select>
@@ -625,6 +727,7 @@ export default function JadwalClient({
 				</div>
 			)}
 
+			{/* MODAL HAPUS */}
 			{isDeleteModalOpen && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContainer} style={{ maxWidth: "400px" }}>
@@ -667,6 +770,7 @@ export default function JadwalClient({
 				</div>
 			)}
 
+			{/* MODAL ERROR BENTROK */}
 			{isErrorModalOpen && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContainer} style={{ maxWidth: "420px", borderTop: "4px solid #ef4444" }}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
 	LayoutDashboard,
 	BookOpen,
@@ -37,7 +37,6 @@ import {
 	tutupPresensiQR,
 } from "./actions";
 
-// Tambahkan withInput dan ubah parameter onConfirm
 type ModalConfig = {
 	isOpen: boolean;
 	title: string;
@@ -45,7 +44,46 @@ type ModalConfig = {
 	withInput?: boolean;
 	onConfirm: (val?: string) => void;
 } | null;
+
 type ToastConfig = { id: number; message: string; type: "success" | "error" };
+
+// --- MAP WAKTU (1 Sesi = 45 Menit) ---
+const JAM_MAP = [
+	{ jam: 1, start: "07:00", end: "07:45" },
+	{ jam: 2, start: "07:45", end: "08:30" },
+	{ jam: 3, start: "08:30", end: "09:15" },
+	{ jam: 4, start: "09:15", end: "10:00" },
+	{ jam: 5, start: "10:30", end: "11:15" },
+	{ jam: 6, start: "11:15", end: "12:00" },
+	{ jam: 7, start: "13:00", end: "13:45" },
+	{ jam: 8, start: "13:45", end: "14:30" },
+	{ jam: 9, start: "14:30", end: "15:15" },
+	{ jam: 10, start: "15:15", end: "16:00" },
+];
+
+const TIME_OPTIONS = [
+	"07:00",
+	"07:45",
+	"08:30",
+	"09:15",
+	"10:00",
+	"10:30",
+	"11:15",
+	"12:00",
+	"13:00",
+	"13:45",
+	"14:30",
+	"15:15",
+	"16:00",
+];
+
+const getWaktuString = (jams: number[]) => {
+	if (!jams || jams.length === 0) return "-";
+	const first = JAM_MAP.find((m) => m.jam === jams[0]);
+	const last = JAM_MAP.find((m) => m.jam === jams[jams.length - 1]);
+	if (first && last) return `${first.start} - ${last.end}`;
+	return "-";
+};
 
 export default function JurnalClient({
 	jadwalSemua,
@@ -60,28 +98,105 @@ export default function JurnalClient({
 	const [loading, setLoading] = useState(false);
 
 	const [modal, setModal] = useState<ModalConfig>(null);
-	const [modalInputValue, setModalInputValue] = useState(""); // State untuk kotak catatan
+	const [modalInputValue, setModalInputValue] = useState("");
 
 	const [toasts, setToasts] = useState<ToastConfig[]>([]);
 	const [activeJadwal, setActiveJadwal] = useState<any>(null);
 	const [activeJurnal, setActiveJurnal] = useState<any>(null);
 
+	// Form Pembuatan Jurnal
 	const [tanggal, setTanggal] = useState(new Date().toISOString().split("T")[0]);
+	const [waktuMulai, setWaktuMulai] = useState("07:00");
+	const [waktuSelesai, setWaktuSelesai] = useState("08:30");
 	const [materi, setMateri] = useState("");
 
+	// Form Edit Jurnal
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [editJurnalId, setEditJurnalId] = useState("");
 	const [editTanggal, setEditTanggal] = useState("");
+	const [editWaktuMulai, setEditWaktuMulai] = useState("");
+	const [editWaktuSelesai, setEditWaktuSelesai] = useState("");
 	const [editMateri, setEditMateri] = useState("");
 
 	const [presensiEdits, setPresensiEdits] = useState<Record<string, string>>({});
 
-	useEffect(() => {
-		if (activeJadwal && jadwalSemua) {
-			const updatedJadwal = jadwalSemua.find((j) => j.id === activeJadwal.id);
-			if (updatedJadwal) setActiveJadwal(updatedJadwal);
-		}
+	// --- LOGIKA PENGGABUNGAN JADWAL (GROUPING) ---
+	const groupedJadwal = useMemo(() => {
+		const grouped: any[] = [];
+
+		const sortedJadwal = [...(jadwalSemua || [])].sort((a, b) => {
+			if (a.hari !== b.hari) return a.hari - b.hari;
+			if (a.kelas.nama !== b.kelas.nama) return a.kelas.nama.localeCompare(b.kelas.nama);
+			if (a.mapel.nama !== b.mapel.nama) return a.mapel.nama.localeCompare(b.mapel.nama);
+
+			const jamA = parseInt(a.jam || a.waktuMulai);
+			const jamB = parseInt(b.jam || b.waktuMulai);
+			return (isNaN(jamA) ? 0 : jamA) - (isNaN(jamB) ? 0 : jamB);
+		});
+
+		sortedJadwal.forEach((curr) => {
+			const last = grouped[grouped.length - 1];
+			const jamValue = curr.jam || curr.waktuMulai;
+			const jamParsed = parseInt(jamValue);
+
+			if (
+				last &&
+				last.hari === curr.hari &&
+				last.kelas.id === curr.kelas.id &&
+				last.mapel.id === curr.mapel.id &&
+				!isNaN(jamParsed)
+			) {
+				const lastJams = last.jams;
+				if (lastJams && lastJams.length > 0) {
+					const lastJamVal = lastJams[lastJams.length - 1];
+					if (jamParsed === lastJamVal + 1) {
+						last.jams.push(jamParsed);
+						last.displaySesi =
+							last.jams.length > 1 ? `Jam ${last.jams[0]}-${last.jams[last.jams.length - 1]}` : `Jam ${last.jams[0]}`;
+						last.waktuRentang = getWaktuString(last.jams);
+
+						const mergedJurnals = [...(last.jurnal || []), ...(curr.jurnal || [])];
+						const uniqueJurnalsMap = new Map();
+						mergedJurnals.forEach((j: any) => uniqueJurnalsMap.set(j.id, j));
+						last.jurnal = Array.from(uniqueJurnalsMap.values());
+
+						return;
+					}
+				}
+			}
+
+			grouped.push({
+				...curr,
+				jams: isNaN(jamParsed) ? [] : [jamParsed],
+				displaySesi: isNaN(jamParsed) ? jamValue : `Jam ${jamParsed}`,
+				waktuRentang: isNaN(jamParsed)
+					? curr.waktuMulai && curr.waktuMulai.includes("-")
+						? curr.waktuMulai
+						: "-"
+					: getWaktuString([jamParsed]),
+				jurnal: curr.jurnal || [],
+			});
+		});
+
+		return grouped;
 	}, [jadwalSemua]);
+
+	// SET DEFAULT JAM PADA FORM SAAT GURU MEMILIH KELAS
+	useEffect(() => {
+		if (activeJadwal && groupedJadwal) {
+			const updatedJadwal = groupedJadwal.find((j) => j.id === activeJadwal.id);
+			if (updatedJadwal) {
+				setActiveJadwal(updatedJadwal);
+
+				// Ambil default dari rentang jadwal yang sudah tergabung
+				if (updatedJadwal.waktuRentang && updatedJadwal.waktuRentang.includes("-")) {
+					const times = updatedJadwal.waktuRentang.split(" - ");
+					setWaktuMulai(times[0].trim());
+					setWaktuSelesai(times[1].trim());
+				}
+			}
+		}
+	}, [groupedJadwal, activeJadwal?.id]);
 
 	const showToast = (message: string, type: "success" | "error" = "success") => {
 		const id = Date.now();
@@ -95,19 +210,27 @@ export default function JurnalClient({
 		setActiveJadwal(jadwal);
 		setTanggal(new Date().toISOString().split("T")[0]);
 		setMateri("");
+
+		// Inisiasi jam berdasarkan jadwal
+		if (jadwal.waktuRentang && jadwal.waktuRentang.includes("-")) {
+			const times = jadwal.waktuRentang.split(" - ");
+			setWaktuMulai(times[0].trim());
+			setWaktuSelesai(times[1].trim());
+		}
 		setViewMode("detail");
 	};
 
-	const formatWaktu = (mulai: string, selesai: string) => {
-		if (mulai.includes("-")) return `${mulai}`;
-		return `${mulai} - ${selesai}`;
-	};
-
-	// --- FUNGSI AKSI ---
-
 	const handleSimpanJurnalBaru = async () => {
 		setLoading(true);
-		const res = await buatJurnalAction({ jadwalId: activeJadwal.id, tanggal, materi, tujuan: "", catatan: "" });
+		const res = await buatJurnalAction({
+			jadwalId: activeJadwal.id,
+			tanggal,
+			waktuMulai,
+			waktuSelesai,
+			materi,
+			tujuan: "",
+			catatan: "",
+		});
 		setLoading(false);
 		setModal(null);
 		if (res.success) {
@@ -125,7 +248,6 @@ export default function JurnalClient({
 		else showToast("Gagal mengaktifkan QR: " + res.message, "error");
 	};
 
-	// Terima catatan dari Modal
 	const handleTutupQR = async (jurnalId: string, catatanKBM: string) => {
 		setLoading(true);
 		const res = await tutupPresensiQR(jurnalId, catatanKBM);
@@ -141,7 +263,12 @@ export default function JurnalClient({
 			return;
 		}
 		setLoading(true);
-		const res = await updateJurnalAction(editJurnalId, { tanggal: editTanggal, materi: editMateri });
+		const res = await updateJurnalAction(editJurnalId, {
+			tanggal: editTanggal,
+			waktuMulai: editWaktuMulai,
+			waktuSelesai: editWaktuSelesai,
+			materi: editMateri,
+		});
 		setLoading(false);
 		setIsEditModalOpen(false);
 		if (res.success) showToast("Perubahan jurnal berhasil disimpan!", "success");
@@ -169,7 +296,7 @@ export default function JurnalClient({
 		setModal({
 			isOpen: true,
 			title: "Simpan Jurnal Baru?",
-			message: `Anda akan menyimpan jurnal untuk tanggal ${new Date(tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}.`,
+			message: `Menyimpan jurnal untuk tanggal ${new Date(tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })} jam ${waktuMulai} - ${waktuSelesai}.`,
 			onConfirm: handleSimpanJurnalBaru,
 		});
 	};
@@ -190,13 +317,13 @@ export default function JurnalClient({
 	};
 
 	const triggerModalTutupQR = (jurnalId: string) => {
-		setModalInputValue(""); // Kosongkan form teks saat dibuka
+		setModalInputValue("");
 		setModal({
 			isOpen: true,
 			title: "Tutup Akses QR & Sesi Presensi?",
 			message:
 				"Siswa tidak akan bisa lagi memindai QR Code. Tambahkan catatan kejadian atau evaluasi KBM hari ini (Opsional):",
-			withInput: true, // Beritahu UI untuk merender textarea
+			withInput: true,
 			onConfirm: (val?: string) => handleTutupQR(jurnalId, val || ""),
 		});
 	};
@@ -218,6 +345,10 @@ export default function JurnalClient({
 		setEditJurnalId(jurnalItem.id);
 		setEditTanggal(new Date(jurnalItem.tanggal).toISOString().split("T")[0]);
 		setEditMateri(jurnalItem.materiBab);
+
+		// Panggil waktu spesifik di Jurnal, jika kosong gunakan default dari Jadwal
+		setEditWaktuMulai(jurnalItem.waktuMulai || activeJadwal.waktuRentang.split(" - ")[0].trim());
+		setEditWaktuSelesai(jurnalItem.waktuSelesai || activeJadwal.waktuRentang.split(" - ")[1].trim());
 		setIsEditModalOpen(true);
 	};
 
@@ -249,7 +380,7 @@ export default function JurnalClient({
 				))}
 			</div>
 
-			{/* === MODAL KONFIRMASI (BISA MUNCUL TEXTAREA) === */}
+			{/* === MODAL KONFIRMASI === */}
 			{modal && modal.isOpen && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContent}>
@@ -258,7 +389,6 @@ export default function JurnalClient({
 						</div>
 						<div className={styles.modalMessage}>{modal.message}</div>
 
-						{/* FORM CATATAN KBM */}
 						{modal.withInput && (
 							<div style={{ marginBottom: "1.5rem" }}>
 								<textarea
@@ -316,6 +446,37 @@ export default function JurnalClient({
 									onChange={(e) => setEditTanggal(e.target.value)}
 								/>
 							</div>
+
+							{/* FORM EDIT WAKTU AKTUAL */}
+							<div>
+								<label className={styles.formLabel}>Waktu Aktual Mengajar</label>
+								<div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+									<select
+										className={styles.formInput}
+										value={editWaktuMulai}
+										onChange={(e) => setEditWaktuMulai(e.target.value)}
+									>
+										{TIME_OPTIONS.map((t) => (
+											<option key={t} value={t}>
+												{t}
+											</option>
+										))}
+									</select>
+									<span style={{ color: "#64748b", fontWeight: "bold" }}>s.d</span>
+									<select
+										className={styles.formInput}
+										value={editWaktuSelesai}
+										onChange={(e) => setEditWaktuSelesai(e.target.value)}
+									>
+										{TIME_OPTIONS.map((t) => (
+											<option key={t} value={t}>
+												{t}
+											</option>
+										))}
+									</select>
+								</div>
+							</div>
+
 							<div>
 								<label className={styles.formLabel}>Topik Materi</label>
 								<textarea
@@ -422,21 +583,13 @@ export default function JurnalClient({
 										Pilih mata pelajaran di bawah ini untuk mengisi jurnal dan melihat riwayat presensi.
 									</p>
 								</div>
-								<div style={{ display: "flex", gap: "1rem" }}>
-									<select className={styles.filterSelect}>
-										<option>Semester Ganjil</option>
-									</select>
-									<select className={styles.filterSelect}>
-										<option>Tahun Ajaran 2023/2024</option>
-									</select>
-								</div>
 							</div>
 
-							{!jadwalSemua || jadwalSemua.length === 0 ? (
+							{!groupedJadwal || groupedJadwal.length === 0 ? (
 								<div className={styles.emptyStateContainer}>Anda tidak memiliki jadwal mengajar pada semester ini.</div>
 							) : (
 								<div className={styles.cardGrid}>
-									{jadwalSemua.map((jadwal: any) => {
+									{groupedJadwal.map((jadwal: any) => {
 										const hariIniStr = new Date().toISOString().split("T")[0];
 										const jurnalHariIni = jadwal.jurnal?.find(
 											(j: any) => new Date(j.tanggal).toISOString().split("T")[0] === hariIniStr,
@@ -466,8 +619,8 @@ export default function JurnalClient({
 													<div className={styles.infoRow}>
 														<Clock size={14} />
 														<span>
-															<strong style={{ color: "#1e293b" }}>{hariText},</strong>{" "}
-															{formatWaktu(jadwal.waktuMulai, jadwal.waktuSelesai)} WIB
+															<strong style={{ color: "#1e293b" }}>{hariText},</strong> {jadwal.displaySesi} (
+															{jadwal.waktuRentang} WIB)
 														</span>
 													</div>
 													<div className={styles.infoRow}>
@@ -507,7 +660,7 @@ export default function JurnalClient({
 										/>
 										Jadwal Reguler:{" "}
 										{["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][activeJadwal.hari]} (
-										{formatWaktu(activeJadwal.waktuMulai, activeJadwal.waktuSelesai)} WIB)
+										{activeJadwal.displaySesi}, {activeJadwal.waktuRentang} WIB)
 									</p>
 								</div>
 							</div>
@@ -537,6 +690,38 @@ export default function JurnalClient({
 												style={{ backgroundColor: "white" }}
 											/>
 										</div>
+
+										{/* FORM INPUT JAM (DINAMIS) */}
+										<div>
+											<label className={styles.formLabel}>Waktu Aktual Mengajar *</label>
+											<div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+												<select
+													className={styles.formInput}
+													value={waktuMulai}
+													onChange={(e) => setWaktuMulai(e.target.value)}
+													style={{ backgroundColor: "white", cursor: "pointer" }}
+												>
+													{TIME_OPTIONS.map((t) => (
+														<option key={t} value={t}>
+															{t}
+														</option>
+													))}
+												</select>
+												<span style={{ color: "#64748b", fontWeight: "bold" }}>s.d</span>
+												<select
+													className={styles.formInput}
+													value={waktuSelesai}
+													onChange={(e) => setWaktuSelesai(e.target.value)}
+													style={{ backgroundColor: "white", cursor: "pointer" }}
+												>
+													{TIME_OPTIONS.map((t) => (
+														<option key={t} value={t}>
+															{t}
+														</option>
+													))}
+												</select>
+											</div>
+										</div>
 									</div>
 
 									<div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
@@ -544,7 +729,7 @@ export default function JurnalClient({
 											<label className={styles.formLabel}>Topik Materi *</label>
 											<textarea
 												className={styles.formTextarea}
-												style={{ minHeight: "60px" }}
+												style={{ minHeight: "115px" }}
 												value={materi}
 												onChange={(e) => setMateri(e.target.value)}
 												placeholder="Tuliskan materi yang diajarkan hari ini..."
@@ -614,9 +799,17 @@ export default function JurnalClient({
 														<tr key={jurnalItem.id}>
 															<td style={{ fontWeight: 500 }}>{index + 1}</td>
 															<td style={{ fontWeight: 600, color: "#0f172a" }}>{tglFormatted}</td>
+
+															{/* TAMPILKAN JAM SPESIFIK JURNAL */}
 															<td style={{ color: "#475569" }}>
-																{formatWaktu(activeJadwal.waktuMulai, activeJadwal.waktuSelesai)} WIB
+																<div style={{ fontWeight: 600, color: "#1e293b" }}>
+																	{jurnalItem.waktuMulai && jurnalItem.waktuSelesai
+																		? `${jurnalItem.waktuMulai} - ${jurnalItem.waktuSelesai}`
+																		: activeJadwal.waktuRentang}{" "}
+																	WIB
+																</div>
 															</td>
+
 															<td>
 																<div
 																	style={{
@@ -680,7 +873,6 @@ export default function JurnalClient({
 																	alignItems: "center",
 																}}
 															>
-																{/* Tombol Edit Jurnal (Teks saja untuk hemat ruang) */}
 																<button
 																	style={{
 																		background: "none",
@@ -696,7 +888,6 @@ export default function JurnalClient({
 																	<Edit size={16} />
 																</button>
 
-																{/* Toggle QR Button */}
 																{isQRAktif ? (
 																	<button
 																		className={styles.btnOutlineFull}
@@ -804,7 +995,7 @@ export default function JurnalClient({
 											month: "long",
 											year: "numeric",
 										})}{" "}
-										|{formatWaktu(activeJadwal.waktuMulai, activeJadwal.waktuSelesai)} WIB
+										| {activeJadwal.displaySesi} ({activeJadwal.waktuRentang} WIB)
 									</div>
 								</div>
 								<button
@@ -816,7 +1007,6 @@ export default function JurnalClient({
 								</button>
 							</div>
 
-							{/* RINGKASAN REAL-TIME DARI STATE `presensiEdits` */}
 							<div
 								style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}
 							>

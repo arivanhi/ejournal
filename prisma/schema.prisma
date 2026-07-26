@@ -165,6 +165,8 @@ model JurnalMengajar {
   materiBab  String?         @db.Text
   catatan    String?         @db.Text
   status     JurnalStatus    @default(DRAFT)
+  waktuMulai   String?  // <-- TAMBAHKAN INI
+  waktuSelesai String?  // <-- TAMBAHKAN INI
   
   // Data Audit Geofencing Guru
   latAbsen   Float?

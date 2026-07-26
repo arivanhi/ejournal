@@ -7,23 +7,24 @@ import { revalidatePath } from "next/cache";
 export async function buatJurnalAction(data: {
 	jadwalId: string;
 	tanggal: string; // Format YYYY-MM-DD
+	waktuMulai: string;
+	waktuSelesai: string;
 	materi: string;
 	tujuan: string;
 	catatan: string;
 }) {
 	try {
-		const inputDate = new Date(data.tanggal);
-		// Pastikan jam diset ke 00:00 agar rapi
-		inputDate.setHours(0, 0, 0, 0);
+		// --- 1. LOGIKA CEK DUPLIKAT (Cek 1 hari penuh: 00:00 s.d 23:59) ---
+		const startOfDay = new Date(data.tanggal);
+		startOfDay.setHours(0, 0, 0, 0); // Kunci di jam 00:00
 
-		// Cek apakah sudah ada jurnal di jadwal dan tanggal yang sama persis
-		const besok = new Date(inputDate);
-		besok.setDate(besok.getDate() + 1);
+		const endOfDay = new Date(startOfDay);
+		endOfDay.setDate(endOfDay.getDate() + 1); // Tambah 1 hari untuk batas akhir
 
 		const existingJurnal = await prisma.jurnalMengajar.findFirst({
 			where: {
 				jadwalId: data.jadwalId,
-				tanggal: { gte: inputDate, lt: besok },
+				tanggal: { gte: startOfDay, lt: endOfDay },
 			},
 		});
 
@@ -34,13 +35,21 @@ export async function buatJurnalAction(data: {
 			};
 		}
 
+		// --- 2. LOGIKA PENYIMPANAN WAKTU AKTUAL (Real-time) ---
+		const inputDate = new Date(data.tanggal);
+		const now = new Date();
+		// Suntikkan jam, menit, dan detik saat ini ke tanggal yang dipilih di form
+		inputDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+
 		const jurnal = await prisma.jurnalMengajar.create({
 			data: {
 				jadwalId: data.jadwalId,
-				tanggal: inputDate,
+				tanggal: inputDate, // Sekarang akan tersimpan: YYYY-MM-DD HH:MM:SS
+				waktuMulai: data.waktuMulai,
+				waktuSelesai: data.waktuSelesai,
 				materiBab: data.materi + (data.tujuan ? `\nTujuan: ${data.tujuan}` : ""),
 				catatan: data.catatan,
-				status: "SUBMITTED", // Langsung disubmit
+				status: "SUBMITTED",
 			},
 		});
 
@@ -59,21 +68,17 @@ export async function aktifkanPresensiQR(jurnalId: string) {
 
 		let manualCode = "";
 
-		// Cek apakah sebelumnya sesi ini sudah pernah punya QR/Kode Manual
 		if (jurnal.qrToken) {
 			const parts = jurnal.qrToken.split("_");
-			// Asumsi format token: QR_jurnalId_KODEMANUAL_timestamp
 			if (parts.length >= 3) {
-				manualCode = parts[2]; // Ambil & pertahankan kode statis yang lama
+				manualCode = parts[2];
 			} else {
 				manualCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 			}
 		} else {
-			// Jika baru pertama kali buka QR, buat 6 digit huruf/angka acak
 			manualCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 		}
 
-		// Rangkai token baru dengan timestamp yang selalu berubah
 		const token = `QR_${jurnalId}_${manualCode}_${Date.now()}`;
 
 		await prisma.jurnalMengajar.update({
@@ -90,32 +95,29 @@ export async function aktifkanPresensiQR(jurnalId: string) {
 	}
 }
 
+// Fungsi 3: Simpan Presensi Manual
 export async function simpanPresensiManualAction(
 	jurnalId: string,
 	presensiData: { siswaId: string; status: string }[],
 ) {
 	try {
-		// Karena kita mengubah banyak data sekaligus, kita lakukan loop
 		for (const data of presensiData) {
-			// Cek apakah siswa ini sudah punya record presensi di jurnal ini
 			const existing = await prisma.presensiSiswa.findFirst({
 				where: { jurnalId: jurnalId, siswaId: data.siswaId },
 			});
 
 			if (existing) {
-				// Jika sudah ada (misal sebelumnya Alpha, mau diubah jadi Hadir), kita Update
 				await prisma.presensiSiswa.update({
 					where: { id: existing.id },
 					data: { status: data.status },
 				});
 			} else {
-				// Jika belum ada record sama sekali, kita Create
 				await prisma.presensiSiswa.create({
 					data: {
 						jurnalId: jurnalId,
 						siswaId: data.siswaId,
 						status: data.status,
-						waktuScan: new Date(), // Catat waktu saat guru mengabsenkan
+						waktuScan: new Date(),
 					},
 				});
 			}
@@ -130,15 +132,22 @@ export async function simpanPresensiManualAction(
 }
 
 // Fungsi 4: Update/Edit Jurnal (Tanggal & Topik Materi)
-export async function updateJurnalAction(jurnalId: string, data: { tanggal: string; materi: string }) {
+export async function updateJurnalAction(
+	jurnalId: string,
+	data: { tanggal: string; waktuMulai: string; waktuSelesai: string; materi: string },
+) {
 	try {
 		const inputDate = new Date(data.tanggal);
-		inputDate.setHours(0, 0, 0, 0);
+		const now = new Date();
+		// Saat diedit, jamnya juga akan otomatis ter-update ke jam edit terbaru
+		inputDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
 		await prisma.jurnalMengajar.update({
 			where: { id: jurnalId },
 			data: {
 				tanggal: inputDate,
+				waktuMulai: data.waktuMulai,
+				waktuSelesai: data.waktuSelesai,
 				materiBab: data.materi,
 			},
 		});
@@ -154,7 +163,6 @@ export async function tutupPresensiQR(jurnalId: string, catatan: string = "") {
 	try {
 		const updateData: any = { qrToken: null };
 
-		// Jika guru mengisi catatan di modal, simpan ke database
 		if (catatan.trim() !== "") {
 			updateData.catatan = catatan;
 		}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
 	LayoutDashboard,
 	BookOpen,
@@ -50,60 +50,150 @@ export default function TeacherDashboardClient({
 	jurnalBelumTerisi,
 	aktivitasTerkini,
 }: DashboardProps) {
-	// State untuk menyimpan jadwal yang sedang berlangsung SAAT INI
 	const [activeSession, setActiveSession] = useState<any | null>(null);
+	const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
-	// Fungsi pengecekan Real-time
+	// --- 1. LOGIKA PENGGABUNGAN JADWAL BERURUTAN (GROUPING) ---
+	const groupedJadwal = useMemo(() => {
+		const grouped: any[] = [];
+		const hariOrder: Record<string, number> = { Senin: 1, Selasa: 2, Rabu: 3, Kamis: 4, Jumat: 5, Sabtu: 6, Minggu: 7 };
+
+		// Urutkan jadwal berdasarkan Hari -> Kelas -> Mapel -> Waktu/Jam
+		const sortedJadwal = [...jadwalKeseluruhan].sort((a, b) => {
+			if (hariOrder[a.hari] !== hariOrder[b.hari]) return (hariOrder[a.hari] || 99) - (hariOrder[b.hari] || 99);
+			if (a.kelasNama !== b.kelasNama) return a.kelasNama.localeCompare(b.kelasNama);
+			if (a.mapelNama !== b.mapelNama) return a.mapelNama.localeCompare(b.mapelNama);
+
+			const jamA = parseInt(a.waktuMulai);
+			const jamB = parseInt(b.waktuMulai);
+			return (isNaN(jamA) ? 0 : jamA) - (isNaN(jamB) ? 0 : jamB);
+		});
+
+		sortedJadwal.forEach((curr) => {
+			const last = grouped[grouped.length - 1];
+			const currJam = parseInt(curr.waktuMulai); // Ambil angka Sesi (misal "2")
+
+			// Jika jadwal ini adalah lanjutan dari jadwal sebelumnya di kelas dan mapel yang sama
+			if (
+				last &&
+				last.hari === curr.hari &&
+				last.kelasNama === curr.kelasNama &&
+				last.mapelNama === curr.mapelNama &&
+				!isNaN(currJam)
+			) {
+				const lastJams = last.jams;
+				if (lastJams && lastJams.length > 0) {
+					const lastJamVal = lastJams[lastJams.length - 1];
+					// Cek apakah sesinya berurutan persis (misal setelah 2 adalah 3)
+					if (currJam === lastJamVal + 1) {
+						last.jams.push(currJam);
+						// Ubah tampilan menjadi rentang (Contoh: Jam 2-4)
+						last.displayJam =
+							last.jams.length > 1 ? `Jam ${last.jams[0]}-${last.jams[last.jams.length - 1]}` : `Jam ${last.jams[0]}`;
+						return; // Abaikan iterasi ini karena sudah digabung
+					}
+				}
+			}
+
+			// Jika tidak berurutan atau beda mapel, buat baris baru
+			grouped.push({
+				...curr,
+				jams: isNaN(currJam) ? [] : [currJam], // Simpan array sesi
+				displayJam: isNaN(currJam) ? curr.waktuMulai : `Jam ${currJam}`, // Fallback untuk data lama (07:00 - 08:30)
+			});
+		});
+
+		return grouped;
+	}, [jadwalKeseluruhan]);
+
+	// --- 2. TIMER & PENGECEKAN SESI AKTIF REAL-TIME ---
 	useEffect(() => {
-		const checkActiveSession = () => {
-			const now = new Date();
+		// Map durasi standar Jam ke-1 sampai ke-10 (dalam menit) untuk cek "Sesi Aktif"
+		const JAM_MAP = [
+			{ jam: 1, start: 7 * 60 + 0, end: 7 * 60 + 45 }, // 07:00 - 07:45
+			{ jam: 2, start: 7 * 60 + 45, end: 8 * 60 + 30 }, // 07:45 - 08:30
+			{ jam: 3, start: 8 * 60 + 30, end: 9 * 60 + 15 }, // 08:30 - 09:15
+			{ jam: 4, start: 9 * 60 + 15, end: 10 * 60 + 0 }, // 09:15 - 10:00
+			{ jam: 5, start: 10 * 60 + 30, end: 11 * 60 + 15 }, // 10:30 - 11:15
+			{ jam: 6, start: 11 * 60 + 15, end: 12 * 60 + 0 }, // 11:15 - 12:00
+			{ jam: 7, start: 13 * 60 + 0, end: 13 * 60 + 45 }, // 13:00 - 13:45
+			{ jam: 8, start: 13 * 60 + 45, end: 14 * 60 + 30 }, // 13:45 - 14:30
+			{ jam: 9, start: 14 * 60 + 30, end: 15 * 60 + 15 }, // 14:30 - 15:15
+			{ jam: 10, start: 15 * 60 + 15, end: 16 * 60 + 0 }, // 15:15 - 16:00
+		];
+
+		const checkActiveSession = (now: Date) => {
 			const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 			const currentDay = days[now.getDay()];
-
-			// Konversi waktu sekarang ke total menit untuk perbandingan akurat
 			const currentMinutesTotal = now.getHours() * 60 + now.getMinutes();
 
-			const ongoing = jadwalKeseluruhan.find((j) => {
-				// 1. Cek apakah Harinya sama
+			const ongoing = groupedJadwal.find((j) => {
 				if (j.hari.toLowerCase() !== currentDay.toLowerCase()) return false;
 
-				// 2. Cek apakah rentang waktunya cocok
-				// Format DB Anda: "07:00 - 08:30" di field waktuMulai
-				const timeParts = j.waktuMulai.split(" - ");
-				if (timeParts.length !== 2) return false;
+				// Logika 1: Jika menggunakan data rentang sesi baru (misal Jam 2-4)
+				if (j.jams && j.jams.length > 0) {
+					const firstJam = JAM_MAP.find((m) => m.jam === j.jams[0]);
+					const lastJam = JAM_MAP.find((m) => m.jam === j.jams[j.jams.length - 1]);
+					if (firstJam && lastJam) {
+						return currentMinutesTotal >= firstJam.start && currentMinutesTotal <= lastJam.end;
+					}
+				}
 
-				const [startHour, startMin] = timeParts[0].split(":");
-				const [endHour, endMin] = timeParts[1].split(":");
+				// Logika 2: Jika masih menggunakan format lama (07:00 - 08:30)
+				if (j.waktuMulai && j.waktuMulai.includes("-")) {
+					const timeParts = j.waktuMulai.split(" - ");
+					if (timeParts.length === 2) {
+						const [startHour, startMin] = timeParts[0].split(":");
+						const [endHour, endMin] = timeParts[1].split(":");
+						const startTotal = parseInt(startHour) * 60 + parseInt(startMin);
+						const endTotal = parseInt(endHour) * 60 + parseInt(endMin);
+						return currentMinutesTotal >= startTotal && currentMinutesTotal <= endTotal;
+					}
+				}
 
-				const startTotal = parseInt(startHour) * 60 + parseInt(startMin);
-				const endTotal = parseInt(endHour) * 60 + parseInt(endMin);
-
-				// TRUE jika waktu sekarang berada di antara jam mulai dan jam selesai
-				return currentMinutesTotal >= startTotal && currentMinutesTotal <= endTotal;
+				return false;
 			});
 
 			setActiveSession(ongoing || null);
 		};
 
-		// Jalankan sekali saat render pertama
-		checkActiveSession();
-		// Update pengecekan setiap 1 menit (60000 ms) agar selalu sinkron
-		const interval = setInterval(checkActiveSession, 60000);
-		return () => clearInterval(interval);
-	}, [jadwalKeseluruhan]);
+		// Jalankan Timer 1 detik
+		setCurrentTime(new Date());
+		checkActiveSession(new Date());
 
-	const todayFormatted = new Date()
-		.toLocaleDateString("id-ID", {
-			weekday: "long",
-			day: "numeric",
-			month: "long",
-			year: "numeric",
-		})
-		.toUpperCase();
+		const interval = setInterval(() => {
+			const now = new Date();
+			setCurrentTime(now);
+			// Cek jadwal aktif setiap menit (detik 0)
+			if (now.getSeconds() === 0) {
+				checkActiveSession(now);
+			}
+		}, 1000);
+
+		return () => clearInterval(interval);
+	}, [groupedJadwal]);
+
+	// Format Tanggal dan Jam untuk Hero Banner
+	const todayFormatted =
+		currentTime
+			?.toLocaleDateString("id-ID", {
+				weekday: "long",
+				day: "numeric",
+				month: "long",
+				year: "numeric",
+			})
+			.toUpperCase() || "MEMUAT TANGGAL...";
+
+	const timeFormatted =
+		currentTime?.toLocaleTimeString("id-ID", {
+			hour: "2-digit",
+			minute: "2-digit",
+			second: "2-digit",
+		}) + " WIB" || "MEMUAT JAM...";
 
 	return (
 		<div className={styles.layoutWrapper}>
-			{/* SIDEBAR (Sama Seperti Sebelumnya) */}
+			{/* SIDEBAR */}
 			<aside className={styles.sidebar}>
 				<div className={styles.sidebarHeader}>
 					<div
@@ -184,7 +274,26 @@ export default function TeacherDashboardClient({
 				<div className={styles.dashboardContainer}>
 					<div className={styles.heroBanner}>
 						<div>
-							<span className={styles.heroDate}>{todayFormatted}</span>
+							{/* Tambahan Widget Jam Real-Time */}
+							<div style={{ display: "flex", gap: "1rem", alignItems: "center", marginBottom: "0.75rem" }}>
+								<span className={styles.heroDate} style={{ margin: 0 }}>
+									{todayFormatted}
+								</span>
+								<span
+									style={{
+										backgroundColor: "rgba(255,255,255,0.2)",
+										padding: "4px 12px",
+										borderRadius: "99px",
+										fontSize: "0.875rem",
+										fontWeight: 600,
+										display: "flex",
+										alignItems: "center",
+										gap: "6px",
+									}}
+								>
+									<Clock size={14} /> {timeFormatted}
+								</span>
+							</div>
 							<h2 className={styles.heroQuote}>
 								"Pendidikan adalah senjata paling mematikan di dunia, karena dengan pendidikan, Anda dapat mengubah
 								dunia."
@@ -224,7 +333,7 @@ export default function TeacherDashboardClient({
 					<div className={styles.gridLayout}>
 						{/* KIRI: Kontainer Tabel & Live Session */}
 						<div>
-							{/* --- BANNER SESI AKTIF (Hanya Muncul Jika Jam Cocok) --- */}
+							{/* BANNER SESI AKTIF (Hanya Muncul Jika Jam Cocok) */}
 							{activeSession && (
 								<div className={styles.activeSessionCard}>
 									<div className={styles.activeSessionInfo}>
@@ -238,7 +347,7 @@ export default function TeacherDashboardClient({
 											</h3>
 											<div className={styles.activeMeta}>
 												<span>
-													<Clock size={16} /> {activeSession.waktuMulai}
+													<Clock size={16} /> {activeSession.displayJam} {/* Menampilkan "Jam 2-4" */}
 												</span>
 												<span>
 													<MapPin size={16} /> {activeSession.ruang}
@@ -246,7 +355,6 @@ export default function TeacherDashboardClient({
 											</div>
 										</div>
 									</div>
-									{/* Tombol akan mengarah ke halaman form pembuatan jurnal (Tugas kita selanjutnya) */}
 									<Link href={`/teacher/jurnal?jadwalId=${activeSession.id}`} className={styles.btnActionActive}>
 										Buat Jurnal Sesi Ini <ArrowRight size={16} />
 									</Link>
@@ -256,7 +364,7 @@ export default function TeacherDashboardClient({
 							<div className={styles.cardBox}>
 								<div className={styles.cardHeader}>
 									<h3 className={styles.cardTitle}>Jadwal Mengajar Keseluruhan</h3>
-									<span className={styles.badgeCount}>{jadwalKeseluruhan.length} Sesi</span>
+									<span className={styles.badgeCount}>{groupedJadwal.length} Jadwal</span>
 								</div>
 
 								<div className={styles.tableContainer}>
@@ -271,15 +379,15 @@ export default function TeacherDashboardClient({
 											</tr>
 										</thead>
 										<tbody>
-											{jadwalKeseluruhan.length === 0 ? (
+											{groupedJadwal.length === 0 ? (
 												<tr>
 													<td colSpan={5} style={{ textAlign: "center", padding: "3rem", color: "#64748b" }}>
 														Belum ada jadwal mengajar yang diatur.
 													</td>
 												</tr>
 											) : (
-												jadwalKeseluruhan.map((jadwal, i) => (
-													<tr key={jadwal.id}>
+												groupedJadwal.map((jadwal, i) => (
+													<tr key={`${jadwal.id}-${i}`}>
 														<td style={{ fontWeight: 500 }}>{i + 1}</td>
 														<td style={{ color: "#64748b" }}>{jadwal.mapelKode || "-"}</td>
 														<td style={{ fontWeight: 600 }}>{jadwal.mapelNama}</td>
@@ -287,8 +395,10 @@ export default function TeacherDashboardClient({
 														<td>
 															<div>
 																<span className={styles.badgeHari}>{jadwal.hari.toUpperCase()}</span>
-																<div style={{ fontWeight: 600, color: "#1e293b" }}>{jadwal.waktuMulai}</div>
-																<div className={styles.textRuang}>
+																<div style={{ fontWeight: 700, color: "#1e293b", marginTop: "4px" }}>
+																	{jadwal.displayJam} {/* Render Hasil Penggabungan (Misal: Jam 2-4) */}
+																</div>
+																<div className={styles.textRuang} style={{ marginTop: "2px" }}>
 																	<MapPin size={12} /> {jadwal.ruang}
 																</div>
 															</div>
@@ -308,7 +418,7 @@ export default function TeacherDashboardClient({
 								<div className={styles.metricCard}>
 									<Clock size={24} className={styles.metricIcon} />
 									<div className={styles.metricValue}>{stats.jamMingguIni}</div>
-									<div className={styles.metricLabel}>Jam Minggu Ini</div>
+									<div className={styles.metricLabel}>Sesi Minggu Ini</div>
 								</div>
 								<div className={styles.metricCard}>
 									<UsersRound size={24} className={styles.metricIcon} />
