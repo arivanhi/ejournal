@@ -12,14 +12,11 @@ export default withAuth(
 		}
 
 		// 2. Proteksi Halaman Guru & Wali Kelas (Menggunakan folder /teacher)
-		// Karena satu dashboard menangani 2 role ini, kita gabungkan pengecekannya
 		if (path.startsWith("/teacher") && role !== "GURU" && role !== "WALI_KELAS") {
 			return NextResponse.redirect(new URL("/login", req.url));
 		}
 
-		// --- AUTO-REDIRECT (SOLUSI 404) ---
-		// Jika sistem/login mengarahkan ke "/teacher", "/guru", atau "/wali-kelas",
-		// langsung belokkan secara paksa ke "/teacher/dashboard"
+		// --- AUTO-REDIRECT (GURU/WALI KELAS) ---
 		if (path === "/teacher" || path === "/guru" || path === "/wali-kelas") {
 			return NextResponse.redirect(new URL("/teacher/dashboard", req.url));
 		}
@@ -29,9 +26,14 @@ export default withAuth(
 			return NextResponse.redirect(new URL("/login", req.url));
 		}
 
-		// 4. Proteksi Halaman Waka
-		if (path.startsWith("/waka") && role !== "WAKA") {
+		// 4. Proteksi Halaman Pimpinan (Waka & Kepsek)
+		if (path.startsWith("/pimpinan") && role !== "WAKA" && role !== "KEPSEK") {
 			return NextResponse.redirect(new URL("/login", req.url));
+		}
+
+		// --- AUTO-REDIRECT (PIMPINAN) ---
+		if (path === "/pimpinan" || path === "/waka" || path === "/kepsek") {
+			return NextResponse.redirect(new URL("/pimpinan/dashboard", req.url));
 		}
 
 		// Jika otorisasi lolos, lanjutkan perjalanan user
@@ -40,7 +42,6 @@ export default withAuth(
 	{
 		callbacks: {
 			// Fungsi ini akan mengecek apakah user memiliki token (sudah login)
-			// Jika return false, user akan otomatis dilempar kembali ke halaman signIn (/login)
 			authorized: ({ token }) => !!token,
 		},
 	},
@@ -50,10 +51,12 @@ export default withAuth(
 export const config = {
 	matcher: [
 		"/admin/:path*",
-		"/teacher/:path*", // <--- WAJIB DITAMBAHKAN AGAR NEXT-AUTH MENGENALI ROUTE INI
+		"/teacher/:path*",
 		"/guru/:path*",
 		"/siswa/:path*",
-		"/waka/:path*",
 		"/wali-kelas/:path*",
+		"/pimpinan/:path*", // <--- WAJIB DITAMBAHKAN UNTUK KEPSEK/WAKASEK
+		"/waka/:path*",
+		"/kepsek/:path*",
 	],
 };

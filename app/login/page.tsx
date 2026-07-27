@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-// Tambahkan ikon BookOpen, Calendar, dan FileText di sini
 import { Eye, EyeOff, User, BookOpen, Calendar, FileText } from "lucide-react";
 import styles from "./login.module.css";
 
@@ -30,7 +29,22 @@ export default function LoginPage() {
 			setError("Username atau Password salah.");
 			setLoading(false);
 		} else {
-			router.push("/");
+			// Setelah signIn berhasil, ambil session untuk mengecek Role-nya
+			const session = await getSession();
+
+			if (session?.user?.role === "ADMIN_TU") {
+				router.push("/admin/dashboard");
+			} else if (session?.user?.role === "KEPSEK" || session?.user?.role === "WAKA") {
+				// Arahkan Pimpinan ke dashboard khusus Pimpinan
+				router.push("/pimpinan/dashboard");
+			} else if (session?.user?.role === "GURU" || session?.user?.role === "WALI_KELAS") {
+				router.push("/teacher/dashboard");
+			} else if (session?.user?.role === "SISWA") {
+				router.push("/siswa/dashboard");
+			} else {
+				// Fallback jika role tidak dikenali
+				router.push("/");
+			}
 			router.refresh();
 		}
 	};
@@ -49,7 +63,6 @@ export default function LoginPage() {
 				</h1>
 				<p className={styles.brandSubtitle}>Sistem Akademik Digital</p>
 
-				{/* Hapus emoji dan ganti dengan komponen ikon dari Lucide */}
 				<div className={styles.badgeContainer}>
 					<span className={styles.badge}>
 						<BookOpen size={16} /> Bimbingan Siswa
@@ -63,7 +76,7 @@ export default function LoginPage() {
 				</div>
 			</div>
 
-			{/* Panel Kanan (Tetap sama seperti sebelumnya) */}
+			{/* Panel Kanan */}
 			<div className={styles.rightPanel}>
 				<div className={styles.formContainer}>
 					<p className={styles.preTitle}>Masuk ke Akun Anda</p>

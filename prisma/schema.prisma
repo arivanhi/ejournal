@@ -10,13 +10,17 @@ datasource db {
 // =======================
 // ENUMS (TIPE DATA FIX)
 // =======================
+// 1. Tambahkan KEPSEK di enum Role
 enum Role {
   ADMIN_TU
   WAKA
+  KEPSEK        // <-- TAMBAHAN BARU
   WALI_KELAS
   GURU
   SISWA
 }
+
+
 
 enum StatusHadir {
   H // Hadir
@@ -45,6 +49,7 @@ model User {
   // Relasi opsional, tergantung rolenya
   guru      Guru?
   siswa     Siswa?
+  laporanPdca LaporanPdca[]
 }
 
 model TahunAjaran {
@@ -55,6 +60,7 @@ model TahunAjaran {
   riwayatSiswa    RiwayatKelasSiswa[]
   jadwalPelajaran JadwalPelajaran[]
   mataPelajaran   MataPelajaran[]
+  laporanPdca   LaporanPdca[]
 }
 
 model Kelas {
@@ -87,6 +93,40 @@ model PengaturanSekolah {
 // =======================
 // ENTITAS AKTOR SPESIFIK
 // =======================
+
+// 2. Tambahkan Model Baru untuk Laporan PDCA
+model LaporanPdca {
+  id              String   @id @default(cuid())
+  judul           String   // Contoh: "Evaluasi Ketercapaian Mapel Fisika Semester Ganjil"
+  
+  tahunAjaranId   String
+  tahunAjaran     TahunAjaran @relation(fields: [tahunAjaranId], references: [id])
+  
+  pembuatId       String
+  pembuat         User     @relation(fields: [pembuatId], references: [id])
+  
+  tanggalLaporan  DateTime @default(now())
+  status          String   @default("DRAFT") // DRAFT, TERVERIFIKASI
+
+  // --- P: PLAN (Perencanaan & Analisis Masalah) ---
+  planProblem     String   @db.Text // Mengambil inspirasi dari "Problem" di dokumen[cite: 1]
+  planRootCause   String   @db.Text // Mengambil inspirasi dari "Root Cause" di dokumen[cite: 1]
+
+  // --- D: DO (Tindakan Implementasi) ---
+  // Kita simpan sebagai JSON array karena isinya berupa tabel (Implementation, PIC, Due Date)[cite: 1]
+  doImplementasi  Json?    
+
+  // --- C: CHECK (Evaluasi & Cek Fakta) ---
+  checkFakta      String   @db.Text // Mengambil inspirasi dari "Fakta CPL/Kondisi"[cite: 1]
+  checkGap        String   @db.Text // Mengambil inspirasi dari "Gap Problem"[cite: 1]
+
+  // --- A: ACTION (Tindak Lanjut) ---
+  actRekomendasi  String   @db.Text // Mengambil inspirasi dari "Rekomendasi"[cite: 1]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 model Guru {
   id              String            @id @default(uuid())
   npp             String            @unique

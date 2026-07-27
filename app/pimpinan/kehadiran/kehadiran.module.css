@@ -1,0 +1,862 @@
+/* Layout Global (Sama dengan pimpinan.module.css) */
+.layoutWrapper {
+	display: flex;
+	height: 100vh;
+	background-color: #f8fafc;
+	font-family: "Inter", sans-serif;
+	overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+	width: 260px;
+	background-color: #0f172a;
+	color: white;
+	display: flex;
+	flex-direction: column;
+	border-right: 1px solid #1e293b;
+}
+.sidebarHeader {
+	padding: 1.5rem;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	border-bottom: 1px solid #1e293b;
+}
+.logoWrapper {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background-color: white;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	overflow: hidden;
+}
+.logoImage {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.schoolName {
+	font-weight: 700;
+	font-size: 1.1rem;
+	line-height: 1.2;
+}
+.portalName {
+	font-size: 0.75rem;
+	color: #94a3b8;
+	margin-top: 0.2rem;
+}
+.profileSection {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	border-left: 1px solid #e2e8f0;
+	padding-left: 1.5rem;
+}
+.profileAvatar img {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	object-fit: cover;
+}
+.profileInfo {
+	display: flex;
+	flex-direction: column;
+}
+.profileName {
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: #0f172a;
+}
+.profileRole {
+	font-size: 0.7rem;
+	color: #64748b;
+}
+.menuContainer {
+	padding: 1.5rem 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	flex: 1;
+	overflow-y: auto;
+}
+.menuItem {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem 1rem;
+	border-radius: 0.5rem;
+	color: #cbd5e1;
+	text-decoration: none;
+	font-size: 0.875rem;
+	transition: all 0.2s;
+}
+.menuItem:hover {
+	background-color: rgba(255, 255, 255, 0.05);
+	color: white;
+}
+.menuItemActive {
+	background-color: rgba(255, 255, 255, 0.1);
+	color: white;
+	font-weight: 600;
+	border-left: 3px solid #facc15;
+}
+.sidebarFooter {
+	padding: 1.5rem;
+	border-top: 1px solid #1e293b;
+}
+.logoutBtn {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem 1rem;
+	background-color: transparent;
+	border: none;
+	color: #cbd5e1;
+	cursor: pointer;
+	border-radius: 0.5rem;
+	transition: 0.2s;
+}
+.logoutBtn:hover {
+	background-color: #ef4444;
+	color: white;
+}
+
+/* Main Content & Topbar */
+.mainContent {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+}
+.topbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1.25rem 2rem;
+	background-color: white;
+	border-bottom: 1px solid #e2e8f0;
+}
+.topbarTitle {
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0;
+}
+.topbarActions {
+	display: flex;
+	align-items: center;
+	gap: 1.5rem;
+}
+.iconAction {
+	color: #64748b;
+	cursor: pointer;
+}
+.profileAvatar img {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	object-fit: cover;
+}
+.searchBox {
+	position: relative;
+	width: 250px;
+}
+.searchIcon {
+	position: absolute;
+	left: 0.75rem;
+	top: 50%;
+	transform: translateY(-50%);
+	color: #94a3b8;
+}
+.searchInput {
+	width: 100%;
+	padding: 0.5rem 1rem 0.5rem 2.25rem;
+	border-radius: 0.5rem;
+	border: 1px solid #cbd5e1;
+	font-size: 0.875rem;
+	outline: none;
+}
+
+.dashboardContainer {
+	padding: 2rem;
+	max-width: 1200px;
+	margin: 0 auto;
+	width: 100%;
+}
+
+/* Buttons & Header */
+.sectionHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	margin-bottom: 1.5rem;
+}
+.sectionTitle {
+	font-size: 1.5rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0;
+}
+.sectionDate {
+	font-size: 0.875rem;
+	color: #64748b;
+	margin: 0;
+	margin-top: 0.25rem;
+}
+.headerButtons {
+	display: flex;
+	gap: 1rem;
+	align-items: center;
+}
+.searchBoxCard {
+	position: relative;
+	width: 200px;
+}
+.btnOutline {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.5rem 1.25rem;
+	background-color: white;
+	border: 1px solid #cbd5e1;
+	border-radius: 0.5rem;
+	color: #0f172a;
+	font-size: 0.875rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+.btnPrimaryFull {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	width: 100%;
+	padding: 0.75rem;
+	background-color: #0f172a;
+	border: none;
+	border-radius: 0.5rem;
+	color: white;
+	font-size: 0.875rem;
+	font-weight: 600;
+	cursor: pointer;
+	margin-top: 1.5rem;
+	transition: all 0.2s ease;
+}
+.btnPrimaryFull:hover {
+	background-color: #1e293b;
+	transform: translateY(-2px);
+	box-shadow:
+		0 4px 6px -1px rgba(0, 0, 0, 0.1),
+		0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+.btnOutlineFull {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	width: 100%;
+	padding: 0.75rem;
+	background-color: white;
+	border: 1px solid #0f172a;
+	border-radius: 0.5rem;
+	color: #0f172a;
+	font-size: 0.875rem;
+	font-weight: 600;
+	cursor: pointer;
+	margin-top: 1.5rem;
+}
+.btnPrimaryDark {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.5rem 1.25rem;
+	background-color: #0f172a;
+	border: none;
+	border-radius: 0.5rem;
+	color: white;
+	font-size: 0.875rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+.btnBack {
+	background: none;
+	border: none;
+	color: #3b82f6;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-weight: 600;
+	cursor: pointer;
+	font-size: 0.875rem;
+	padding: 0;
+	margin-bottom: 0.5rem;
+}
+
+/* Grid View Cards */
+.gridCards {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1.5rem;
+}
+.classCard {
+	background-color: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.cardTopRow {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 0.25rem;
+}
+.cardTitle {
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0;
+}
+.waliText {
+	font-size: 0.875rem;
+	color: #64748b;
+	margin: 0;
+	margin-bottom: 1.5rem;
+}
+
+/* Badges */
+.badgeSuccess {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	padding: 0.25rem 0.5rem;
+	border-radius: 99px;
+	font-size: 0.7rem;
+	font-weight: 700;
+	background-color: #ecfdf5;
+	color: #10b981;
+	border: 1px solid #a7f3d0;
+}
+.badgeWarning {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	padding: 0.25rem 0.5rem;
+	border-radius: 99px;
+	font-size: 0.7rem;
+	font-weight: 700;
+	background-color: #fffbeb;
+	color: #d97706;
+	border: 1px solid #fde68a;
+}
+.badgeDanger {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	padding: 0.25rem 0.5rem;
+	border-radius: 99px;
+	font-size: 0.7rem;
+	font-weight: 700;
+	background-color: #fef2f2;
+	color: #ef4444;
+	border: 1px solid #fecaca;
+}
+.badgeNeutral {
+	padding: 0.25rem 0.5rem;
+	border-radius: 99px;
+	font-size: 0.7rem;
+	font-weight: 700;
+	background-color: #f1f5f9;
+	color: #64748b;
+}
+
+.badgeGreenLight {
+	padding: 0.25rem 0.75rem;
+	border-radius: 0.25rem;
+	font-size: 0.75rem;
+	font-weight: 700;
+	background-color: #ecfdf5;
+	color: #10b981;
+}
+.badgeYellowLight {
+	padding: 0.25rem 0.75rem;
+	border-radius: 0.25rem;
+	font-size: 0.75rem;
+	font-weight: 700;
+	background-color: #fffbeb;
+	color: #d97706;
+}
+.badgeRedLight {
+	padding: 0.25rem 0.75rem;
+	border-radius: 0.25rem;
+	font-size: 0.75rem;
+	font-weight: 700;
+	background-color: #fef2f2;
+	color: #ef4444;
+}
+.badgeGrayRounded {
+	padding: 0.35rem 0.75rem;
+	border-radius: 99px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	background-color: #f1f5f9;
+	color: #64748b;
+}
+
+/* Progress & Stat Boxes */
+.progressSection {
+	margin-bottom: 1.5rem;
+}
+.progressHeader {
+	display: flex;
+	justify-content: space-between;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: #64748b;
+	margin-bottom: 0.5rem;
+}
+.progressTrack {
+	height: 6px;
+	background-color: #f1f5f9;
+	border-radius: 99px;
+	overflow: hidden;
+}
+.progressBarYellow {
+	height: 100%;
+	border-radius: 99px;
+}
+.statBoxes {
+	display: flex;
+	gap: 0.5rem;
+}
+.statBox {
+	flex: 1;
+	padding: 0.75rem 0.5rem;
+	border: 1px solid #e2e8f0;
+	border-radius: 0.5rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.25rem;
+}
+.statLabel {
+	font-size: 0.7rem;
+	font-weight: 600;
+	color: #94a3b8;
+}
+.statValDark {
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: #0f172a;
+}
+.statValGreen {
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: #10b981;
+}
+.statValRed {
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: #ef4444;
+}
+.statValYellow {
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: #f59e0b;
+}
+
+/* Detail Info Grid */
+.detailTitleBig {
+	font-size: 2rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0;
+}
+.detailInfoGrid {
+	display: grid;
+	grid-template-columns: 1.5fr 1fr 1fr;
+	gap: 1.5rem;
+	margin-bottom: 2rem;
+	margin-top: 1.5rem;
+}
+.infoCard {
+	background-color: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+.infoAvatar {
+	width: 64px;
+	height: 64px;
+	border-radius: 50%;
+	overflow: hidden;
+	border: 2px solid #f1f5f9;
+}
+.infoAvatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.infoLabel {
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: #64748b;
+	margin-bottom: 0.25rem;
+}
+.infoName {
+	font-size: 1.1rem;
+	font-weight: 800;
+	color: #0f172a;
+}
+.infoSub {
+	font-size: 0.75rem;
+	color: #94a3b8;
+	margin-top: 0.25rem;
+}
+.infoCardRow {
+	background-color: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+.infoValBox {
+	display: flex;
+	align-items: baseline;
+	gap: 0.5rem;
+}
+.infoValLarge {
+	font-size: 2.5rem;
+	font-weight: 800;
+	color: #0f172a;
+	line-height: 1;
+}
+.infoValLargeYellow {
+	font-size: 2.5rem;
+	font-weight: 800;
+	color: #eab308;
+	line-height: 1;
+}
+.infoValUnit {
+	font-size: 0.875rem;
+	color: #64748b;
+	font-weight: 600;
+}
+.iconBoxGray {
+	width: 48px;
+	height: 48px;
+	background-color: #f1f5f9;
+	border-radius: 0.5rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+.iconBoxYellow {
+	width: 48px;
+	height: 48px;
+	background-color: #fef9c3;
+	border-radius: 0.5rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+/* Tabs & Tables */
+.tabsWrapper {
+	background-color: white;
+	border-radius: 0.75rem;
+	border: 1px solid #e2e8f0;
+	overflow: hidden;
+}
+.tabHeader {
+	display: flex;
+	border-bottom: 1px solid #e2e8f0;
+	background-color: #f8fafc;
+	padding: 0 1rem;
+}
+.tabBtn {
+	padding: 1rem 1.5rem;
+	background: none;
+	border: none;
+	border-bottom: 3px solid transparent;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #64748b;
+	cursor: pointer;
+	transition: 0.2s;
+}
+.tabActive {
+	color: #0f172a;
+	border-bottom-color: #0f172a;
+}
+.tabContent {
+	padding: 1.5rem;
+}
+.tableToolbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 1rem;
+}
+.tableWrapper {
+	overflow-x: auto;
+}
+.dataTable {
+	width: 100%;
+	border-collapse: collapse;
+	text-align: left;
+}
+.dataTable th {
+	padding: 1rem;
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: #64748b;
+	border-bottom: 1px solid #e2e8f0;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+.dataTable td {
+	padding: 1rem;
+	font-size: 0.875rem;
+	border-bottom: 1px solid #f1f5f9;
+	vertical-align: middle;
+}
+
+/* Jadwal Mingguan Grid */
+.jadwalHeaderRow {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 1.5rem;
+}
+.weeklyGrid {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	gap: 1rem;
+	align-items: start;
+}
+.dayColumn {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+.dayHeader {
+	text-align: center;
+	font-weight: 700;
+	color: #0f172a;
+	padding: 0.75rem;
+	border: 1px solid #e2e8f0;
+	border-radius: 0.5rem;
+	font-size: 0.875rem;
+}
+.dayCards {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+.scheduleCard {
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 0.5rem;
+	padding: 0.75rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+.scheduleTime {
+	font-size: 0.7rem;
+	font-weight: 600;
+	color: #64748b;
+	background-color: white;
+	padding: 0.2rem 0.5rem;
+	border-radius: 4px;
+	display: inline-block;
+	width: max-content;
+}
+.scheduleMapel {
+	font-weight: 700;
+	color: #0f172a;
+	font-size: 0.875rem;
+}
+.scheduleGuru {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 0.25rem;
+}
+.guruInitialsSmall {
+	width: 20px;
+	height: 20px;
+	background-color: #e2e8f0;
+	color: #475569;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	border-radius: 50%;
+	font-size: 0.6rem;
+	font-weight: 700;
+}
+.guruNameText {
+	font-size: 0.75rem;
+	color: #64748b;
+}
+.emptyJadwal {
+	text-align: center;
+	padding: 1rem;
+	color: #94a3b8;
+	font-size: 0.75rem;
+	font-style: italic;
+	border: 1px dashed #cbd5e1;
+	border-radius: 0.5rem;
+}
+/* Modal Export */
+.modalOverlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(15, 23, 42, 0.5);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	z-index: 1000;
+	backdrop-filter: blur(4px);
+}
+.modalContainer {
+	background-color: white;
+	border-radius: 1rem;
+	width: 100%;
+	max-width: 500px;
+	box-shadow:
+		0 20px 25px -5px rgba(0, 0, 0, 0.1),
+		0 10px 10px -5px rgba(0, 0, 0, 0.04);
+	overflow: hidden;
+	animation: slideUp 0.3s ease-out;
+}
+.modalHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1.5rem;
+	border-bottom: 1px solid #e2e8f0;
+}
+.modalTitle {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin: 0;
+}
+.modalCloseBtn {
+	background: none;
+	border: none;
+	color: #64748b;
+	cursor: pointer;
+	padding: 0.5rem;
+	border-radius: 0.5rem;
+	transition: background-color 0.2s;
+}
+.modalCloseBtn:hover {
+	background-color: #f1f5f9;
+	color: #0f172a;
+}
+.modalBody {
+	padding: 2rem;
+}
+.exportOptions {
+	display: flex;
+	justify-content: center;
+	gap: 1.5rem;
+	margin-bottom: 1rem;
+}
+.btnExportCard {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1rem;
+	padding: 1.5rem;
+	border: 2px solid #e2e8f0;
+	border-radius: 1rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	width: 140px;
+	background-color: white;
+}
+.btnExportCard:hover {
+	border-color: #3b82f6;
+	background-color: #f8fafc;
+	transform: translateY(-4px);
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+.exportCardTitle {
+	font-weight: 700;
+	color: #0f172a;
+	font-size: 0.875rem;
+}
+
+/* Toast Notification */
+.toastContainer {
+	position: fixed;
+	top: 2rem;
+	right: 2rem;
+	background-color: #10b981;
+	color: white;
+	padding: 1rem 1.5rem;
+	border-radius: 0.5rem;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+	z-index: 2000;
+	animation: slideInRight 0.3s ease-out;
+}
+.toastIcon {
+	background-color: rgba(255, 255, 255, 0.2);
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+.toastText {
+	font-weight: 600;
+	font-size: 0.875rem;
+}
+
+@keyframes slideUp {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+@keyframes slideInRight {
+	from {
+		opacity: 0;
+		transform: translateX(50px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+/* Menghilangkan CSS Dropdown Export Lama (Jika Masih Ada) */
+.exportDropdown {
+	display: none !important;
+}
