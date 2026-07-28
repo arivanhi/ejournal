@@ -21,7 +21,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 	const pathname = usePathname();
 
 	const menuItems = [
-		{ name: "Dashboard", icon: LayoutDashboard, path: "/admin" },
+		{ name: "Dashboard", icon: LayoutDashboard, path: "/admin/" },
 		{ name: "Data Master", icon: Database, path: "/admin/master" },
 		{ name: "Manajemen Role", icon: Users, path: "/admin/role" },
 		{ name: "Manajemen Mapel", icon: BookOpen, path: "/admin/mapel" },

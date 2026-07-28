@@ -33,7 +33,7 @@ export default function LoginPage() {
 			const session = await getSession();
 
 			if (session?.user?.role === "ADMIN_TU") {
-				router.push("/admin/dashboard");
+				router.push("/admin");
 			} else if (session?.user?.role === "KEPSEK" || session?.user?.role === "WAKA") {
 				// Arahkan Pimpinan ke dashboard khusus Pimpinan
 				router.push("/pimpinan/dashboard");

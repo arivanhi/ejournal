@@ -501,10 +501,57 @@
 	overflow: hidden;
 	border: 2px solid #f1f5f9;
 }
-.infoAvatar img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
+/* Avatar Initials untuk Wali Kelas */
+.infoAvatarInitials {
+	width: 64px;
+	height: 64px;
+	border-radius: 50%;
+	overflow: hidden;
+	background-color: #e0f2fe;
+	color: #1e3a8a;
+	border: 2px solid #f1f5f9;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 1.5rem;
+	font-weight: 800;
+}
+
+/* Paginasi Global (Grid/Card) */
+.paginationCenter {
+	display: flex;
+	justify-content: center;
+	margin-top: 2rem;
+	margin-bottom: 2rem;
+}
+.pageButtons {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+.pageBtn {
+	padding: 0.5rem 1rem;
+	border: 1px solid #cbd5e1;
+	background-color: white;
+	border-radius: 0.5rem;
+	font-size: 0.875rem;
+	cursor: pointer;
+	color: #0f172a;
+	font-weight: 600;
+	transition: all 0.2s;
+}
+.pageBtn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+.pageBtn:not(:disabled):hover {
+	background-color: #f1f5f9;
+	border-color: #0f172a;
+}
+.pageIndicator {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #64748b;
 }
 .infoLabel {
 	font-size: 0.75rem;

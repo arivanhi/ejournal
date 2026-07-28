@@ -36,7 +36,10 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 	const [searchTermCard, setSearchTermCard] = useState("");
 	const [searchSiswa, setSearchSiswa] = useState("");
 
-	// State Modal & Toast
+	// PERBAIKAN: Pagination State untuk Card
+	const [currentPage, setCurrentPage] = useState(1);
+	const cardsPerPage = 6;
+
 	const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -54,7 +57,10 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 		setSearchSiswa("");
 	};
 
+	// --- LOGIKA FILTER & PAGINASI CARD ---
 	const filteredKelas = dataKelas.filter((k: any) => k.nama.toLowerCase().includes(searchTermCard.toLowerCase()));
+	const totalPages = Math.max(1, Math.ceil(filteredKelas.length / cardsPerPage));
+	const paginatedKelas = filteredKelas.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage);
 
 	const filteredSiswa =
 		selectedKelas?.siswaList?.filter(
@@ -63,13 +69,16 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 				s.nisn.toLowerCase().includes(searchSiswa.toLowerCase()),
 		) || [];
 
-	// --- LOGIKA EXPORT ---
 	const exportToExcel = () => {
 		const excelData = filteredSiswa.map((siswa: any, index: number) => ({
 			NO: index + 1,
 			"NAMA SISWA": siswa.nama,
 			NISN: siswa.nisn || "-",
-			"JML HADIR": `${siswa.jmlHadir}/${siswa.totalSesi}`,
+			HADIR: siswa.detailKehadiran.H,
+			SAKIT: siswa.detailKehadiran.S,
+			IZIN: siswa.detailKehadiran.I,
+			ALPA: siswa.detailKehadiran.A,
+			"TOTAL SESI": siswa.totalSesi,
 			"% HADIR": `${siswa.persentase}%`,
 			"STATUS HARI INI":
 				siswa.statusHariIni === "H"
@@ -84,9 +93,18 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 		}));
 
 		const ws = XLSX.utils.json_to_sheet(excelData);
-
-		// Auto-size columns
-		const colWidths = [{ wch: 5 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 20 }];
+		const colWidths = [
+			{ wch: 5 },
+			{ wch: 30 },
+			{ wch: 15 },
+			{ wch: 10 },
+			{ wch: 10 },
+			{ wch: 10 },
+			{ wch: 10 },
+			{ wch: 12 },
+			{ wch: 10 },
+			{ wch: 20 },
+		];
 		ws["!cols"] = colWidths;
 
 		const wb = XLSX.utils.book_new();
@@ -107,7 +125,6 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 
 	return (
 		<div className={styles.layoutWrapper}>
-			{/* TOAST NOTIFICATION */}
 			{toastMessage && (
 				<div className={styles.toastContainer}>
 					<div className={styles.toastIcon}>
@@ -117,7 +134,6 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 				</div>
 			)}
 
-			{/* MODAL EXPORT */}
 			{isDownloadModalOpen && selectedKelas && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContainer}>
@@ -149,7 +165,6 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 				</div>
 			)}
 
-			{/* SIDEBAR */}
 			<aside className={styles.sidebar}>
 				<div className={styles.sidebarHeader}>
 					<div className={styles.logoWrapper}>
@@ -189,9 +204,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 				</div>
 			</aside>
 
-			{/* MAIN CONTENT */}
 			<main className={styles.mainContent}>
-				{/* TOPBAR */}
 				<header className={styles.topbar}>
 					<div>
 						<h1 className={styles.topbarTitle}>E-Journal & Presensi</h1>
@@ -211,7 +224,6 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 				</header>
 
 				<div className={styles.dashboardContainer}>
-					{/* VIEW 1: DAFTAR KARTU KELAS */}
 					{viewMode === "list" && (
 						<div>
 							<div className={styles.sectionHeader}>
@@ -229,7 +241,10 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 											placeholder="Cari Kelas..."
 											className={styles.searchInput}
 											value={searchTermCard}
-											onChange={(e) => setSearchTermCard(e.target.value)}
+											onChange={(e) => {
+												setSearchTermCard(e.target.value);
+												setCurrentPage(1); // Reset page ke 1 saat ngetik
+											}}
 										/>
 									</div>
 									<button className={styles.btnOutline}>Semua Tingkat</button>
@@ -237,7 +252,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 							</div>
 
 							<div className={styles.gridCards}>
-								{filteredKelas.map((kelas: any) => (
+								{paginatedKelas.map((kelas: any) => (
 									<div key={kelas.id} className={styles.classCard}>
 										<div className={styles.cardTopRow}>
 											<h3 className={styles.cardTitle}>{kelas.nama}</h3>
@@ -303,10 +318,34 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 									</div>
 								))}
 							</div>
+
+							{/* PERBAIKAN: Pagination Card Container */}
+							{totalPages > 1 && (
+								<div className={styles.paginationCenter}>
+									<div className={styles.pageButtons}>
+										<button
+											className={styles.pageBtn}
+											disabled={currentPage === 1}
+											onClick={() => setCurrentPage((p) => p - 1)}
+										>
+											&lt; Prev
+										</button>
+										<span className={styles.pageIndicator}>
+											Halaman {currentPage} dari {totalPages}
+										</span>
+										<button
+											className={styles.pageBtn}
+											disabled={currentPage === totalPages}
+											onClick={() => setCurrentPage((p) => p + 1)}
+										>
+											Next &gt;
+										</button>
+									</div>
+								</div>
+							)}
 						</div>
 					)}
 
-					{/* VIEW 2: DETAIL KELAS */}
 					{viewMode === "detail" && selectedKelas && (
 						<div>
 							<button className={styles.btnBack} onClick={() => setViewMode("list")}>
@@ -324,9 +363,8 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 
 							<div className={styles.detailInfoGrid}>
 								<div className={styles.infoCard}>
-									<div className={styles.infoAvatar}>
-										<img src="/logo.jpg" alt="Wali" />
-									</div>
+									{/* PERBAIKAN: Avatar Wali menggunakan Initials */}
+									<div className={styles.infoAvatarInitials}>{selectedKelas.waliKelasInitials}</div>
 									<div>
 										<div className={styles.infoLabel}>Wali Kelas</div>
 										<div className={styles.infoName}>{selectedKelas.waliKelas}</div>
@@ -404,15 +442,39 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 															<th>NO</th>
 															<th>NAMA SISWA</th>
 															<th>NISN</th>
-															<th style={{ textAlign: "center" }}>JML HADIR</th>
+															{/* PERBAIKAN: Kolom Detail Presensi H/S/I/A */}
+															<th
+																colSpan={4}
+																style={{
+																	textAlign: "center",
+																	borderLeft: "1px solid #f1f5f9",
+																	borderRight: "1px solid #f1f5f9",
+																}}
+															>
+																REKAP PRESENSI
+															</th>
 															<th style={{ textAlign: "center" }}>% HADIR</th>
 															<th>STATUS HARI INI</th>
+														</tr>
+														<tr>
+															<th></th>
+															<th></th>
+															<th></th>
+															{/* Sub-header untuk H/S/I/A */}
+															<th style={{ textAlign: "center", color: "#10b981" }}>H</th>
+															<th style={{ textAlign: "center", color: "#d97706" }}>S</th>
+															<th style={{ textAlign: "center", color: "#d97706" }}>I</th>
+															<th style={{ textAlign: "center", color: "#ef4444", borderRight: "1px solid #f1f5f9" }}>
+																A
+															</th>
+															<th></th>
+															<th></th>
 														</tr>
 													</thead>
 													<tbody>
 														{filteredSiswa.length === 0 ? (
 															<tr>
-																<td colSpan={6} style={{ textAlign: "center", padding: "2rem", color: "#94a3b8" }}>
+																<td colSpan={9} style={{ textAlign: "center", padding: "2rem", color: "#94a3b8" }}>
 																	Tidak ada siswa yang cocok dengan pencarian.
 																</td>
 															</tr>
@@ -433,9 +495,50 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 																		<td>{index + 1}</td>
 																		<td style={{ fontWeight: 600, color: "#0f172a" }}>{siswa.nama}</td>
 																		<td style={{ color: "#64748b" }}>{siswa.nisn || "-"}</td>
-																		<td style={{ textAlign: "center", fontWeight: 600 }}>
-																			{siswa.jmlHadir}/{siswa.totalSesi}
+
+																		{/* Data Detail Presensi */}
+																		<td
+																			style={{
+																				textAlign: "center",
+																				fontWeight: 700,
+																				color: "#10b981",
+																				backgroundColor: "#f8fafc",
+																			}}
+																		>
+																			{siswa.detailKehadiran.H}
 																		</td>
+																		<td
+																			style={{
+																				textAlign: "center",
+																				fontWeight: 700,
+																				color: "#d97706",
+																				backgroundColor: "#f8fafc",
+																			}}
+																		>
+																			{siswa.detailKehadiran.S}
+																		</td>
+																		<td
+																			style={{
+																				textAlign: "center",
+																				fontWeight: 700,
+																				color: "#d97706",
+																				backgroundColor: "#f8fafc",
+																			}}
+																		>
+																			{siswa.detailKehadiran.I}
+																		</td>
+																		<td
+																			style={{
+																				textAlign: "center",
+																				fontWeight: 700,
+																				color: "#ef4444",
+																				backgroundColor: "#f8fafc",
+																				borderRight: "1px solid #f1f5f9",
+																			}}
+																		>
+																			{siswa.detailKehadiran.A}
+																		</td>
+
 																		<td style={{ textAlign: "center", fontWeight: 600 }}>{siswa.persentase}%</td>
 																		<td>{statusBadge}</td>
 																	</tr>

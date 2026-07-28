@@ -7,7 +7,7 @@
 	overflow: hidden;
 }
 
-/* Sidebar (Menu Terpusat) */
+/* Sidebar */
 .sidebar {
 	width: 260px;
 	background-color: #0f172a;
@@ -47,32 +47,6 @@
 	font-size: 0.75rem;
 	color: #94a3b8;
 	margin-top: 0.2rem;
-}
-.profileSection {
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-	border-left: 1px solid #e2e8f0;
-	padding-left: 1.5rem;
-}
-.profileAvatar img {
-	width: 36px;
-	height: 36px;
-	border-radius: 50%;
-	object-fit: cover;
-}
-.profileInfo {
-	display: flex;
-	flex-direction: column;
-}
-.profileName {
-	font-size: 0.875rem;
-	font-weight: 700;
-	color: #0f172a;
-}
-.profileRole {
-	font-size: 0.7rem;
-	color: #64748b;
 }
 .menuContainer {
 	padding: 1.5rem 1rem;
@@ -155,11 +129,31 @@
 	color: #64748b;
 	cursor: pointer;
 }
+.profileSection {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	border-left: 1px solid #e2e8f0;
+	padding-left: 1.5rem;
+}
 .profileAvatar img {
 	width: 36px;
 	height: 36px;
 	border-radius: 50%;
 	object-fit: cover;
+}
+.profileInfo {
+	display: flex;
+	flex-direction: column;
+}
+.profileName {
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: #0f172a;
+}
+.profileRole {
+	font-size: 0.7rem;
+	color: #64748b;
 }
 .searchBox {
 	position: relative;
@@ -291,10 +285,10 @@
 	margin-bottom: 1.5rem;
 }
 
-/* View 1: KBM Grid Cards */
+/* View 1: KBM Grid Cards (Disesuaikan jadi 3 Kolom) */
 .gridCards {
 	display: grid;
-	grid-template-columns: repeat(4, 1fr);
+	grid-template-columns: repeat(3, 1fr);
 	gap: 1.5rem;
 }
 .kbmCard {
@@ -418,9 +412,14 @@
 }
 .detailSubInfo {
 	font-size: 0.875rem;
-	color: #64748b;
-	font-weight: 500;
+	font-weight: 600;
+	color: #475569;
 	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+	margin-top: 0.5rem;
 }
 .alertSummaryCard {
 	background-color: #fef2f2;
@@ -512,7 +511,7 @@
 	width: 120px;
 }
 
-/* Pagination */
+/* Pagination Detail Tabel */
 .pagination {
 	display: flex;
 	justify-content: space-between;
@@ -521,19 +520,28 @@
 	padding-top: 1.5rem;
 	border-top: 1px solid #e2e8f0;
 }
+
+/* Pagination Global (Grid/Card) */
+.paginationCenter {
+	display: flex;
+	justify-content: center;
+	margin-top: 2rem;
+	margin-bottom: 2rem;
+}
 .pageButtons {
 	display: flex;
-	gap: 0.5rem;
+	align-items: center;
+	gap: 1rem;
 }
 .pageBtn {
-	padding: 0.35rem 0.75rem;
+	padding: 0.5rem 1rem;
 	border: 1px solid #cbd5e1;
 	background-color: white;
-	border-radius: 0.375rem;
+	border-radius: 0.5rem;
 	font-size: 0.875rem;
 	cursor: pointer;
 	color: #0f172a;
-	font-weight: 700;
+	font-weight: 600;
 	transition: all 0.2s;
 }
 .pageBtn:disabled {
@@ -542,4 +550,20 @@
 }
 .pageBtn:not(:disabled):hover {
 	background-color: #f1f5f9;
+	border-color: #0f172a;
+}
+.pageIndicator {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #64748b;
+}
+.emptyState {
+	grid-column: 1 / -1;
+	text-align: center;
+	padding: 3rem;
+	color: #64748b;
+	font-style: italic;
+	background-color: white;
+	border-radius: 0.75rem;
+	border: 1px dashed #cbd5e1;
 }

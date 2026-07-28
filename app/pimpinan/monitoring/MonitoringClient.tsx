@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
 	LayoutDashboard,
 	Users,
@@ -18,8 +18,9 @@ import {
 	Microscope,
 	Globe,
 	FlaskConical,
-	Check,
 	Bell,
+	Building,
+	User,
 } from "lucide-react";
 import styles from "./monitoring.module.css";
 import Link from "next/link";
@@ -28,13 +29,24 @@ import { signOut } from "next-auth/react";
 export default function MonitoringClient({ user, dataMonitoring }: any) {
 	const [viewMode, setViewMode] = useState<"list" | "detail">("list");
 	const [selectedItem, setSelectedItem] = useState<any>(null);
+
+	// State Filter Pencarian Grid
 	const [searchTerm, setSearchTerm] = useState("");
+
+	// Paginasi Card
+	const [currentCardPage, setCurrentCardPage] = useState(1);
+	const cardsPerPage = 6;
 
 	// Fitur Pencarian & Sortir di Tabel
 	const [searchTopik, setSearchTopik] = useState("");
 	const [sortConfig, setSortConfig] = useState({ key: "pertemuanKe", direction: "desc" });
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 5;
+
+	// Reset pagination ketika melakukan pencarian grid (Autofill filter)
+	useEffect(() => {
+		setCurrentCardPage(1);
+	}, [searchTerm]);
 
 	const handleLihatDetail = (item: any) => {
 		setSelectedItem(item);
@@ -50,7 +62,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 		setSortConfig({ key, direction });
 	};
 
-	// Filter Grid KBM
+	// Filter Grid KBM (Mencari Mapel, Guru, atau Kelas)
 	const filteredData = dataMonitoring.filter(
 		(item: any) =>
 			item.mapelNama.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -58,7 +70,9 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 			item.kelasNama.toLowerCase().includes(searchTerm.toLowerCase()),
 	);
 
-	// Proses Data Tabel: Pencarian -> Sortir -> Paginasi
+	const totalCardPages = Math.max(1, Math.ceil(filteredData.length / cardsPerPage));
+	const paginatedCards = filteredData.slice((currentCardPage - 1) * cardsPerPage, currentCardPage * cardsPerPage);
+
 	const processedRiwayat = [...(selectedItem?.riwayat || [])]
 		.filter((row: any) => row.topik.toLowerCase().includes(searchTopik.toLowerCase()))
 		.sort((a: any, b: any) => {
@@ -88,7 +102,6 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 
 	return (
 		<div className={styles.layoutWrapper}>
-			{/* SIDEBAR */}
 			<aside className={styles.sidebar}>
 				<div className={styles.sidebarHeader}>
 					<div className={styles.logoWrapper}>
@@ -128,9 +141,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 				</div>
 			</aside>
 
-			{/* MAIN CONTENT */}
 			<main className={styles.mainContent}>
-				{/* TOPBAR */}
 				<header className={styles.topbar}>
 					<div>
 						<h1 className={styles.topbarTitle}>E-Journal & Presensi</h1>
@@ -150,7 +161,6 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 				</header>
 
 				<div className={styles.dashboardContainer}>
-					{/* VIEW 1: GRID OVERVIEW */}
 					{viewMode === "list" && (
 						<div>
 							<div className={styles.sectionHeader}>
@@ -158,57 +168,100 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 									<h2 className={styles.sectionTitle}>Monitoring Jurnal Mengajar</h2>
 									<p className={styles.sectionDate}>Overview of teaching journals across all subjects and classes.</p>
 								</div>
+								{/* PERBAIKAN: Menambahkan Kotak Pencarian di View 1 */}
+								<div className={styles.headerButtons}>
+									<div className={styles.searchBoxCard}>
+										<Search size={16} className={styles.searchIcon} />
+										<input
+											type="text"
+											placeholder="Cari Mapel, Kelas, atau Guru..."
+											className={styles.searchInput}
+											value={searchTerm}
+											onChange={(e) => setSearchTerm(e.target.value)}
+										/>
+									</div>
+									<button className={styles.btnOutline}>
+										<Filter size={16} /> Filter
+									</button>
+								</div>
 							</div>
 
 							<div className={styles.gridCards}>
-								{filteredData.map((item: any) => (
-									<div key={item.id} className={styles.kbmCard}>
-										<div className={styles.kbmCardHeader}>
-											<div>
-												<h3 className={styles.kbmMapel}>{item.mapelNama}</h3>
-												<p className={styles.kbmKelas}>{item.kelasNama}</p>
+								{paginatedCards.length === 0 ? (
+									<div className={styles.emptyState}>Tidak ada kelas yang cocok dengan pencarian.</div>
+								) : (
+									paginatedCards.map((item: any) => (
+										<div key={item.id} className={styles.kbmCard}>
+											<div className={styles.kbmCardHeader}>
+												<div>
+													<h3 className={styles.kbmMapel}>{item.mapelNama}</h3>
+													<p className={styles.kbmKelas}>{item.kelasNama}</p>
+												</div>
+												<div className={styles.iconMapel}>{getMapelIcon(item.mapelNama)}</div>
 											</div>
-											<div className={styles.iconMapel}>{getMapelIcon(item.mapelNama)}</div>
-										</div>
 
-										<div className={styles.guruProfileBox}>
-											<div className={styles.guruAvatar}>{item.guruInitials}</div>
-											<div>
-												<div className={styles.guruName}>{item.guruNama}</div>
-												<div className={styles.guruRole}>Teacher</div>
+											<div className={styles.guruProfileBox}>
+												<div className={styles.guruAvatar}>{item.guruInitials}</div>
+												<div>
+													<div className={styles.guruName}>{item.guruNama}</div>
+													<div className={styles.guruRole}>Teacher</div>
+												</div>
 											</div>
-										</div>
 
-										<div className={styles.progressSection}>
-											<div className={styles.progressLabels}>
-												<span>Jumlah Jurnal</span>
-												<span style={{ fontWeight: 800 }}>
-													{item.terisi}/{item.totalSesi}{" "}
-													<span style={{ fontSize: "0.75rem", fontWeight: 500, color: "#64748b" }}>Sesi</span>
-												</span>
+											<div className={styles.progressSection}>
+												<div className={styles.progressLabels}>
+													<span>Jumlah Jurnal</span>
+													<span style={{ fontWeight: 800 }}>
+														{item.terisi}/{item.totalSesi}{" "}
+														<span style={{ fontSize: "0.75rem", fontWeight: 500, color: "#64748b" }}>Sesi</span>
+													</span>
+												</div>
+												<div className={styles.progressTrack}>
+													<div
+														className={styles.progressBar}
+														style={{
+															width: `${item.totalSesi > 0 ? (item.terisi / item.totalSesi) * 100 : 0}%`,
+															backgroundColor:
+																item.jamKosong > 0 ? (item.terisi === 0 ? "#ef4444" : "#f59e0b") : "#10b981",
+														}}
+													></div>
+												</div>
 											</div>
-											<div className={styles.progressTrack}>
-												<div
-													className={styles.progressBar}
-													style={{
-														width: `${item.totalSesi > 0 ? (item.terisi / item.totalSesi) * 100 : 0}%`,
-														backgroundColor:
-															item.jamKosong > 0 ? (item.terisi === 0 ? "#ef4444" : "#f59e0b") : "#10b981",
-													}}
-												></div>
-											</div>
-										</div>
 
-										<button className={styles.btnOutlineFull} onClick={() => handleLihatDetail(item)}>
-											Lihat Detail
+											<button className={styles.btnOutlineFull} onClick={() => handleLihatDetail(item)}>
+												Lihat Detail
+											</button>
+										</div>
+									))
+								)}
+							</div>
+
+							{totalCardPages > 1 && (
+								<div className={styles.paginationCenter}>
+									<div className={styles.pageButtons}>
+										<button
+											className={styles.pageBtn}
+											disabled={currentCardPage === 1}
+											onClick={() => setCurrentCardPage((p) => p - 1)}
+										>
+											&lt; Prev
+										</button>
+										<span className={styles.pageIndicator}>
+											Halaman {currentCardPage} dari {totalCardPages}
+										</span>
+										<button
+											className={styles.pageBtn}
+											disabled={currentCardPage === totalCardPages}
+											onClick={() => setCurrentCardPage((p) => p + 1)}
+										>
+											Next &gt;
 										</button>
 									</div>
-								))}
-							</div>
+								</div>
+							)}
 						</div>
 					)}
 
-					{/* VIEW 2: DETAIL MONITORING */}
 					{viewMode === "detail" && selectedItem && (
 						<div>
 							<button className={styles.btnBack} onClick={() => setViewMode("list")}>
@@ -222,10 +275,17 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 									</div>
 									<div>
 										<h2 className={styles.detailTitleBig}>{selectedItem.mapelNama}</h2>
-										<p className={styles.detailSubInfo}>
-											🏢 {selectedItem.kelasNama} &nbsp; 👤 {selectedItem.guruNama} &nbsp;{" "}
+										<div className={styles.detailSubInfo}>
+											<div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+												<Building size={14} color="#64748b" /> {selectedItem.kelasNama}
+											</div>
+											<span style={{ color: "#cbd5e1" }}>•</span>
+											<div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+												<User size={14} color="#64748b" /> {selectedItem.guruNama}
+											</div>
+											<span style={{ color: "#cbd5e1" }}>•</span>
 											<span style={{ color: "#94a3b8" }}>(NPP: {selectedItem.guruNpp})</span>
-										</p>
+										</div>
 									</div>
 								</div>
 								<div className={styles.alertSummaryCard}>
@@ -250,7 +310,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 												value={searchTopik}
 												onChange={(e) => {
 													setSearchTopik(e.target.value);
-													setCurrentPage(1); // Reset page saat mencari
+													setCurrentPage(1);
 												}}
 											/>
 										</div>

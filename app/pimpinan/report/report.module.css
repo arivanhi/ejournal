@@ -1,0 +1,921 @@
+/* Layout Global */
+.layoutWrapper {
+	display: flex;
+	height: 100vh;
+	background-color: #f8fafc;
+	font-family: "Inter", sans-serif;
+	overflow: hidden;
+}
+
+/* Sidebar Default SMAN 2 */
+.sidebar {
+	width: 260px;
+	background-color: #04142f;
+	color: white;
+	display: flex;
+	flex-direction: column;
+	border-right: 1px solid #1e293b;
+}
+.sidebarHeader {
+	padding: 1.5rem;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	border-bottom: 1px solid #1e293b;
+}
+.logoWrapper {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background-color: white;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	overflow: hidden;
+}
+.logoImage {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.schoolName {
+	font-weight: 700;
+	font-size: 1.1rem;
+	line-height: 1.2;
+}
+.portalName {
+	font-size: 0.75rem;
+	color: #94a3b8;
+	margin-top: 0.2rem;
+}
+.menuContainer {
+	padding: 1.5rem 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	flex: 1;
+	overflow-y: auto;
+}
+.menuItem {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem 1rem;
+	border-radius: 0.5rem;
+	color: #cbd5e1;
+	text-decoration: none;
+	font-size: 0.875rem;
+	transition: all 0.2s;
+}
+.menuItem:hover {
+	background-color: rgba(255, 255, 255, 0.05);
+	color: white;
+}
+.menuItemActive {
+	background-color: rgba(255, 255, 255, 0.1);
+	color: white;
+	font-weight: 600;
+	border-left: 3px solid #facc15;
+}
+.sidebarFooter {
+	padding: 1.5rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.logoutBtn {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem 1rem;
+	background-color: transparent;
+	border: none;
+	color: #cbd5e1;
+	cursor: pointer;
+	border-radius: 0.5rem;
+	transition: 0.2s;
+	font-size: 0.875rem;
+}
+.logoutBtn:hover {
+	background-color: #ef4444;
+	color: white;
+}
+
+/* Main Content & Topbar */
+.mainContent {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+}
+.topbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1.25rem 2rem;
+	background-color: white;
+	border-bottom: 1px solid #e2e8f0;
+}
+.topbarTitle {
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0;
+}
+.topbarActions {
+	display: flex;
+	align-items: center;
+	gap: 1.5rem;
+}
+.iconAction {
+	color: #64748b;
+	cursor: pointer;
+}
+.profileSection {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	border-left: 1px solid #e2e8f0;
+	padding-left: 1.5rem;
+}
+.profileAvatar img {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	object-fit: cover;
+}
+.profileInfo {
+	display: flex;
+	flex-direction: column;
+}
+.profileName {
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: #0f172a;
+}
+.profileRole {
+	font-size: 0.7rem;
+	color: #64748b;
+}
+
+.dashboardContainer {
+	padding: 2.5rem;
+	max-width: 1400px;
+	margin: 0 auto;
+	width: 100%;
+}
+
+/* View 1: Selection Grid */
+.sectionHeader {
+	margin-bottom: 2.5rem;
+}
+.sectionTitleBig {
+	font-size: 2.25rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0 0 0.5rem 0;
+	letter-spacing: -0.02em;
+}
+.sectionDate {
+	font-size: 1rem;
+	color: #64748b;
+	margin: 0;
+}
+
+.selectionGrid {
+	display: grid;
+	grid-template-columns: 1fr 2.5fr;
+	gap: 2rem;
+}
+.filterCol {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+}
+.filterCard {
+	background-color: white;
+	border-radius: 1rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+.filterLabel {
+	font-size: 1rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin: 0 0 1rem 0;
+}
+.stackButtons {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+.rowButtons {
+	display: flex;
+	gap: 0.75rem;
+}
+.selectBtn {
+	width: 100%;
+	padding: 0.875rem;
+	border-radius: 0.5rem;
+	border: 1px solid #cbd5e1;
+	background-color: white;
+	color: #475569;
+	font-size: 0.875rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+.selectBtn:hover {
+	border-color: #94a3b8;
+}
+.selectBtnActive {
+	background-color: #04142f;
+	border-color: #04142f;
+	color: white;
+}
+.selectBtnActive:hover {
+	border-color: #04142f;
+}
+
+.heroCard {
+	background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+	border-radius: 1rem;
+	padding: 3rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+	height: 100%;
+}
+.badgeBlueLight {
+	display: inline-block;
+	background-color: #e0f2fe;
+	color: #1e3a8a;
+	padding: 0.4rem 1rem;
+	border-radius: 99px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	margin-bottom: 1.5rem;
+}
+.heroTitle {
+	font-size: 2.25rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0 0 2.5rem 0;
+	max-width: 600px;
+	line-height: 1.2;
+}
+.heroStatsRow {
+	display: flex;
+	gap: 3rem;
+	margin-bottom: 3rem;
+}
+.heroStatBox {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+.iconBoxLight {
+	width: 48px;
+	height: 48px;
+	background-color: #e2e8f0;
+	border-radius: 0.75rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+.statLabelSm {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: #64748b;
+	margin-bottom: 0.2rem;
+}
+.statValBig {
+	font-size: 1.75rem;
+	font-weight: 800;
+	color: #0f172a;
+	line-height: 1;
+}
+.btnPrimaryLg {
+	background-color: #04142f;
+	color: white;
+	border: none;
+	padding: 1rem 2rem;
+	border-radius: 0.5rem;
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: 0.2s;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.btnPrimaryLg:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+.btnPrimaryLg:not(:disabled):hover {
+	background-color: #1e293b;
+}
+
+/* View 2: Detail Analisa */
+.detailTopbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 2rem;
+}
+.btnBack {
+	background: none;
+	border: none;
+	color: #64748b;
+	cursor: pointer;
+	padding: 0;
+	margin-right: 1rem;
+	display: flex;
+	align-items: center;
+}
+.detailTopbar > div {
+	display: flex;
+	align-items: flex-start;
+}
+.detailTitleMain {
+	font-size: 1.5rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0;
+}
+.detailSubText {
+	font-size: 0.875rem;
+	color: #64748b;
+	margin: 0;
+	margin-top: 0.2rem;
+}
+.btnPrint {
+	background: none;
+	border: 1px solid #e2e8f0;
+	color: #0f172a;
+	cursor: pointer;
+	padding: 0.5rem 1rem;
+	border-radius: 0.5rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-weight: 600;
+	font-size: 0.875rem;
+	background-color: white;
+}
+
+.cardHeaderTitle {
+	font-size: 1rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin: 0 0 1.5rem 0;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+/* 3 Grid Top Cards */
+.threeGrid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1.5rem;
+	margin-bottom: 1.5rem;
+}
+.statCard {
+	background-color: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.listWrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+}
+.listItem {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+.listNumBlue {
+	width: 32px;
+	height: 32px;
+	background-color: #e0f2fe;
+	color: #1e3a8a;
+	font-weight: 700;
+	font-size: 0.875rem;
+	border-radius: 50%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-shrink: 0;
+}
+.listCircleGray {
+	width: 32px;
+	height: 32px;
+	background-color: #f1f5f9;
+	color: #475569;
+	font-weight: 700;
+	font-size: 0.75rem;
+	border-radius: 50%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-shrink: 0;
+}
+.listTextGroup {
+	flex: 1;
+}
+.listName {
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: #0f172a;
+}
+.listSub {
+	font-size: 0.75rem;
+	color: #64748b;
+}
+.listValueRed {
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: #ef4444;
+}
+.badgeRedSoft {
+	background-color: #fee2e2;
+	color: #b91c1c;
+	font-size: 0.75rem;
+	font-weight: 700;
+	padding: 0.25rem 0.5rem;
+	border-radius: 0.25rem;
+}
+
+/* Donut Chart CSS */
+.chartContainer {
+	display: flex;
+	align-items: center;
+	gap: 2rem;
+	justify-content: center;
+	padding: 1rem 0;
+}
+.donutChart {
+	width: 120px;
+	height: 120px;
+	border-radius: 50%;
+	position: relative;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+.donutHole {
+	width: 60px;
+	height: 60px;
+	background-color: white;
+	border-radius: 50%;
+}
+.legendWrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+.legendItem {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 0.75rem;
+	color: #475569;
+	font-weight: 600;
+}
+.dotNavy {
+	width: 10px;
+	height: 10px;
+	background-color: #1e3a8a;
+	border-radius: 2px;
+}
+.dotYellow {
+	width: 10px;
+	height: 10px;
+	background-color: #facc15;
+	border-radius: 2px;
+}
+.dotRed {
+	width: 10px;
+	height: 10px;
+	background-color: #ef4444;
+	border-radius: 2px;
+}
+.dotOlive {
+	width: 10px;
+	height: 10px;
+	background-color: #ca8a04;
+	border-radius: 2px;
+}
+
+/* Middle Chart */
+.fullCard {
+	background-color: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	margin-bottom: 1.5rem;
+}
+.chartHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 2rem;
+}
+.legendWrapperRow {
+	display: flex;
+	gap: 1.5rem;
+}
+.barChartContainer {
+	display: flex;
+	justify-content: space-around;
+	align-items: flex-end;
+	height: 200px;
+	padding: 0 2rem;
+	border-bottom: 1px solid #e2e8f0;
+}
+.barGroup {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.5rem;
+	height: 100%;
+	justify-content: flex-end;
+}
+.bars {
+	display: flex;
+	gap: 0.5rem;
+	height: 160px;
+	align-items: flex-end;
+}
+.barNavy {
+	width: 20px;
+	background-color: #04142f;
+	border-radius: 2px 2px 0 0;
+}
+.barOlive {
+	width: 20px;
+	background-color: #ca8a04;
+	border-radius: 2px 2px 0 0;
+}
+.barLabel {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: #64748b;
+}
+
+/* Bottom Grid (Table & Recom) */
+.bottomGrid {
+	display: grid;
+	grid-template-columns: 2fr 1fr;
+	gap: 1.5rem;
+}
+.tableCard {
+	background-color: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.pdcaTable {
+	width: 100%;
+	border-collapse: collapse;
+}
+.pdcaTable th {
+	padding: 1rem 0.5rem;
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: #0f172a;
+	border-bottom: 2px solid #e2e8f0;
+	text-align: left;
+}
+.pdcaTable td {
+	padding: 1.25rem 0.5rem;
+	font-size: 0.875rem;
+	color: #334155;
+	border-bottom: 1px solid #f1f5f9;
+	vertical-align: top;
+	line-height: 1.5;
+}
+.tdBold {
+	font-weight: 700;
+	color: #0f172a;
+}
+.badgeGreenRounded {
+	background-color: #dcfce7;
+	color: #16a34a;
+	padding: 0.25rem 0.75rem;
+	border-radius: 99px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	display: inline-block;
+}
+.badgeYellowRounded {
+	background-color: #fef9c3;
+	color: #ca8a04;
+	padding: 0.25rem 0.75rem;
+	border-radius: 99px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	display: inline-block;
+}
+.badgeRedRounded {
+	background-color: #fee2e2;
+	color: #dc2626;
+	padding: 0.25rem 0.75rem;
+	border-radius: 99px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	display: inline-block;
+}
+
+.recommendationBox {
+	background-color: #04142f;
+	border-radius: 0.75rem;
+	padding: 2rem;
+	color: white;
+	display: flex;
+	flex-direction: column;
+}
+.recomTitle {
+	font-size: 1.1rem;
+	font-weight: 700;
+	color: white;
+	margin: 0 0 1.5rem 0;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.recomText {
+	font-size: 0.875rem;
+	color: #cbd5e1;
+	line-height: 1.6;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+.recomText p strong {
+	color: white;
+}
+.btnUpdate {
+	width: 100%;
+	padding: 0.875rem;
+	background-color: #facc15;
+	border: none;
+	border-radius: 0.5rem;
+	color: #0f172a;
+	font-weight: 700;
+	font-size: 0.875rem;
+	cursor: pointer;
+	transition: 0.2s;
+	margin-top: 2rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 0.5rem;
+}
+.btnUpdate:hover {
+	background-color: #eab308;
+}
+
+/* Print Media Query */
+@media print {
+	.sidebar,
+	.topbar,
+	.detailTopbar button {
+		display: none !important;
+	}
+	.mainContent {
+		padding: 0;
+		overflow: visible;
+	}
+	.dashboardContainer {
+		max-width: 100%;
+		padding: 0;
+		margin: 0;
+	}
+	.heroCard {
+		border: 1px solid #000;
+		box-shadow: none;
+		background: white;
+	}
+	.statCard,
+	.fullCard,
+	.tableCard {
+		border: 1px solid #000;
+		box-shadow: none;
+		break-inside: avoid;
+	}
+	.recommendationBox {
+		background-color: white !important;
+		color: black !important;
+		border: 1px solid #000;
+	}
+	.recomTitle,
+	.recomText,
+	.recomText p strong {
+		color: black !important;
+	}
+	.btnUpdate {
+		display: none !important;
+	}
+}
+
+/* Modal & Toast Form System */
+.modalOverlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(15, 23, 42, 0.6);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	z-index: 1000;
+	backdrop-filter: blur(4px);
+}
+.modalContainer {
+	background: white;
+	width: 500px;
+	max-width: 90%;
+	border-radius: 1rem;
+	box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+	overflow: hidden;
+	animation: slideUp 0.3s ease-out;
+}
+@keyframes slideUp {
+	from {
+		transform: translateY(20px);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+.modalHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1.5rem 2rem;
+	border-bottom: 1px solid #f1f5f9;
+	background: #f8fafc;
+}
+.modalTitle {
+	font-size: 1.1rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0;
+}
+.modalCloseBtn {
+	background: none;
+	border: none;
+	color: #64748b;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.modalCloseBtn:hover {
+	color: #ef4444;
+}
+.modalBody {
+	padding: 2rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+.modalFooter {
+	display: flex;
+	justify-content: flex-end;
+	gap: 1rem;
+	margin-top: 1rem;
+	padding-top: 1.5rem;
+	border-top: 1px solid #f1f5f9;
+}
+
+.formLabel {
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: #334155;
+	margin-bottom: 0.5rem;
+	display: block;
+}
+.inputField {
+	width: 100%;
+	padding: 0.75rem 1rem;
+	border: 1px solid #cbd5e1;
+	border-radius: 0.5rem;
+	font-size: 0.875rem;
+	color: #0f172a;
+	background: white;
+	outline: none;
+}
+.inputField:focus {
+	border-color: #3b82f6;
+	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+.textareaCustom {
+	width: 100%;
+	padding: 1rem;
+	border: 1px solid #cbd5e1;
+	border-radius: 0.5rem;
+	font-size: 0.875rem;
+	font-family: inherit;
+	resize: vertical;
+	line-height: 1.6;
+	outline: none;
+}
+.textareaCustom:focus {
+	border-color: #3b82f6;
+}
+
+.btnOutline {
+	padding: 0.75rem 1.5rem;
+	border: 1px solid #cbd5e1;
+	background: white;
+	color: #475569;
+	font-weight: 600;
+	border-radius: 0.5rem;
+	cursor: pointer;
+}
+.btnOutline:hover {
+	background: #f8fafc;
+	color: #0f172a;
+}
+.btnOutlineSm {
+	padding: 0.4rem 1rem;
+	border: 1px solid #cbd5e1;
+	background: white;
+	color: #0f172a;
+	font-weight: 600;
+	font-size: 0.75rem;
+	border-radius: 0.5rem;
+	cursor: pointer;
+	transition: 0.2s;
+}
+.btnOutlineSm:hover {
+	border-color: #0f172a;
+}
+.btnIconGhost {
+	background: none;
+	border: none;
+	color: #64748b;
+	cursor: pointer;
+	padding: 0.25rem;
+	border-radius: 0.25rem;
+	transition: 0.2s;
+}
+.btnIconGhost:hover {
+	color: #3b82f6;
+	background-color: #e0f2fe;
+}
+
+.toastContainer {
+	position: fixed;
+	top: 1.5rem;
+	right: 1.5rem;
+	background-color: #10b981;
+	color: white;
+	padding: 1rem 1.5rem;
+	border-radius: 0.5rem;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+	z-index: 1001;
+	animation: slideInRight 0.3s ease-out;
+}
+@keyframes slideInRight {
+	from {
+		transform: translateX(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+.toastIcon {
+	width: 24px;
+	height: 24px;
+	background-color: rgba(255, 255, 255, 0.2);
+	border-radius: 50%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+.toastText {
+	font-weight: 600;
+	font-size: 0.875rem;
+}

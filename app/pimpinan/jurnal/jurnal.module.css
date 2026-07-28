@@ -1,0 +1,801 @@
+/* Layout Global */
+.layoutWrapper {
+	display: flex;
+	height: 100vh;
+	background-color: #f8fafc;
+	font-family: "Inter", sans-serif;
+	overflow: hidden;
+}
+
+/* Sidebar */
+/* Sidebar (Navy Blue) */
+.sidebar {
+	width: 260px;
+	background-color: #0f172a;
+	color: white;
+	display: flex;
+	flex-direction: column;
+	border-right: 1px solid #1e293b;
+}
+.sidebarHeader {
+	padding: 1.5rem;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	border-bottom: 1px solid #1e293b;
+}
+.logoWrapper {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background-color: white;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	overflow: hidden;
+}
+.logoImage {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.schoolName {
+	font-weight: 700;
+	font-size: 1.1rem;
+	line-height: 1.2;
+}
+.portalName {
+	font-size: 0.75rem;
+	color: #94a3b8;
+	margin-top: 0.2rem;
+}
+.menuContainer {
+	padding: 1.5rem 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	flex: 1;
+	overflow-y: auto;
+}
+.menuItem {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem 1rem;
+	border-radius: 0.5rem;
+	color: #cbd5e1;
+	text-decoration: none;
+	font-size: 0.875rem;
+	transition: all 0.2s;
+}
+.menuItem:hover {
+	background-color: rgba(255, 255, 255, 0.05);
+	color: white;
+}
+.menuItemActive {
+	background-color: rgba(255, 255, 255, 0.1);
+	color: white;
+	font-weight: 600;
+	border-left: 3px solid #facc15;
+}
+.sidebarFooter {
+	padding: 1.5rem;
+	border-top: 1px solid #1e293b;
+}
+.logoutBtn {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem 1rem;
+	background-color: transparent;
+	border: none;
+	color: #cbd5e1;
+	cursor: pointer;
+	border-radius: 0.5rem;
+	transition: 0.2s;
+}
+.logoutBtn:hover {
+	background-color: #ef4444;
+	color: white;
+}
+
+/* Main Content & Topbar */
+.mainContent {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+}
+.topbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1.25rem 2rem;
+	background-color: white;
+	border-bottom: 1px solid #e2e8f0;
+}
+.topbarTitle {
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0;
+}
+.topbarSubtitle {
+	font-size: 0.875rem;
+	color: #64748b;
+	margin: 0;
+	margin-top: 0.25rem;
+}
+.topbarActions {
+	display: flex;
+	align-items: center;
+	gap: 1.5rem;
+}
+.iconAction {
+	color: #64748b;
+	cursor: pointer;
+}
+.profileSection {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	border-left: 1px solid #e2e8f0;
+	padding-left: 1.5rem;
+}
+.profileAvatar img {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	object-fit: cover;
+}
+.profileInfo {
+	display: flex;
+	flex-direction: column;
+}
+.profileName {
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: #0f172a;
+}
+.profileRole {
+	font-size: 0.7rem;
+	color: #64748b;
+}
+
+/* PERBAIKAN: Max-width dinaikkan menjadi 1400px agar tidak terlalu sempit */
+.dashboardContainer {
+	padding: 2rem;
+	max-width: 1400px;
+	margin: 0 auto;
+	width: 100%;
+}
+
+/* View 1: Header & Filter Box */
+.sectionHeader {
+	margin-bottom: 1.5rem;
+}
+.sectionTitle {
+	font-size: 1.75rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0;
+}
+.sectionDate {
+	font-size: 0.875rem;
+	color: #64748b;
+	margin: 0;
+	margin-top: 0.25rem;
+}
+
+.filterBox {
+	background-color: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	display: flex;
+	gap: 3rem;
+	margin-bottom: 2rem;
+}
+.filterGroup {
+	flex: 1;
+}
+.filterLabel {
+	font-size: 1rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin: 0 0 1rem 0;
+	padding-bottom: 0.5rem;
+	border-bottom: 1px solid #f1f5f9;
+}
+.pillContainer {
+	display: flex;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+}
+.pillBtn {
+	padding: 0.5rem 1.25rem;
+	border-radius: 99px;
+	border: 1px solid #cbd5e1;
+	background-color: white;
+	color: #475569;
+	font-size: 0.875rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+.pillBtn:hover {
+	border-color: #94a3b8;
+}
+.pillActive {
+	background-color: #0f172a;
+	border-color: #0f172a;
+	color: white;
+}
+.pillActive:hover {
+	border-color: #0f172a;
+}
+
+/* Grid Cards Jurnal */
+.gridCards {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1.5rem;
+}
+.jurnalCard {
+	background-color: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	transition: transform 0.2s;
+}
+.jurnalCard:hover {
+	transform: translateY(-3px);
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+.cardTopRow {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: 1.5rem;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid #f1f5f9;
+}
+.cardMapel {
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0;
+	margin-bottom: 0.25rem;
+}
+.cardKelas {
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: #64748b;
+	margin: 0;
+}
+.badgeSesi {
+	background-color: #e0f2fe;
+	color: #3b82f6;
+	padding: 0.25rem 0.75rem;
+	border-radius: 99px;
+	font-size: 0.75rem;
+	font-weight: 700;
+}
+
+.guruProfileBox {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+}
+.guruAvatarInitials {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	overflow: hidden;
+	background-color: #e0f2fe;
+	color: #1e3a8a;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 0.875rem;
+	font-weight: 700;
+}
+.guruName {
+	font-size: 0.95rem;
+	font-weight: 700;
+	color: #0f172a;
+}
+.guruRole {
+	font-size: 0.75rem;
+	color: #64748b;
+	margin-top: 0.1rem;
+}
+
+.btnOutlineFull {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	padding: 0.75rem;
+	background-color: white;
+	border: 1px solid #cbd5e1;
+	border-radius: 0.5rem;
+	color: #0f172a;
+	font-size: 0.875rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+.btnOutlineFull:hover {
+	background-color: #f8fafc;
+	border-color: #0f172a;
+}
+.emptyState {
+	grid-column: 1 / -1;
+	text-align: center;
+	padding: 3rem;
+	color: #64748b;
+	font-style: italic;
+	background-color: white;
+	border-radius: 0.75rem;
+	border: 1px dashed #cbd5e1;
+}
+
+/* View 2: Detail Analisa */
+.detailTopbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 1.5rem;
+}
+.btnBack {
+	background: none;
+	border: none;
+	color: #0f172a;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-weight: 800;
+	cursor: pointer;
+	font-size: 1.1rem;
+	padding: 0;
+}
+.btnPrint {
+	background: none;
+	border: none;
+	color: #64748b;
+	cursor: pointer;
+	padding: 0.5rem;
+	border-radius: 0.5rem;
+}
+.btnPrint:hover {
+	background-color: #e2e8f0;
+	color: #0f172a;
+}
+
+.heroCard {
+	background-color: #f8fafc;
+	border-radius: 1rem;
+	padding: 1.5rem 2rem;
+	border: 1px solid #e2e8f0;
+	position: relative;
+	margin-bottom: 2rem;
+}
+.badgeSemester {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	background-color: #e0f2fe;
+	color: #1e3a8a;
+	padding: 0.4rem 1rem;
+	border-radius: 99px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	margin-bottom: 1rem;
+}
+.heroTitle {
+	font-size: 1.75rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0;
+	margin-bottom: 0.5rem;
+}
+.heroSub {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #475569;
+	margin: 0;
+}
+.heroAvatarInitials {
+	position: absolute;
+	right: 2rem;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 70px;
+	height: 70px;
+	border-radius: 50%;
+	overflow: hidden;
+	border: 4px solid white;
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+	background-color: #e0f2fe;
+	color: #1e3a8a;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 1.5rem;
+	font-weight: 800;
+}
+
+.sectionSubtitle {
+	font-size: 1.1rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin-bottom: 1rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+/* Stat Cards & PERBAIKAN: Monochromatic Icons */
+.statGrid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1.5rem;
+	margin-bottom: 2rem;
+}
+.statCard {
+	background-color: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.statCardHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: 1.5rem;
+}
+
+/* Class Icon Baru yang Bersifat Netral */
+.iconBoxMono {
+	width: 40px;
+	height: 40px;
+	background-color: #f1f5f9;
+	border-radius: 0.5rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.badgeGreenSmall {
+	background-color: #ecfdf5;
+	color: #10b981;
+	font-size: 0.7rem;
+	font-weight: 700;
+	padding: 0.25rem 0.5rem;
+	border-radius: 99px;
+}
+.statLabel {
+	font-size: 0.875rem;
+	color: #64748b;
+	margin: 0;
+	margin-bottom: 0.5rem;
+}
+.statValue {
+	font-size: 2.5rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0;
+	line-height: 1;
+}
+.statSub {
+	font-size: 1rem;
+	font-weight: 600;
+	color: #94a3b8;
+}
+.progressTrackBar {
+	height: 6px;
+	background-color: #f1f5f9;
+	border-radius: 99px;
+	margin-top: 1.25rem;
+	overflow: hidden;
+}
+.progressBarDark {
+	height: 100%;
+	background-color: #0f172a;
+	border-radius: 99px;
+}
+
+/* Bottom Grid (Chart & Table) */
+.bottomGrid {
+	display: grid;
+	grid-template-columns: 1fr 2fr;
+	gap: 1.5rem;
+}
+.chartCard {
+	background-color: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.chartTitle {
+	font-size: 1rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin: 0;
+}
+.barChartArea {
+	height: 250px;
+	display: flex;
+	justify-content: space-around;
+	align-items: flex-end;
+	padding-top: 2rem;
+	margin-top: 1rem;
+	border-left: 1px solid #f1f5f9;
+	border-bottom: 1px solid #f1f5f9;
+}
+.barColumn {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.5rem;
+	height: 100%;
+	justify-content: flex-end;
+}
+.barWrapper {
+	height: 180px;
+	width: 30px;
+	display: flex;
+	align-items: flex-end;
+}
+.barFillLight {
+	width: 100%;
+	background-color: #e0f2fe;
+	border-radius: 4px 4px 0 0;
+}
+.barFillDark {
+	width: 100%;
+	background-color: #0f172a;
+	border-radius: 4px 4px 0 0;
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+	transform: scaleX(1.2);
+}
+.barLabel {
+	font-size: 0.7rem;
+	color: #94a3b8;
+	font-weight: 600;
+}
+
+.tableCard {
+	background-color: white;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	display: flex;
+	flex-direction: column;
+}
+.tableHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 1rem;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid #f1f5f9;
+}
+.searchBoxTable {
+	position: relative;
+	width: 250px;
+}
+.searchIconTable {
+	position: absolute;
+	left: 0.5rem;
+	top: 50%;
+	transform: translateY(-50%);
+	color: #94a3b8;
+}
+.searchInputTable {
+	width: 100%;
+	padding: 0.5rem 0.5rem 0.5rem 2rem;
+	border-radius: 0.5rem;
+	border: 1px solid #cbd5e1;
+	font-size: 0.75rem;
+	outline: none;
+	transition: border-color 0.2s;
+}
+.searchInputTable:focus {
+	border-color: #0f172a;
+}
+
+.tableWrapper {
+	overflow-x: auto;
+	flex: 1;
+}
+.dataTable {
+	width: 100%;
+	border-collapse: collapse;
+	text-align: left;
+}
+.dataTable th {
+	padding: 0.75rem 0.5rem;
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: #64748b;
+	border-bottom: 1px solid #e2e8f0;
+	text-transform: capitalize;
+}
+.dataTable td {
+	padding: 1rem 0.5rem;
+	border-bottom: 1px solid #f8fafc;
+	vertical-align: middle;
+}
+.tdBold {
+	font-weight: 800;
+	font-size: 1.1rem;
+	color: #0f172a;
+}
+.tdGray {
+	color: #64748b;
+	font-size: 0.875rem;
+}
+.tdBoldCenter {
+	font-weight: 800;
+	color: #0f172a;
+	text-align: center;
+}
+.topikTitle {
+	font-weight: 700;
+	color: #1e293b;
+	font-size: 0.875rem;
+}
+.badgeSuccess {
+	background-color: #ecfdf5;
+	color: #10b981;
+	font-size: 0.65rem;
+	font-weight: 800;
+	padding: 0.25rem 0.6rem;
+	border-radius: 99px;
+}
+.badgeWarning {
+	background-color: #fffbeb;
+	color: #d97706;
+	font-size: 0.65rem;
+	font-weight: 800;
+	padding: 0.25rem 0.6rem;
+	border-radius: 99px;
+}
+.emptyTable {
+	text-align: center;
+	padding: 2rem;
+	color: #94a3b8;
+	font-style: italic;
+}
+
+/* Paginasi Global (Grid/Card) */
+.paginationCenter {
+	display: flex;
+	justify-content: center;
+	margin-top: 2rem;
+}
+.pageButtons {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+.pageBtn {
+	padding: 0.5rem 1rem;
+	border: 1px solid #cbd5e1;
+	background-color: white;
+	border-radius: 0.5rem;
+	font-size: 0.875rem;
+	cursor: pointer;
+	color: #0f172a;
+	font-weight: 600;
+	transition: all 0.2s;
+}
+.pageBtn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+.pageBtn:not(:disabled):hover {
+	background-color: #f1f5f9;
+	border-color: #0f172a;
+}
+.pageIndicator {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #64748b;
+}
+
+/* Paginasi Mini (Untuk Detail Tabel) */
+.paginationTable {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 1rem;
+	padding-top: 1rem;
+	border-top: 1px solid #f1f5f9;
+}
+.pageIndicatorInfo {
+	font-size: 0.75rem;
+	color: #64748b;
+	font-weight: 500;
+}
+.pageButtonsMini {
+	display: flex;
+	gap: 0.5rem;
+}
+.pageBtnMini {
+	width: 30px;
+	height: 30px;
+	border: 1px solid #cbd5e1;
+	background-color: white;
+	border-radius: 0.25rem;
+	font-size: 0.875rem;
+	cursor: pointer;
+	color: #0f172a;
+	font-weight: 700;
+	transition: all 0.2s;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+.pageBtnMini:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+.pageBtnMini:not(:disabled):hover {
+	background-color: #f1f5f9;
+	border-color: #0f172a;
+}
+
+@media print {
+	.sidebar,
+	.topbar,
+	.detailTopbar {
+		display: none !important;
+	}
+	.mainContent {
+		padding: 0;
+		overflow: visible;
+	}
+	.dashboardContainer {
+		max-width: 100%;
+		padding: 0;
+	}
+}
+
+/* Penyesuaian Flexbox untuk Ikon Monochromatic */
+.heroSub {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #475569;
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+.sectionSubtitle {
+	font-size: 1.1rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin-bottom: 1rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.chartTitle {
+	font-size: 1rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}

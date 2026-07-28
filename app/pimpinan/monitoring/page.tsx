@@ -5,6 +5,31 @@ import MonitoringClient from "./MonitoringClient";
 
 export const dynamic = "force-dynamic";
 
+// Fungsi untuk mengekstrak inisial nama
+function getInitials(fullName: string) {
+	const cleanName = fullName
+		.replace(/^(Dr\.|Drs\.|Ir\.|H\.|Hj\.)\s*/i, "")
+		.replace(/,.+$/, "")
+		.trim();
+	const parts = cleanName.split(" ");
+	if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+	if (cleanName.length >= 2) return cleanName.substring(0, 2).toUpperCase();
+	return "G";
+}
+
+// Fungsi Parser Pintar: Memastikan hanya mengambil angka sesi, membuang format waktu (07:00)
+const parseSesi = (val: any) => {
+	if (val === null || val === undefined) return null;
+	const strVal = String(val).trim();
+	if (strVal.includes(":")) return null; // Jika mengandung tanda titik dua, abaikan
+	const match = strVal.match(/\d+/);
+	if (match) {
+		const num = Number(match[0]);
+		if (num > 0 && num <= 20) return num;
+	}
+	return null;
+};
+
 export default async function MonitoringPage() {
 	const session = await getServerSession();
 	if (!session || !session.user) redirect("/login");
@@ -44,33 +69,66 @@ export default async function MonitoringPage() {
 	startDate.setDate(today.getDate() - 30);
 
 	const dataMonitoring = Object.values(groups).map((g) => {
+		// --- FILTER DATA SAMPAH & DUPLIKAT ---
+		// Buang jadwal yang hari=0 (Minggu) atau waktuMulai="-", kecuali dia punya sesi valid
+		const cleanJadwalList = g.jadwalList.filter((j: any) => {
+			const s = parseSesi(j.jam) ?? parseSesi(j.jamKe) ?? parseSesi(j.sesi) ?? parseSesi(j.waktuMulai);
+			if (s !== null) return true;
+			if (j.waktuMulai && j.waktuMulai !== "-" && j.waktuMulai.trim() !== "") return true;
+			return false;
+		});
+
 		// --- SMART GROUPING HARIAN ---
 		const jadwalHarian: Record<number, any[]> = {};
 		for (let i = 0; i <= 6; i++) {
-			const jadwalHariIni = g.jadwalList
-				.filter((j: any) => j.hari === i)
-				.sort((a: any, b: any) => (a.jam || 0) - (b.jam || 0));
-
+			const jadwalHariIni = cleanJadwalList.filter((j: any) => j.hari === i);
 			if (jadwalHariIni.length === 0) continue;
+
+			// Ekstrak angka sesi
+			const withSesi = jadwalHariIni.map((j: any) => ({
+				...j,
+				actualSesi: parseSesi(j.jam) ?? parseSesi(j.jamKe) ?? parseSesi(j.sesi) ?? parseSesi(j.waktuMulai),
+			}));
+
+			// Urutkan. Yang angka sesinya NULL (misal "07:00") ditaruh di paling belakang
+			withSesi.sort((a: any, b: any) => {
+				if (a.actualSesi === null) return 1;
+				if (b.actualSesi === null) return -1;
+				return a.actualSesi - b.actualSesi;
+			});
 
 			const grouped = [];
 			let current: any = null;
-			let fallbackJam = 1;
 
-			for (let j of jadwalHariIni) {
-				const actualJam = j.jam ?? fallbackJam;
-				if (!current) {
-					current = { ...j, jamAwal: actualJam, jamAkhir: actualJam, jadwalIds: [j.id] };
-				} else {
-					if (current.jamAkhir === actualJam - 1) {
-						current.jamAkhir = actualJam;
+			for (let j of withSesi) {
+				// Jika jadwal ini tidak punya angka sesi (hanya format waktu/duplikat)
+				if (j.actualSesi === null) {
+					if (current) {
+						// Gabungkan ID-nya ke blok yang sudah ada agar jurnalnya tetap terbaca
 						current.jadwalIds.push(j.id);
 					} else {
+						current = { ...j, jamAwal: null, jamAkhir: null, jadwalIds: [j.id] };
+					}
+					continue;
+				}
+
+				if (!current || current.jamAwal === null) {
+					// Jika blok pertama adalah blok tanpa sesi, kita tiban dengan blok bersesi ini
+					if (current && current.jamAwal === null) {
+						current = { ...j, jamAwal: j.actualSesi, jamAkhir: j.actualSesi, jadwalIds: [...current.jadwalIds, j.id] };
+					} else {
+						current = { ...j, jamAwal: j.actualSesi, jamAkhir: j.actualSesi, jadwalIds: [j.id] };
+					}
+				} else {
+					// Cek kelanjutan sesi (contoh: 2 ke 3) atau sesi sama persis
+					if (current.jamAkhir === j.actualSesi || current.jamAkhir === j.actualSesi - 1) {
+						current.jamAkhir = j.actualSesi;
+						if (!current.jadwalIds.includes(j.id)) current.jadwalIds.push(j.id);
+					} else {
 						grouped.push(current);
-						current = { ...j, jamAwal: actualJam, jamAkhir: actualJam, jadwalIds: [j.id] };
+						current = { ...j, jamAwal: j.actualSesi, jamAkhir: j.actualSesi, jadwalIds: [j.id] };
 					}
 				}
-				fallbackJam++;
 			}
 			if (current) grouped.push(current);
 			jadwalHarian[i] = grouped;
@@ -86,6 +144,7 @@ export default async function MonitoringPage() {
 			if (!jadwalHarian[dayIdx]) continue;
 
 			jadwalHarian[dayIdx].forEach((block: any) => {
+				// Cari jurnal berdasarkan gabungan ID jadwal yang ada di blok ini
 				const foundJurnals = jurnalAll.filter(
 					(jur) => block.jadwalIds.includes(jur.jadwalId) && jur.tanggal.toISOString().split("T")[0] === dateStr,
 				);
@@ -93,18 +152,25 @@ export default async function MonitoringPage() {
 				const isTerisi = foundJurnals.length > 0;
 				const topik = isTerisi ? foundJurnals.map((j) => j.topik).filter((t) => t)[0] || "-" : "-";
 
+				// Penentuan format teks jam
+				let jamStr = "Waktu Fleksibel";
+				if (block.jamAwal !== null) {
+					jamStr =
+						block.jamAwal === block.jamAkhir ? `Jam ke-${block.jamAwal}` : `Jam ke ${block.jamAwal}-${block.jamAkhir}`;
+				} else if (block.waktuMulai && block.waktuMulai !== "-") {
+					jamStr = block.waktuMulai;
+				}
+
 				expectedSessions.push({
-					tanggalRaw: new Date(d).getTime(), // Untuk fungsi Sorting di Client
+					tanggalRaw: new Date(d).getTime(),
 					tanggalStr: new Date(d).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
-					jamStr:
-						block.jamAwal === block.jamAkhir ? `Jam ke-${block.jamAwal}` : `Jam ke ${block.jamAwal}-${block.jamAkhir}`,
+					jamStr: jamStr,
 					topik: topik,
 					status: isTerisi ? "Terisi" : "Jam Kosong",
 				});
 			});
 		}
 
-		// Urutkan dari yang terbaru (Default)
 		expectedSessions.sort((a, b) => b.tanggalRaw - a.tanggalRaw);
 
 		const terisi = expectedSessions.filter((s) => s.status === "Terisi").length;
@@ -115,13 +181,21 @@ export default async function MonitoringPage() {
 			pertemuanKe: expectedSessions.length - idx,
 		}));
 
+		const cleanName = g.guru.user.nama
+			.replace(/^(Dr\.|Drs\.|Ir\.|H\.|Hj\.)\s*/i, "")
+			.replace(/,.+$/, "")
+			.trim();
+		const parts = cleanName.split(" ");
+		const initials =
+			parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : cleanName.substring(0, 2).toUpperCase();
+
 		return {
 			id: g.id,
 			mapelNama: g.mapel.nama,
 			kelasNama: g.kelas.nama,
 			guruNama: g.guru.user.nama,
-			guruNpp: g.guru.user.username || "-", // Ambil NPP
-			guruInitials: g.guru.user.nama.substring(0, 2).toUpperCase(),
+			guruNpp: g.guru.user.username || "-",
+			guruInitials: initials,
 			terisi,
 			totalSesi: expectedSessions.length,
 			jamKosong: kosong,
