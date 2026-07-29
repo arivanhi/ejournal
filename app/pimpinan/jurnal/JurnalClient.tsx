@@ -37,6 +37,8 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 	const cardsPerPage = 6;
 
 	const [searchTopik, setSearchTopik] = useState("");
+	// Default sorting Ascending
+	const [sortConfig, setSortConfig] = useState({ key: "pertemuanKe", direction: "asc" });
 	const [currentTablePage, setCurrentTablePage] = useState(1);
 	const tableRowsPerPage = 5;
 
@@ -71,7 +73,21 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 		setSelectedItem(item);
 		setSearchTopik("");
 		setCurrentTablePage(1);
+		setSortConfig({ key: "pertemuanKe", direction: "asc" }); // Pastikan ascending saat baru buka
 		setViewMode("detail");
+	};
+
+	const handleSort = (key: string) => {
+		let direction = "asc";
+		if (sortConfig.key === key && sortConfig.direction === "asc") direction = "desc";
+		setSortConfig({ key, direction });
+	};
+
+	const renderSortIcon = (columnName: string) => {
+		if (sortConfig.key === columnName) {
+			return sortConfig.direction === "asc" ? " ↑" : " ↓";
+		}
+		return "";
 	};
 
 	const filteredData = useMemo(() => {
@@ -84,15 +100,26 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 	const totalCardPages = Math.max(1, Math.ceil(filteredData.length / cardsPerPage));
 	const paginatedCards = filteredData.slice((currentCardPage - 1) * cardsPerPage, currentCardPage * cardsPerPage);
 
-	const filteredSesi = useMemo(() => {
+	// KUNCI PERBAIKAN UTAMA: Filter dan Sorting Sesi Jurnal
+	const processedSesi = useMemo(() => {
 		if (!selectedItem) return [];
-		return selectedItem.detailSesi.filter((sesi: any) =>
-			(sesi.topik || "").toLowerCase().includes(searchTopik.toLowerCase()),
+		let result = selectedItem.detailSesi.filter(
+			(sesi: any) =>
+				(sesi.topik || "").toLowerCase().includes(searchTopik.toLowerCase()) ||
+				(sesi.catatan || "").toLowerCase().includes(searchTopik.toLowerCase()),
 		);
-	}, [selectedItem, searchTopik]);
 
-	const totalTablePages = Math.max(1, Math.ceil(filteredSesi.length / tableRowsPerPage));
-	const paginatedSesi = filteredSesi.slice(
+		result.sort((a: any, b: any) => {
+			if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === "asc" ? -1 : 1;
+			if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === "asc" ? 1 : -1;
+			return 0;
+		});
+
+		return result;
+	}, [selectedItem, searchTopik, sortConfig]);
+
+	const totalTablePages = Math.max(1, Math.ceil(processedSesi.length / tableRowsPerPage));
+	const paginatedSesi = processedSesi.slice(
 		(currentTablePage - 1) * tableRowsPerPage,
 		currentTablePage * tableRowsPerPage,
 	);
@@ -278,7 +305,6 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 								<h1 className={styles.heroTitle}>
 									{selectedItem.mapelNama} - {selectedItem.kelasNama}
 								</h1>
-								{/* PERBAIKAN: Icon Monochromatic dari Lucide */}
 								<div className={styles.heroSub}>
 									<div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
 										<User size={14} color="#64748b" /> {selectedItem.guruNama}
@@ -291,7 +317,6 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 								<div className={styles.heroAvatarInitials}>{selectedItem.guruInitials}</div>
 							</div>
 
-							{/* PERBAIKAN: Icon Monochromatic dari Lucide */}
 							<h3 className={styles.sectionSubtitle}>
 								<TrendingUp size={20} color="#475569" /> Statistik Utama
 							</h3>
@@ -333,7 +358,6 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 
 							<div className={styles.bottomGrid}>
 								<div className={styles.chartCard}>
-									{/* PERBAIKAN: Icon Monochromatic dari Lucide */}
 									<h3 className={styles.chartTitle}>
 										<BarChart2 size={18} color="#475569" /> Tren Kehadiran Siswa
 									</h3>
@@ -354,7 +378,6 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 
 								<div className={styles.tableCard}>
 									<div className={styles.tableHeader}>
-										{/* PERBAIKAN: Icon Monochromatic dari Lucide */}
 										<h3 className={styles.chartTitle}>
 											<FileText size={18} color="#475569" /> Detail Sesi & Presensi
 										</h3>
@@ -362,7 +385,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 											<Search size={14} className={styles.searchIconTable} />
 											<input
 												type="text"
-												placeholder="Cari Topik..."
+												placeholder="Cari Topik/Catatan..."
 												className={styles.searchInputTable}
 												value={searchTopik}
 												onChange={(e) => {
@@ -377,40 +400,57 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 										<table className={styles.dataTable}>
 											<thead>
 												<tr>
-													<th>Pert.</th>
-													<th>Tanggal</th>
-													<th>Materi / Topik</th>
-													<th style={{ textAlign: "center" }}>Hadir</th>
-													<th style={{ textAlign: "center" }}>Status</th>
+													{/* KUNCI PERBAIKAN: Header onClick dan Kolom Catatan */}
+													<th
+														style={{ cursor: "pointer", userSelect: "none", width: "10%" }}
+														onClick={() => handleSort("pertemuanKe")}
+													>
+														Pert.{renderSortIcon("pertemuanKe")}
+													</th>
+													<th
+														style={{ cursor: "pointer", userSelect: "none", width: "20%" }}
+														onClick={() => handleSort("tanggalRaw")}
+													>
+														Tanggal{renderSortIcon("tanggalRaw")}
+													</th>
+													<th style={{ width: "20%" }}>Materi / Topik</th>
+													<th style={{ width: "25%" }}>Catatan KBM</th>
+													<th style={{ textAlign: "center", width: "10%" }}>Hadir</th>
+													<th
+														style={{ textAlign: "center", cursor: "pointer", userSelect: "none", width: "15%" }}
+														onClick={() => handleSort("status")}
+													>
+														Status{renderSortIcon("status")}
+													</th>
 												</tr>
 											</thead>
 											<tbody>
 												{paginatedSesi.length === 0 ? (
 													<tr>
-														<td colSpan={5} className={styles.emptyTable}>
-															Tidak ada topik yang cocok dengan pencarian.
+														<td colSpan={6} className={styles.emptyTable}>
+															Tidak ada sesi yang cocok dengan pencarian.
 														</td>
 													</tr>
 												) : (
 													paginatedSesi.map((sesi: any) => (
 														<tr key={sesi.id}>
-															<td className={styles.tdBold}>{sesi.pertemuanKeDesc}</td>
+															<td className={styles.tdBold}>{String(sesi.pertemuanKe).padStart(2, "0")}</td>
 															<td className={styles.tdGray}>{sesi.tanggal}</td>
 															<td>
 																<div className={styles.topikTitle}>{sesi.topik}</div>
+															</td>
+															<td>
+																<div style={{ color: "#475569", fontSize: "0.875rem", lineHeight: "1.4" }}>
+																	{sesi.catatan}
+																</div>
 															</td>
 															<td className={styles.tdBoldCenter}>
 																{sesi.hadir} <span className={styles.tdGray}>/{selectedItem.totalSiswa}</span>
 															</td>
 															<td style={{ textAlign: "center" }}>
-																<span
-																	className={
-																		sesi.status === "Lengkap" || sesi.status === "Terisi"
-																			? styles.badgeSuccess
-																			: styles.badgeWarning
-																	}
-																>
-																	{sesi.status === "Lengkap" || sesi.status === "Terisi" ? "TERKIRIM" : "DRAFT"}
+																{/* Render Badge Status */}
+																<span className={sesi.status === "DIBUAT" ? styles.badgeSuccess : styles.badgeWarning}>
+																	{sesi.status}
 																</span>
 																<ChevronRight
 																	size={16}
@@ -427,8 +467,8 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 
 									<div className={styles.paginationTable}>
 										<span className={styles.pageIndicatorInfo}>
-											Menampilkan {filteredSesi.length === 0 ? 0 : (currentTablePage - 1) * tableRowsPerPage + 1} -{" "}
-											{Math.min(currentTablePage * tableRowsPerPage, filteredSesi.length)} dari {filteredSesi.length}
+											Menampilkan {processedSesi.length === 0 ? 0 : (currentTablePage - 1) * tableRowsPerPage + 1} -{" "}
+											{Math.min(currentTablePage * tableRowsPerPage, processedSesi.length)} dari {processedSesi.length}
 										</span>
 										<div className={styles.pageButtonsMini}>
 											<button
@@ -440,7 +480,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 											</button>
 											<button
 												className={styles.pageBtnMini}
-												disabled={currentTablePage === totalTablePages || filteredSesi.length === 0}
+												disabled={currentTablePage === totalTablePages || processedSesi.length === 0}
 												onClick={() => setCurrentTablePage((p) => p + 1)}
 											>
 												&gt;

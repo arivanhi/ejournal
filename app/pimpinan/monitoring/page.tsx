@@ -65,12 +65,10 @@ export default async function MonitoringPage() {
 	});
 
 	const today = new Date();
-	const startDate = new Date();
-	startDate.setDate(today.getDate() - 30);
+	today.setHours(23, 59, 59, 999);
 
 	const dataMonitoring = Object.values(groups).map((g) => {
 		// --- FILTER DATA SAMPAH & DUPLIKAT ---
-		// Buang jadwal yang hari=0 (Minggu) atau waktuMulai="-", kecuali dia punya sesi valid
 		const cleanJadwalList = g.jadwalList.filter((j: any) => {
 			const s = parseSesi(j.jam) ?? parseSesi(j.jamKe) ?? parseSesi(j.sesi) ?? parseSesi(j.waktuMulai);
 			if (s !== null) return true;
@@ -84,13 +82,11 @@ export default async function MonitoringPage() {
 			const jadwalHariIni = cleanJadwalList.filter((j: any) => j.hari === i);
 			if (jadwalHariIni.length === 0) continue;
 
-			// Ekstrak angka sesi
 			const withSesi = jadwalHariIni.map((j: any) => ({
 				...j,
 				actualSesi: parseSesi(j.jam) ?? parseSesi(j.jamKe) ?? parseSesi(j.sesi) ?? parseSesi(j.waktuMulai),
 			}));
 
-			// Urutkan. Yang angka sesinya NULL (misal "07:00") ditaruh di paling belakang
 			withSesi.sort((a: any, b: any) => {
 				if (a.actualSesi === null) return 1;
 				if (b.actualSesi === null) return -1;
@@ -101,10 +97,8 @@ export default async function MonitoringPage() {
 			let current: any = null;
 
 			for (let j of withSesi) {
-				// Jika jadwal ini tidak punya angka sesi (hanya format waktu/duplikat)
 				if (j.actualSesi === null) {
 					if (current) {
-						// Gabungkan ID-nya ke blok yang sudah ada agar jurnalnya tetap terbaca
 						current.jadwalIds.push(j.id);
 					} else {
 						current = { ...j, jamAwal: null, jamAkhir: null, jadwalIds: [j.id] };
@@ -113,14 +107,12 @@ export default async function MonitoringPage() {
 				}
 
 				if (!current || current.jamAwal === null) {
-					// Jika blok pertama adalah blok tanpa sesi, kita tiban dengan blok bersesi ini
 					if (current && current.jamAwal === null) {
 						current = { ...j, jamAwal: j.actualSesi, jamAkhir: j.actualSesi, jadwalIds: [...current.jadwalIds, j.id] };
 					} else {
 						current = { ...j, jamAwal: j.actualSesi, jamAkhir: j.actualSesi, jadwalIds: [j.id] };
 					}
 				} else {
-					// Cek kelanjutan sesi (contoh: 2 ke 3) atau sesi sama persis
 					if (current.jamAkhir === j.actualSesi || current.jamAkhir === j.actualSesi - 1) {
 						current.jamAkhir = j.actualSesi;
 						if (!current.jadwalIds.includes(j.id)) current.jadwalIds.push(j.id);
@@ -134,48 +126,90 @@ export default async function MonitoringPage() {
 			jadwalHarian[i] = grouped;
 		}
 
-		// --- EVALUASI 30 HARI KEBELAKANG ---
-		const expectedSessions: any[] = [];
+		// --- AMBIL JURNAL ACTUAL ---
+		const jurnalsForGroup = jurnalAll.filter((jur) => g.jadwalList.some((j: any) => j.id === jur.jadwalId));
 
+		let startDate = new Date();
+		if (jurnalsForGroup.length > 0) {
+			const firstDate = Math.min(...jurnalsForGroup.map((j) => j.tanggal.getTime()));
+			startDate = new Date(firstDate);
+		} else {
+			startDate.setDate(today.getDate() - 7);
+		}
+		startDate.setHours(0, 0, 0, 0);
+
+		const expectedSessions: any[] = [];
+		const processedJournalDates = new Set();
+
+		jurnalsForGroup.forEach((jur) => {
+			const dateStr = jur.tanggal.toISOString().split("T")[0];
+			processedJournalDates.add(dateStr);
+
+			let jamStr = "Waktu Fleksibel";
+			let foundBlock = null;
+			for (const day in jadwalHarian) {
+				const blocks = jadwalHarian[day];
+				const match = blocks.find((b: any) => b.jadwalIds.includes(jur.jadwalId));
+				if (match) {
+					foundBlock = match;
+					break;
+				}
+			}
+
+			if (foundBlock && foundBlock.jamAwal !== null) {
+				jamStr =
+					foundBlock.jamAwal === foundBlock.jamAkhir
+						? `Jam ke-${foundBlock.jamAwal}`
+						: `Jam ke ${foundBlock.jamAwal}-${foundBlock.jamAkhir}`;
+			}
+
+			// PERBAIKAN: Format Waktu Aktual Mengajar dari Database
+			const waktuMengajarStr = jur.waktuMulai && jur.waktuSelesai ? `${jur.waktuMulai} - ${jur.waktuSelesai} WIB` : "-";
+
+			expectedSessions.push({
+				tanggalRaw: jur.tanggal.getTime(),
+				tanggalStr: jur.tanggal.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
+				jamStr: jamStr,
+				waktuMengajar: waktuMengajarStr, // Data Baru
+				topik: jur.materiBab || "-",
+				status: "Terisi",
+			});
+		});
+
+		// TAMBAHKAN JAM KOSONG
 		for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
 			const dayIdx = d.getDay();
 			const dateStr = d.toISOString().split("T")[0];
 
-			if (!jadwalHarian[dayIdx]) continue;
+			if (jadwalHarian[dayIdx] && !processedJournalDates.has(dateStr)) {
+				jadwalHarian[dayIdx].forEach((block: any) => {
+					let jamStr = "Waktu Fleksibel";
+					if (block.jamAwal !== null) {
+						jamStr =
+							block.jamAwal === block.jamAkhir
+								? `Jam ke-${block.jamAwal}`
+								: `Jam ke ${block.jamAwal}-${block.jamAkhir}`;
+					}
 
-			jadwalHarian[dayIdx].forEach((block: any) => {
-				// Cari jurnal berdasarkan gabungan ID jadwal yang ada di blok ini
-				const foundJurnals = jurnalAll.filter(
-					(jur) => block.jadwalIds.includes(jur.jadwalId) && jur.tanggal.toISOString().split("T")[0] === dateStr,
-				);
-
-				const isTerisi = foundJurnals.length > 0;
-				const topik = isTerisi ? foundJurnals.map((j) => j.topik).filter((t) => t)[0] || "-" : "-";
-
-				// Penentuan format teks jam
-				let jamStr = "Waktu Fleksibel";
-				if (block.jamAwal !== null) {
-					jamStr =
-						block.jamAwal === block.jamAkhir ? `Jam ke-${block.jamAwal}` : `Jam ke ${block.jamAwal}-${block.jamAkhir}`;
-				} else if (block.waktuMulai && block.waktuMulai !== "-") {
-					jamStr = block.waktuMulai;
-				}
-
-				expectedSessions.push({
-					tanggalRaw: new Date(d).getTime(),
-					tanggalStr: new Date(d).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
-					jamStr: jamStr,
-					topik: topik,
-					status: isTerisi ? "Terisi" : "Jam Kosong",
+					expectedSessions.push({
+						tanggalRaw: new Date(d).getTime(),
+						tanggalStr: new Date(d).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
+						jamStr: jamStr,
+						waktuMengajar: "-", // Karena kosong, tidak ada waktu aktual
+						topik: "-",
+						status: "Jam Kosong",
+					});
 				});
-			});
+			}
 		}
 
+		// Urutkan dari yang paling baru untuk penomoran yang tepat
 		expectedSessions.sort((a, b) => b.tanggalRaw - a.tanggalRaw);
 
 		const terisi = expectedSessions.filter((s) => s.status === "Terisi").length;
 		const kosong = expectedSessions.filter((s) => s.status === "Jam Kosong").length;
 
+		// Beri nomor pertemuan
 		const riwayat = expectedSessions.map((s, idx) => ({
 			...s,
 			pertemuanKe: expectedSessions.length - idx,

@@ -112,25 +112,28 @@ export default async function KehadiranPage() {
 		const presensiKelasSemester = presensiSemesterIni.filter((p) => p.jurnal.jadwal.kelasId === kelas.id);
 		const totalSesiSemester = new Set(presensiKelasSemester.map((p) => p.jurnalId)).size;
 
-		const siswaList = kelas.riwayatSiswa.map((rs) => {
-			const presensiSiswaIni = presensiKelasSemester.filter((p) => p.siswaId === rs.siswa.id);
-			const countH = presensiSiswaIni.filter((p) => p.status === "H").length;
-			const countS = presensiSiswaIni.filter((p) => p.status === "S").length;
-			const countI = presensiSiswaIni.filter((p) => p.status === "I").length;
-			const countA = presensiSiswaIni.filter((p) => p.status === "A").length;
-			const persentase = totalSesiSemester > 0 ? Math.round((countH / totalSesiSemester) * 100) : 0;
+		// PERBAIKAN: Tambahkan .sort() di akhir map untuk mengurutkan A-Z berdasarkan nama siswa
+		const siswaList = kelas.riwayatSiswa
+			.map((rs) => {
+				const presensiSiswaIni = presensiKelasSemester.filter((p) => p.siswaId === rs.siswa.id);
+				const countH = presensiSiswaIni.filter((p) => p.status === "H").length;
+				const countS = presensiSiswaIni.filter((p) => p.status === "S").length;
+				const countI = presensiSiswaIni.filter((p) => p.status === "I").length;
+				const countA = presensiSiswaIni.filter((p) => p.status === "A").length;
+				const persentase = totalSesiSemester > 0 ? Math.round((countH / totalSesiSemester) * 100) : 0;
 
-			return {
-				id: rs.siswa.id,
-				nisn: rs.siswa.nisn || rs.siswa.nis,
-				nama: rs.siswa.user?.nama || "Siswa",
-				jmlHadir: countH,
-				detailKehadiran: { H: countH, S: countS, I: countI, A: countA },
-				totalSesi: totalSesiSemester,
-				persentase,
-				statusHariIni: statusSiswaHariIni[rs.siswa.id] || "Belum Ada",
-			};
-		});
+				return {
+					id: rs.siswa.id,
+					nisn: rs.siswa.nis,
+					nama: rs.siswa.user?.nama || "Siswa",
+					jmlHadir: countH,
+					detailKehadiran: { H: countH, S: countS, I: countI, A: countA },
+					totalSesi: totalSesiSemester,
+					persentase,
+					statusHariIni: statusSiswaHariIni[rs.siswa.id] || "Belum Ada",
+				};
+			})
+			.sort((a, b) => a.nama.localeCompare(b.nama));
 
 		const rataRataKelas =
 			siswaList.length > 0
@@ -144,7 +147,6 @@ export default async function KehadiranPage() {
 			const jadwalPerHari = kelas.jadwalPelajaran.filter((j) => j.hari === hariIdx);
 			if (jadwalPerHari.length === 0) continue;
 
-			// 1. Kelompokkan berdasarkan Mapel dan Guru di hari yang sama
 			const groupsMap = new Map();
 			jadwalPerHari.forEach((j) => {
 				const key = `${j.mapelId}_${j.guruId}`;
@@ -154,11 +156,9 @@ export default async function KehadiranPage() {
 
 			const tempDayGroups: any[] = [];
 
-			// 2. Evaluasi masing-masing kelompok mapel
 			groupsMap.forEach((jList, key) => {
 				const sesiSet = new Set<number>();
 
-				// Kumpulkan angka sesinya (2, 3, 4, dst)
 				jList.forEach((j: any) => {
 					const s = parseSesi(j.jam) ?? parseSesi(j.jamKe) ?? parseSesi(j.sesi) ?? parseSesi(j.waktuMulai);
 					if (s !== null) sesiSet.add(s);
@@ -166,7 +166,7 @@ export default async function KehadiranPage() {
 
 				const sesiArr = Array.from(sesiSet).sort((a, b) => a - b);
 				let jamStr = "";
-				let minJamOrder = 99; // Untuk keperluan sorting UI
+				let minJamOrder = 99;
 
 				if (sesiArr.length > 0) {
 					const minJam = sesiArr[0];
@@ -174,7 +174,6 @@ export default async function KehadiranPage() {
 					jamStr = minJam === maxJam ? `${minJam}` : `${minJam}-${maxJam}`;
 					minJamOrder = minJam;
 				} else {
-					// Jika data murni hanya string "07:00", panggil string tersebut
 					const fallbackTime = jList.find((j: any) => j.waktuMulai)?.waktuMulai;
 					jamStr = fallbackTime ? String(fallbackTime) : "?";
 				}
@@ -190,7 +189,6 @@ export default async function KehadiranPage() {
 				});
 			});
 
-			// 3. Urutkan jadwal di hari ini dari jam terkecil agar tidak melompat-lompat
 			tempDayGroups.sort((a, b) => a.minJamOrder - b.minJamOrder);
 			groupedJadwal.push(...tempDayGroups);
 		}

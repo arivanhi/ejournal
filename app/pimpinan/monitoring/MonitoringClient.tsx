@@ -30,20 +30,17 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 	const [viewMode, setViewMode] = useState<"list" | "detail">("list");
 	const [selectedItem, setSelectedItem] = useState<any>(null);
 
-	// State Filter Pencarian Grid
 	const [searchTerm, setSearchTerm] = useState("");
 
-	// Paginasi Card
 	const [currentCardPage, setCurrentCardPage] = useState(1);
 	const cardsPerPage = 6;
 
-	// Fitur Pencarian & Sortir di Tabel
 	const [searchTopik, setSearchTopik] = useState("");
-	const [sortConfig, setSortConfig] = useState({ key: "pertemuanKe", direction: "desc" });
+	// PERBAIKAN: Default sorting menjadi 'asc' (Pertemuan dari kecil ke besar)
+	const [sortConfig, setSortConfig] = useState({ key: "pertemuanKe", direction: "asc" });
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 5;
 
-	// Reset pagination ketika melakukan pencarian grid (Autofill filter)
 	useEffect(() => {
 		setCurrentCardPage(1);
 	}, [searchTerm]);
@@ -52,7 +49,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 		setSelectedItem(item);
 		setSearchTopik("");
 		setCurrentPage(1);
-		setSortConfig({ key: "pertemuanKe", direction: "desc" });
+		setSortConfig({ key: "pertemuanKe", direction: "asc" }); // Pastikan selalu ASC saat dibuka
 		setViewMode("detail");
 	};
 
@@ -62,7 +59,6 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 		setSortConfig({ key, direction });
 	};
 
-	// Filter Grid KBM (Mencari Mapel, Guru, atau Kelas)
 	const filteredData = dataMonitoring.filter(
 		(item: any) =>
 			item.mapelNama.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -168,7 +164,6 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 									<h2 className={styles.sectionTitle}>Monitoring Jurnal Mengajar</h2>
 									<p className={styles.sectionDate}>Overview of teaching journals across all subjects and classes.</p>
 								</div>
-								{/* PERBAIKAN: Menambahkan Kotak Pencarian di View 1 */}
 								<div className={styles.headerButtons}>
 									<div className={styles.searchBoxCard}>
 										<Search size={16} className={styles.searchIcon} />
@@ -338,9 +333,17 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 												<th
 													className={styles.sortableTh}
 													onClick={() => handleSort("jamStr")}
-													style={{ width: "150px" }}
+													style={{ width: "120px" }}
 												>
 													JAM{renderSortIcon("jamStr")}
+												</th>
+												{/* PERBAIKAN: Tambah Kolom Waktu Mengajar */}
+												<th
+													className={styles.sortableTh}
+													onClick={() => handleSort("waktuMengajar")}
+													style={{ width: "180px" }}
+												>
+													WAKTU MENGAJAR{renderSortIcon("waktuMengajar")}
 												</th>
 												<th className={styles.sortableTh} onClick={() => handleSort("topik")}>
 													TOPIK PEMBELAJARAN{renderSortIcon("topik")}
@@ -357,7 +360,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 										<tbody>
 											{paginatedRiwayat.length === 0 ? (
 												<tr>
-													<td colSpan={5} style={{ textAlign: "center", padding: "2rem", color: "#94a3b8" }}>
+													<td colSpan={6} style={{ textAlign: "center", padding: "2rem", color: "#94a3b8" }}>
 														Tidak ada riwayat yang cocok dengan pencarian.
 													</td>
 												</tr>
@@ -369,6 +372,8 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 														</td>
 														<td style={{ color: "#475569", fontWeight: 600 }}>{row.tanggalStr}</td>
 														<td style={{ color: "#475569" }}>{row.jamStr}</td>
+														{/* PERBAIKAN: Render Data Waktu Mengajar */}
+														<td style={{ color: "#1e3a8a", fontWeight: 600 }}>{row.waktuMengajar}</td>
 														<td style={{ color: "#334155" }}>{row.topik}</td>
 														<td style={{ textAlign: "center" }}>
 															{row.status === "Terisi" ? (

@@ -26,13 +26,15 @@ import { useRouter } from "next/navigation";
 
 export default function SetelanClient({ user }: { user: any }) {
 	const router = useRouter();
-	const { update } = useSession(); // <--- Tambahkan baris ini
+	const { update } = useSession();
 	const [toasts, setToasts] = useState<any[]>([]);
 
-	// States untuk Form Password
+	// States untuk Form Profil
 	const [nama, setNama] = useState(user.nama || "");
+	const [npp, setNpp] = useState(user.username || ""); // Mengambil username sebagai NPP default
 	const [loadingProfil, setLoadingProfil] = useState(false);
 
+	// States untuk Form Password
 	const [passwordLama, setPasswordLama] = useState("");
 	const [passwordBaru, setPasswordBaru] = useState("");
 	const [konfirmasiPassword, setKonfirmasiPassword] = useState("");
@@ -44,17 +46,17 @@ export default function SetelanClient({ user }: { user: any }) {
 		setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
 	};
 
+	// Handler Submit Profil
 	const handleSimpanProfil = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setLoadingProfil(true);
-		const res = await updateProfilAction(user.id, guru.id, { nama, npp });
+		// Memanggil fungsi dari actions tanpa guruId
+		const res = await updateProfilAction(user.id, { nama, npp });
 		setLoadingProfil(false);
 
 		if (res.success) {
-			// SINKRONISASI SESI TANPA LOGOUT
-			// Ini akan memperbarui data 'name' di dalam cookie browser secara real-time
+			// Sinkronisasi Sesi Browser
 			await update({ name: nama });
-
 			showToast("Profil berhasil diperbarui!", "success");
 			router.refresh();
 		} else {
@@ -145,6 +147,7 @@ export default function SetelanClient({ user }: { user: any }) {
 				</div>
 			</aside>
 
+			{/* MAIN CONTENT */}
 			<main className={styles.mainContent}>
 				<header className={styles.topbar}>
 					<div>
@@ -169,21 +172,30 @@ export default function SetelanClient({ user }: { user: any }) {
 					<p className={styles.pageSubtitle}>Kelola informasi profil dan keamanan akun Anda di sini.</p>
 
 					<div className={styles.settingsGrid}>
-						{/* KOTAK 1: PROFIL DASAR (Read-Only) */}
+						{/* KOTAK 1: PROFIL DASAR (Active Edit) */}
 						<div className={styles.settingsCard}>
 							<div className={styles.cardHeader}>
 								<div className={styles.cardTitle}>
 									<UserCog size={20} color="#3b82f6" /> Informasi Profil
 								</div>
 								<div className={styles.cardSubtitle}>
-									Informasi dasar akun Anda. Hubungi Administrator jika terdapat kesalahan data.
+									Perbarui nama lengkap dan NIP/NPP Anda jika terdapat kesalahan.
 								</div>
 							</div>
 							<form onSubmit={handleSimpanProfil}>
 								<div className={styles.cardBody}>
 									<div className={styles.formGroup}>
 										<label className={styles.formLabel}>Nomor Induk / Username</label>
-										<input type="text" disabled className={styles.formInput} value={user.username} />
+										<input
+											type="text"
+											className={styles.formInput}
+											value={npp}
+											onChange={(e) => setNpp(e.target.value)}
+											required
+										/>
+										<small style={{ color: "#64748b", fontSize: "0.75rem" }}>
+											*Perhatian: Mengubah data ini akan mengubah Username yang Anda gunakan untuk login.
+										</small>
 									</div>
 									<div className={styles.formGroup}>
 										<label className={styles.formLabel}>Nama Lengkap (Sesuai Gelar)</label>

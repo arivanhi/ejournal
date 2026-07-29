@@ -16,19 +16,19 @@ function getInitials(fullName: string) {
 	return "G";
 }
 
-// PERBAIKAN: Fungsi Parser yang mengabaikan format waktu (seperti "07:00")
+// Fungsi Parser Pintar: Memastikan hanya mengambil angka sesi
 const parseSesi = (val: any) => {
 	if (val === null || val === undefined) return null;
 	const strVal = String(val).trim();
 
-	// Jika mengandung titik dua (:), ini adalah format jam asli, BUKAN urutan sesi (jam ke-)
+	// Jika mengandung titik dua (:), ini adalah format jam asli, abaikan
 	if (strVal.includes(":")) return null;
 
 	// Tarik angka murni
 	const match = strVal.match(/\d+/);
 	if (match) {
 		const num = Number(match[0]);
-		if (num > 0 && num <= 20) return num; // Asumsi maksimal 20 jam pelajaran per hari
+		if (num > 0 && num <= 20) return num;
 	}
 	return null;
 };
@@ -120,13 +120,8 @@ export default async function JurnalPage() {
 		const jadwalByDay: Record<number, number[]> = {};
 
 		g.jadwalList.forEach((j: any) => {
-			// Prioritas pengecekan kolom dari database
 			let sesiNum = parseSesi(j.jam) ?? parseSesi(j.jamKe) ?? parseSesi(j.sesi);
-
-			// Jika kolom-kolom di atas null, baru ambil dari waktuMulai
-			if (sesiNum === null) {
-				sesiNum = parseSesi(j.waktuMulai);
-			}
+			if (sesiNum === null) sesiNum = parseSesi(j.waktuMulai);
 
 			if (sesiNum !== null) {
 				if (!jadwalByDay[j.hari]) jadwalByDay[j.hari] = [];
@@ -154,21 +149,19 @@ export default async function JurnalPage() {
 
 		const jadwalTextFinal = formattedJadwalArr.length > 0 ? formattedJadwalArr.join(" | ") : "Jadwal belum diset";
 
+		// PERBAIKAN: Menarik materiBab, catatan, memetakan status, dan mengurutkan secara logis
 		const detailSesi = g.jurnals
+			.sort((a: any, b: any) => a.tanggal.getTime() - b.tanggal.getTime()) // Urutkan tanggal dari lama ke baru
 			.map((j: any, idx: number) => ({
 				id: j.id,
 				pertemuanKe: idx + 1,
 				tanggal: j.tanggal.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
 				tanggalRaw: j.tanggal.getTime(),
-				topik: j.topik,
+				topik: j.materiBab || "-", // Membaca kolom materiBab
+				catatan: j.catatan || "-", // Membaca kolom catatan
 				hadir: j.hadirSiswa,
-				status: j.status || "Terisi",
-			}))
-			.sort((a: any, b: any) => b.tanggalRaw - a.tanggalRaw);
-
-		detailSesi.forEach((s: any, idx: number) => {
-			s.pertemuanKeDesc = detailSesi.length - idx;
-		});
+				status: j.status === "SUBMITTED" ? "TERKIRIM" : "DRAFT", // Memetakan Status
+			}));
 
 		riwayatJurnalData.push({
 			id: g.id,

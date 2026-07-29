@@ -36,7 +36,6 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 	const [searchTermCard, setSearchTermCard] = useState("");
 	const [searchSiswa, setSearchSiswa] = useState("");
 
-	// PERBAIKAN: Pagination State untuk Card
 	const [currentPage, setCurrentPage] = useState(1);
 	const cardsPerPage = 6;
 
@@ -57,7 +56,6 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 		setSearchSiswa("");
 	};
 
-	// --- LOGIKA FILTER & PAGINASI CARD ---
 	const filteredKelas = dataKelas.filter((k: any) => k.nama.toLowerCase().includes(searchTermCard.toLowerCase()));
 	const totalPages = Math.max(1, Math.ceil(filteredKelas.length / cardsPerPage));
 	const paginatedKelas = filteredKelas.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage);
@@ -73,7 +71,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 		const excelData = filteredSiswa.map((siswa: any, index: number) => ({
 			NO: index + 1,
 			"NAMA SISWA": siswa.nama,
-			NISN: siswa.nisn || "-",
+			NIS: siswa.nisn || "-", // PERBAIKAN: Ekspor dengan header NIS
 			HADIR: siswa.detailKehadiran.H,
 			SAKIT: siswa.detailKehadiran.S,
 			IZIN: siswa.detailKehadiran.I,
@@ -243,7 +241,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 											value={searchTermCard}
 											onChange={(e) => {
 												setSearchTermCard(e.target.value);
-												setCurrentPage(1); // Reset page ke 1 saat ngetik
+												setCurrentPage(1);
 											}}
 										/>
 									</div>
@@ -319,7 +317,6 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 								))}
 							</div>
 
-							{/* PERBAIKAN: Pagination Card Container */}
 							{totalPages > 1 && (
 								<div className={styles.paginationCenter}>
 									<div className={styles.pageButtons}>
@@ -363,7 +360,6 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 
 							<div className={styles.detailInfoGrid}>
 								<div className={styles.infoCard}>
-									{/* PERBAIKAN: Avatar Wali menggunakan Initials */}
 									<div className={styles.infoAvatarInitials}>{selectedKelas.waliKelasInitials}</div>
 									<div>
 										<div className={styles.infoLabel}>Wali Kelas</div>
@@ -419,9 +415,10 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 											<div className={styles.tableToolbar}>
 												<div className={styles.searchBoxCard} style={{ flex: 1, maxWidth: "400px" }}>
 													<Search size={16} className={styles.searchIcon} />
+													{/* PERBAIKAN: Mengganti teks NISN menjadi NIS */}
 													<input
 														type="text"
-														placeholder="Cari nama atau NISN..."
+														placeholder="Cari nama atau NIS..."
 														className={styles.searchInput}
 														value={searchSiswa}
 														onChange={(e) => setSearchSiswa(e.target.value)}
@@ -441,8 +438,8 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 														<tr>
 															<th>NO</th>
 															<th>NAMA SISWA</th>
-															<th>NISN</th>
-															{/* PERBAIKAN: Kolom Detail Presensi H/S/I/A */}
+															{/* PERBAIKAN: Header Kolom menjadi NIS */}
+															<th>NIS</th>
 															<th
 																colSpan={4}
 																style={{
@@ -460,7 +457,6 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 															<th></th>
 															<th></th>
 															<th></th>
-															{/* Sub-header untuk H/S/I/A */}
 															<th style={{ textAlign: "center", color: "#10b981" }}>H</th>
 															<th style={{ textAlign: "center", color: "#d97706" }}>S</th>
 															<th style={{ textAlign: "center", color: "#d97706" }}>I</th>
@@ -496,7 +492,6 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 																		<td style={{ fontWeight: 600, color: "#0f172a" }}>{siswa.nama}</td>
 																		<td style={{ color: "#64748b" }}>{siswa.nisn || "-"}</td>
 
-																		{/* Data Detail Presensi */}
 																		<td
 																			style={{
 																				textAlign: "center",
