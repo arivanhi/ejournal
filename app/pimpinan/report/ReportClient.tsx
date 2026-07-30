@@ -22,11 +22,12 @@ import {
 	X,
 	Check,
 	Edit,
+	Download,
 } from "lucide-react";
 import styles from "./report.module.css";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { savePdcaAction } from "./actions"; // Import Server Action
+import { savePdcaAction } from "./actions";
 
 export default function ReportClient({ user, dataRekap }: any) {
 	const [viewMode, setViewMode] = useState<"selection" | "detail">("selection");
@@ -36,9 +37,12 @@ export default function ReportClient({ user, dataRekap }: any) {
 	// State Modal & Toast
 	const [isRecomModalOpen, setIsRecomModalOpen] = useState(false);
 	const [isAksiModalOpen, setIsAksiModalOpen] = useState(false);
+	const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
 	const [toastType, setToastType] = useState<"success" | "error">("success");
 	const [isLoading, setIsLoading] = useState(false);
+	const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
 	// Form State
 	const [recomText, setRecomText] = useState("");
@@ -92,7 +96,6 @@ export default function ReportClient({ user, dataRekap }: any) {
 	// --- HANDLE SIMPAN DATA ---
 	const handleSaveRecom = async () => {
 		setIsLoading(true);
-		// PERBAIKAN: Mengirim user.id ke server action
 		const res = await savePdcaAction(activeData.tahunAjaranId, "Rekomendasi", { teks: recomText }, user.id);
 
 		if (res.success) {
@@ -107,7 +110,6 @@ export default function ReportClient({ user, dataRekap }: any) {
 	const handleSaveAksi = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
-		// PERBAIKAN: Mengirim user.id ke server action
 		const res = await savePdcaAction(activeData.tahunAjaranId, "RencanaAksi", aksiForm, user.id);
 
 		if (res.success) {
@@ -119,8 +121,243 @@ export default function ReportClient({ user, dataRekap }: any) {
 		setIsLoading(false);
 	};
 
+	// --- FUNGSI EXPORT PDF A4 LANDSCAPE ---
+	const handleDownloadPdf = async () => {
+		setIsDownloadingPdf(true);
+		try {
+			const html2pdf = (await import("html2pdf.js")).default;
+			const element = document.getElementById("pdf-report-container");
+
+			const opt = {
+				margin: 0,
+				filename: `Laporan_Rekapitulasi_PDCA_${selectedSemester}_${selectedTahun}.pdf`,
+				image: { type: "jpeg", quality: 1 },
+				html2canvas: { scale: 2, useCORS: true },
+				jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+			};
+
+			await html2pdf().set(opt).from(element).save();
+		} catch (error) {
+			console.error("Gagal men-generate PDF:", error);
+			showToast("Terjadi kesalahan saat memproses laporan PDF.", "error");
+		} finally {
+			setIsDownloadingPdf(false);
+			setIsPdfModalOpen(false);
+		}
+	};
+
+	// Helper untuk Warna Gradien Donut Chart
+	const getGradientString = () => {
+		if (!activeData) return "";
+		const d = activeData.distribusi;
+		const p1 = d.hadir;
+		const p2 = p1 + d.izin;
+		const p3 = p2 + d.sakit;
+		return `conic-gradient(
+            #10b981 0% ${p1}%, 
+            #fef08a ${p1}% ${p2}%, 
+            #f59e0b ${p2}% ${p3}%, 
+            #ef4444 ${p3}% 100%
+        )`;
+	};
+
 	return (
 		<div className={styles.layoutWrapper}>
+			{/* CONTAINER TERSEMBUNYI UNTUK EXPORT PDF A4 LANDSCAPE */}
+			{activeData && (
+				<div style={{ display: "none" }}>
+					<div
+						id="pdf-report-container"
+						style={{
+							width: "297mm",
+							minHeight: "210mm",
+							padding: "15mm",
+							boxSizing: "border-box",
+							backgroundColor: "#fff",
+							color: "#000",
+							fontFamily: "Arial, sans-serif",
+						}}
+					>
+						<div
+							style={{
+								position: "relative",
+								textAlign: "center",
+								borderBottom: "3px solid #000",
+								paddingBottom: "15px",
+								marginBottom: "15px",
+							}}
+						>
+							<img
+								src="/logo.jpg"
+								alt="Logo SMAN 2 Brebes"
+								style={{
+									position: "absolute",
+									left: "10px",
+									top: "50%",
+									transform: "translateY(-50%)",
+									width: "80px",
+									height: "80px",
+									objectFit: "contain",
+								}}
+							/>
+							<h1
+								style={{
+									margin: "0 0 5px 0",
+									fontSize: "18pt",
+									fontWeight: "bold",
+									color: "#000",
+									fontFamily: '"Times New Roman", Times, serif',
+								}}
+							>
+								SMA NEGERI 2 BREBES
+							</h1>
+							<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+							<p style={{ margin: 0, fontSize: "11pt" }}>
+								Website: www.sman2-brebes.sch.id - Email: smadabes@ymail.com
+							</p>
+						</div>
+
+						<div style={{ textAlign: "center", marginBottom: "20px" }}>
+							<h2 style={{ margin: 0, fontSize: "14pt", fontWeight: "bold", textTransform: "uppercase" }}>
+								LAPORAN REKAPITULASI - ANALISA PDCA
+							</h2>
+							<p style={{ margin: "5px 0", fontSize: "11pt" }}>
+								Semester {selectedSemester} Tahun Ajaran {selectedTahun}
+							</p>
+						</div>
+
+						<div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+							{/* STATISTIK CHART UNTUK PDF */}
+							<div style={{ flex: 1, border: "1px solid #000", padding: "10px" }}>
+								<h4 style={{ margin: "0 0 10px 0", fontSize: "11pt", textAlign: "center" }}>Distribusi Presensi</h4>
+								<ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: "10pt" }}>
+									<li>🟩 Hadir: {activeData.distribusi.hadir}%</li>
+									<li>🟨 Izin: {activeData.distribusi.izin}%</li>
+									<li>🟧 Sakit: {activeData.distribusi.sakit}%</li>
+									<li>🟥 Alpha: {activeData.distribusi.alpha}%</li>
+								</ul>
+							</div>
+							<div style={{ flex: 2, border: "1px solid #000", padding: "10px" }}>
+								<h4 style={{ margin: "0 0 10px 0", fontSize: "11pt", textAlign: "center" }}>
+									Tren Kinerja Akademik Bulanan
+								</h4>
+								<div
+									style={{
+										display: "flex",
+										justifyContent: "space-around",
+										alignItems: "flex-end",
+										height: "80px",
+										borderBottom: "1px solid #ccc",
+									}}
+								>
+									{activeData.trenKinerja.length === 0 ? (
+										<p>Belum ada data tren.</p>
+									) : (
+										activeData.trenKinerja.map((t: any, i: number) => (
+											<div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+												<div style={{ display: "flex", gap: "2px", alignItems: "flex-end", height: "60px" }}>
+													<div
+														style={{ width: "15px", height: `${t.pctKehadiran}%`, backgroundColor: "#1e3a8a" }}
+														title="Kehadiran"
+													></div>
+													<div
+														style={{ width: "15px", height: `${t.pctJurnal}%`, backgroundColor: "#65a30d" }}
+														title="Jurnal"
+													></div>
+												</div>
+												<span style={{ fontSize: "8pt", marginTop: "4px" }}>{t.bulan}</span>
+											</div>
+										))
+									)}
+								</div>
+								<div style={{ fontSize: "8pt", marginTop: "5px", textAlign: "center" }}>
+									🟦 Kehadiran Siswa | 🟩 Pengisian Jurnal
+								</div>
+							</div>
+						</div>
+
+						<h3
+							style={{
+								fontSize: "12pt",
+								fontWeight: "bold",
+								borderBottom: "1px solid #000",
+								paddingBottom: "5px",
+								marginBottom: "10px",
+							}}
+						>
+							Analisa & Rekomendasi
+						</h3>
+						<div
+							style={{
+								border: "1px dashed #000",
+								padding: "10px",
+								fontSize: "10pt",
+								marginBottom: "20px",
+								minHeight: "50px",
+							}}
+						>
+							{activeData.pdca.actRekomendasi || "Belum ada rekomendasi tertulis."}
+						</div>
+
+						<h3
+							style={{
+								fontSize: "12pt",
+								fontWeight: "bold",
+								borderBottom: "1px solid #000",
+								paddingBottom: "5px",
+								marginBottom: "10px",
+							}}
+						>
+							Rencana Aksi (PDCA)
+						</h3>
+						<table
+							style={{
+								width: "100%",
+								borderCollapse: "collapse",
+								fontSize: "10pt",
+								border: "1px solid #000",
+								marginBottom: "20px",
+							}}
+						>
+							<thead>
+								<tr style={{ backgroundColor: "#f1f5f9" }}>
+									<th style={{ border: "1px solid #000", padding: "6px", width: "15%" }}>Aspek</th>
+									<th style={{ border: "1px solid #000", padding: "6px", width: "35%" }}>Temuan Utama</th>
+									<th style={{ border: "1px solid #000", padding: "6px", width: "35%" }}>Rencana Aksi</th>
+									<th style={{ border: "1px solid #000", padding: "6px", width: "15%", textAlign: "center" }}>
+										Status
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								{activeData.pdca.doImplementasi.length === 0 ? (
+									<tr>
+										<td colSpan={4} style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+											Belum ada rencana aksi.
+										</td>
+									</tr>
+								) : (
+									activeData.pdca.doImplementasi.map((row: any, i: number) => (
+										<tr key={i}>
+											<td style={{ border: "1px solid #000", padding: "6px" }}>{row.aspek}</td>
+											<td style={{ border: "1px solid #000", padding: "6px" }}>{row.temuan}</td>
+											<td style={{ border: "1px solid #000", padding: "6px" }}>{row.aksi}</td>
+											<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{row.status}</td>
+										</tr>
+									))
+								)}
+							</tbody>
+						</table>
+
+						<div style={{ textAlign: "right", marginTop: "20px" }}>
+							<p style={{ margin: 0, fontSize: "11pt" }}>Kepala Sekolah SMAN 2 Brebes</p>
+							<p style={{ margin: "50px 0 0 0", fontSize: "11pt", fontWeight: "bold" }}>{user.nama}</p>
+							<p style={{ margin: 0, fontSize: "11pt" }}>NIP: {user.username}</p>
+						</div>
+					</div>
+				</div>
+			)}
+
 			{/* TOAST SYSTEM */}
 			{toastMessage && (
 				<div
@@ -131,6 +368,34 @@ export default function ReportClient({ user, dataRekap }: any) {
 						{toastType === "error" ? <AlertTriangle size={16} /> : <Check size={16} />}
 					</div>
 					<span className={styles.toastText}>{toastMessage}</span>
+				</div>
+			)}
+
+			{/* MODAL CETAK PDF */}
+			{isPdfModalOpen && (
+				<div className={styles.modalOverlay}>
+					<div className={styles.modalContainer}>
+						<div className={styles.modalHeader}>
+							<h3 className={styles.modalTitle}>Ekspor PDF Rekapitulasi</h3>
+							<button className={styles.modalCloseBtn} onClick={() => setIsPdfModalOpen(false)}>
+								<X size={20} />
+							</button>
+						</div>
+						<div className={styles.modalBody} style={{ textAlign: "center", padding: "2rem" }}>
+							<Printer size={48} color="#3b82f6" style={{ margin: "0 auto 1rem auto" }} />
+							<p style={{ fontSize: "1rem", color: "#334155" }}>
+								Anda akan mengunduh dokumen Laporan Rekapitulasi PDCA.
+							</p>
+						</div>
+						<div className={styles.modalFooter}>
+							<button className={styles.btnOutline} onClick={() => setIsPdfModalOpen(false)}>
+								Batal
+							</button>
+							<button className={styles.btnPrimaryLg} onClick={handleDownloadPdf} disabled={isDownloadingPdf}>
+								{isDownloadingPdf ? "Memproses PDF..." : "Unduh Laporan"}
+							</button>
+						</div>
+					</div>
 				</div>
 			)}
 
@@ -391,8 +656,8 @@ export default function ReportClient({ user, dataRekap }: any) {
 										</p>
 									</div>
 								</div>
-								<button className={styles.btnPrint} onClick={() => window.print()}>
-									<Printer size={20} /> Cetak PDF
+								<button className={styles.btnPrint} onClick={() => setIsPdfModalOpen(true)}>
+									<Download size={20} /> Ekspor ke PDF
 								</button>
 							</div>
 
@@ -442,26 +707,28 @@ export default function ReportClient({ user, dataRekap }: any) {
 
 								<div className={styles.statCard}>
 									<h3 className={styles.cardHeaderTitle}>
-										<PieChart size={18} color="#0f172a" /> Distribusi Alasan
+										<PieChart size={18} color="#0f172a" /> Distribusi Kehadiran
 									</h3>
 									<div className={styles.chartContainer}>
-										<div
-											className={styles.donutChart}
-											style={{
-												background: `conic-gradient(#1e3a8a 0% ${activeData.distribusi.dinas}%, #facc15 ${activeData.distribusi.dinas}% ${activeData.distribusi.dinas + activeData.distribusi.sakit}%, #ef4444 ${activeData.distribusi.dinas + activeData.distribusi.sakit}% 100%)`,
-											}}
-										>
+										<div className={styles.donutChart} style={{ background: getGradientString() }}>
 											<div className={styles.donutHole}></div>
 										</div>
 										<div className={styles.legendWrapper}>
 											<div className={styles.legendItem}>
-												<div className={styles.dotNavy}></div> Dinas ({activeData.distribusi.dinas}%)
+												<div className={styles.dotNavy} style={{ backgroundColor: "#10b981" }}></div> Hadir (
+												{activeData.distribusi.hadir}%)
 											</div>
 											<div className={styles.legendItem}>
-												<div className={styles.dotYellow}></div> Sakit ({activeData.distribusi.sakit}%)
+												<div className={styles.dotYellow} style={{ backgroundColor: "#fef08a" }}></div> Izin (
+												{activeData.distribusi.izin}%)
 											</div>
 											<div className={styles.legendItem}>
-												<div className={styles.dotRed}></div> T. Keterangan ({activeData.distribusi.tanpaKeterangan}%)
+												<div className={styles.dotRed} style={{ backgroundColor: "#f59e0b" }}></div> Sakit (
+												{activeData.distribusi.sakit}%)
+											</div>
+											<div className={styles.legendItem}>
+												<div className={styles.dotRed} style={{ backgroundColor: "#ef4444" }}></div> Alpha (
+												{activeData.distribusi.alpha}%)
 											</div>
 										</div>
 									</div>
@@ -471,7 +738,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 							<div className={styles.fullCard}>
 								<div className={styles.chartHeader}>
 									<h3 className={styles.cardHeaderTitle}>
-										<FileBarChart size={18} /> Tren Kinerja Akademik
+										<FileBarChart size={18} /> Tren Kinerja Akademik Bulanan
 									</h3>
 									<div className={styles.legendWrapperRow}>
 										<div className={styles.legendItem}>
@@ -483,15 +750,29 @@ export default function ReportClient({ user, dataRekap }: any) {
 									</div>
 								</div>
 								<div className={styles.barChartContainer}>
-									{["Jan", "Feb", "Mar", "Apr", "Mei"].map((bulan, idx) => (
-										<div key={idx} className={styles.barGroup}>
-											<div className={styles.bars}>
-												<div className={styles.barNavy} style={{ height: `${70 + Math.random() * 20}%` }}></div>
-												<div className={styles.barOlive} style={{ height: `${50 + Math.random() * 30}%` }}></div>
+									{activeData.trenKinerja.length === 0 ? (
+										<p style={{ textAlign: "center", color: "#64748b", margin: "2rem auto" }}>
+											Belum ada data jurnal terekam.
+										</p>
+									) : (
+										activeData.trenKinerja.map((data: any, idx: number) => (
+											<div key={idx} className={styles.barGroup}>
+												<div className={styles.bars}>
+													<div
+														className={styles.barNavy}
+														style={{ height: `${data.pctKehadiran}%` }}
+														title={`Kehadiran: ${data.pctKehadiran}%`}
+													></div>
+													<div
+														className={styles.barOlive}
+														style={{ height: `${data.pctJurnal}%` }}
+														title={`Jurnal: ${data.pctJurnal}%`}
+													></div>
+												</div>
+												<div className={styles.barLabel}>{data.bulan}</div>
 											</div>
-											<div className={styles.barLabel}>{bulan}</div>
-										</div>
-									))}
+										))
+									)}
 								</div>
 							</div>
 

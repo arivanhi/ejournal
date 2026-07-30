@@ -40,6 +40,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 	const cardsPerPage = 6;
 
 	const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+	const [isDownloadingPdf, setIsDownloadingPdf] = useState(false); // State Loading PDF
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
 
 	const HARI_MAP = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -71,7 +72,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 		const excelData = filteredSiswa.map((siswa: any, index: number) => ({
 			NO: index + 1,
 			"NAMA SISWA": siswa.nama,
-			NIS: siswa.nisn || "-", // PERBAIKAN: Ekspor dengan header NIS
+			NIS: siswa.nisn || "-",
 			HADIR: siswa.detailKehadiran.H,
 			SAKIT: siswa.detailKehadiran.S,
 			IZIN: siswa.detailKehadiran.I,
@@ -113,16 +114,252 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 		showToast("File Excel berhasil diunduh!");
 	};
 
-	const exportToPDF = () => {
-		setIsDownloadModalOpen(false);
-		setTimeout(() => {
-			window.print();
-			showToast("Jendela cetak PDF berhasil dibuka!");
-		}, 300);
+	// --- FUNGSI EXPORT PDF ---
+	const exportToPDF = async () => {
+		setIsDownloadingPdf(true);
+		try {
+			const html2pdf = (await import("html2pdf.js")).default;
+			const element = document.getElementById("pdf-kehadiran-content");
+
+			const opt = {
+				margin: 0,
+				filename: `Rekap_Kehadiran_${selectedKelas.nama.replace(/\s+/g, "_")}.pdf`,
+				image: { type: "jpeg", quality: 1 },
+				html2canvas: { scale: 2, useCORS: true },
+				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+			};
+
+			await html2pdf().set(opt).from(element).save();
+		} catch (error) {
+			console.error("Gagal men-generate PDF:", error);
+			showToast("Terjadi kesalahan saat memproses PDF!");
+		} finally {
+			setIsDownloadingPdf(false);
+			setIsDownloadModalOpen(false);
+		}
 	};
 
 	return (
 		<div className={styles.layoutWrapper}>
+			{/* --- CONTAINER TERSEMBUNYI UNTUK CETAK PDF --- */}
+			{selectedKelas && (
+				<div style={{ display: "none" }}>
+					<div id="pdf-kehadiran-content" className={styles.pdfA4Container}>
+						{/* HALAMAN 1: COVER PAGE */}
+						<div
+							className={styles.pdfCover}
+							style={{
+								height: "240mm",
+								display: "flex",
+								flexDirection: "column",
+								justifyContent: "center",
+								alignItems: "center",
+							}}
+						>
+							<h2 style={{ fontSize: "18pt", fontWeight: 800, marginBottom: "0.5rem" }}>REKAP KEHADIRAN SISWA</h2>
+							<h1
+								style={{
+									fontSize: "24pt",
+									fontWeight: 900,
+									color: "#0a2540",
+									marginBottom: "0.5rem",
+									textTransform: "uppercase",
+								}}
+							>
+								KELAS {selectedKelas.nama}
+							</h1>
+							<p style={{ fontSize: "12pt", fontWeight: 600 }}>Tahun Ajaran {tahunAjaran?.nama || "Aktif"}</p>
+
+							<div style={{ margin: "4rem 0", display: "flex", justifyContent: "center" }}>
+								<img
+									src="/logo.jpg"
+									alt="Logo SMAN 2 Brebes"
+									style={{ width: "160px", height: "160px", objectFit: "contain" }}
+								/>
+							</div>
+
+							<div style={{ textAlign: "center" }}>
+								<p style={{ fontSize: "11pt", marginBottom: "0.5rem" }}>
+									<strong>WALI KELAS:</strong>
+								</p>
+								<p style={{ fontSize: "14pt", fontWeight: 700, color: "#0a2540" }}>{selectedKelas.waliKelas}</p>
+								<p style={{ fontSize: "11pt", marginTop: "0.5rem" }}>NPP: {selectedKelas.waliKelasNpp}</p>
+							</div>
+
+							<div
+								style={{
+									marginTop: "4rem",
+									textAlign: "center",
+									borderTop: "2px solid #0a2540",
+									paddingTop: "1.5rem",
+									width: "70%",
+									margin: "4rem auto 0 auto",
+								}}
+							>
+								<p style={{ fontSize: "12pt", fontWeight: "bold" }}>SMA NEGERI 2 BREBES</p>
+							</div>
+						</div>
+
+						<div className="html2pdf__page-break"></div>
+
+						{/* HALAMAN 2: KONTEN */}
+						<div
+							style={{
+								position: "relative",
+								textAlign: "center",
+								borderBottom: "3px solid #000",
+								paddingBottom: "15px",
+								marginBottom: "15px",
+								paddingTop: "10px",
+							}}
+						>
+							<img
+								src="/logo.jpg"
+								alt="Logo SMAN 2 Brebes"
+								style={{
+									position: "absolute",
+									left: "10px",
+									top: "50%",
+									transform: "translateY(-50%)",
+									width: "80px",
+									height: "80px",
+									objectFit: "contain",
+								}}
+							/>
+							<h1
+								style={{
+									margin: "0 0 5px 0",
+									fontSize: "18pt",
+									fontWeight: "bold",
+									color: "#000",
+									fontFamily: '"Times New Roman", Times, serif',
+								}}
+							>
+								SMA NEGERI 2 BREBES
+							</h1>
+							<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+							<p style={{ margin: 0, fontSize: "11pt" }}>
+								Website: www.sman2-brebes.sch.id - Email: smadabes@ymail.com
+							</p>
+						</div>
+
+						<div className={styles.pdfContent}>
+							<h3 className={styles.pdfSectionTitle}>A. JADWAL PELAJARAN MINGGUAN</h3>
+							<div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "2rem" }}>
+								{[1, 2, 3, 4, 5].map((hariIdx) => {
+									const jadwalHariIni = selectedKelas.jadwalMingguan.filter((j: any) => j.hari === hariIdx);
+									return (
+										<div
+											key={hariIdx}
+											style={{ flex: 1, minWidth: "120px", border: "1px solid #000", padding: "10px" }}
+										>
+											<h4
+												style={{
+													textAlign: "center",
+													borderBottom: "1px solid #000",
+													margin: "0 0 10px 0",
+													paddingBottom: "5px",
+													fontSize: "10pt",
+												}}
+											>
+												{HARI_MAP[hariIdx]}
+											</h4>
+											{jadwalHariIni.length === 0 ? (
+												<div style={{ textAlign: "center", color: "#64748b", fontSize: "8pt" }}>Kosong</div>
+											) : (
+												jadwalHariIni.map((jadwal: any) => (
+													<div
+														key={jadwal.id}
+														style={{
+															marginBottom: "10px",
+															fontSize: "8pt",
+															backgroundColor: "#f1f5f9",
+															padding: "5px",
+															borderRadius: "4px",
+															border: "1px solid #e2e8f0",
+														}}
+													>
+														<div style={{ fontWeight: "bold" }}>Jam ke {jadwal.jamStr}</div>
+														<div style={{ margin: "2px 0" }}>{jadwal.mapel}</div>
+														<div style={{ color: "#475569" }}>{jadwal.guruNama}</div>
+													</div>
+												))
+											)}
+										</div>
+									);
+								})}
+							</div>
+
+							<h3 className={styles.pdfSectionTitle}>B. REKAPITULASI PRESENSI SISWA</h3>
+							<table className={styles.pdfTable}>
+								<thead>
+									<tr>
+										<th rowSpan={2} style={{ width: "5%" }}>
+											No
+										</th>
+										<th rowSpan={2} style={{ width: "35%" }}>
+											Nama Siswa
+										</th>
+										<th rowSpan={2} style={{ width: "15%" }}>
+											NIS
+										</th>
+										<th colSpan={4} style={{ textAlign: "center" }}>
+											Rekap Presensi
+										</th>
+										<th rowSpan={2} style={{ width: "10%", textAlign: "center" }}>
+											% Hadir
+										</th>
+									</tr>
+									<tr>
+										<th style={{ width: "7%", textAlign: "center", color: "#10b981" }}>H</th>
+										<th style={{ width: "7%", textAlign: "center", color: "#d97706" }}>S</th>
+										<th style={{ width: "7%", textAlign: "center", color: "#d97706" }}>I</th>
+										<th style={{ width: "7%", textAlign: "center", color: "#ef4444" }}>A</th>
+									</tr>
+								</thead>
+								<tbody>
+									{filteredSiswa.length === 0 ? (
+										<tr>
+											<td colSpan={8} style={{ textAlign: "center", padding: "1rem" }}>
+												Tidak ada data siswa.
+											</td>
+										</tr>
+									) : (
+										filteredSiswa.map((siswa: any, index: number) => (
+											<tr key={siswa.id}>
+												<td style={{ textAlign: "center" }}>{index + 1}</td>
+												<td>{siswa.nama}</td>
+												<td style={{ textAlign: "center" }}>{siswa.nisn || "-"}</td>
+												<td style={{ textAlign: "center" }}>{siswa.detailKehadiran.H}</td>
+												<td style={{ textAlign: "center" }}>{siswa.detailKehadiran.S}</td>
+												<td style={{ textAlign: "center" }}>{siswa.detailKehadiran.I}</td>
+												<td style={{ textAlign: "center" }}>{siswa.detailKehadiran.A}</td>
+												<td style={{ textAlign: "center", fontWeight: "bold" }}>{siswa.persentase}%</td>
+											</tr>
+										))
+									)}
+								</tbody>
+							</table>
+
+							<div style={{ textAlign: "right", marginTop: "3rem" }}>
+								<p>
+									Brebes, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+								</p>
+								<p style={{ marginBottom: "4rem" }}>
+									Mengetahui,
+									<br />
+									{user.role === "KEPSEK" ? "Kepala Sekolah" : "Wakil Kepala Sekolah"} SMAN 2 Brebes
+								</p>
+								<p>
+									<strong>{user.nama}</strong>
+								</p>
+								<p>NIP/NPP: {user.username || "-"}</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
 			{toastMessage && (
 				<div className={styles.toastContainer}>
 					<div className={styles.toastIcon}>
@@ -132,6 +369,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 				</div>
 			)}
 
+			{/* MODAL UNDUH (UI) */}
 			{isDownloadModalOpen && selectedKelas && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContainer}>
@@ -150,19 +388,17 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 									<FileSpreadsheet size={40} color="#16a34a" />
 									<span className={styles.exportCardTitle}>Excel (.xlsx)</span>
 								</div>
-								<div className={styles.btnExportCard} onClick={exportToPDF}>
+								<button className={styles.btnExportCard} onClick={exportToPDF} disabled={isDownloadingPdf}>
 									<FileText size={40} color="#ef4444" />
-									<span className={styles.exportCardTitle}>PDF (.pdf)</span>
-								</div>
+									<span className={styles.exportCardTitle}>{isDownloadingPdf ? "Memproses PDF..." : "PDF (.pdf)"}</span>
+								</button>
 							</div>
-							<p style={{ fontSize: "0.75rem", color: "#6b7280", textAlign: "center", marginTop: "1rem" }}>
-								*Untuk format PDF, silakan pilih "Save as PDF" pada jendela Print yang muncul.
-							</p>
 						</div>
 					</div>
 				</div>
 			)}
 
+			{/* === SIDEBAR === */}
 			<aside className={styles.sidebar}>
 				<div className={styles.sidebarHeader}>
 					<div className={styles.logoWrapper}>
@@ -202,6 +438,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 				</div>
 			</aside>
 
+			{/* === MAIN CONTENT === */}
 			<main className={styles.mainContent}>
 				<header className={styles.topbar}>
 					<div>
@@ -415,7 +652,6 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 											<div className={styles.tableToolbar}>
 												<div className={styles.searchBoxCard} style={{ flex: 1, maxWidth: "400px" }}>
 													<Search size={16} className={styles.searchIcon} />
-													{/* PERBAIKAN: Mengganti teks NISN menjadi NIS */}
 													<input
 														type="text"
 														placeholder="Cari nama atau NIS..."
@@ -438,7 +674,6 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 														<tr>
 															<th>NO</th>
 															<th>NAMA SISWA</th>
-															{/* PERBAIKAN: Header Kolom menjadi NIS */}
 															<th>NIS</th>
 															<th
 																colSpan={4}

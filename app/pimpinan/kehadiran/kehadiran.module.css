@@ -907,3 +907,49 @@
 .exportDropdown {
 	display: none !important;
 }
+
+/* === PDF A4 PRINT TEMPLATE === */
+.pdfA4Container {
+	background: white;
+	width: 210mm;
+	min-height: 297mm;
+	padding: 20mm;
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+	margin: 0 auto;
+	color: #000;
+	font-family: "Times New Roman", Times, serif;
+	box-sizing: border-box;
+}
+.pdfCover {
+	text-align: center;
+	margin-top: 2rem;
+	margin-bottom: 4rem;
+}
+.pdfContent {
+	font-family: "Arial", sans-serif;
+}
+.pdfSectionTitle {
+	font-size: 12pt;
+	font-weight: bold;
+	border-bottom: 2px solid #000;
+	padding-bottom: 0.5rem;
+	margin-top: 2rem;
+	margin-bottom: 1rem;
+	text-transform: uppercase;
+}
+.pdfTable {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 2rem;
+	font-size: 10pt;
+}
+.pdfTable th,
+.pdfTable td {
+	border: 1px solid #000;
+	padding: 0.5rem;
+	text-align: left;
+}
+.pdfTable th {
+	background-color: #f1f5f9;
+	font-weight: bold;
+}

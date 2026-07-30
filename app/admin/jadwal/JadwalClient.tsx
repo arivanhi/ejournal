@@ -46,6 +46,19 @@ const SLOT_WAKTU = [
 	{ jam: "10", label: "10" },
 ];
 
+const WAKTU_JAM = [
+	"07:00 - 07:45",
+	"07:45 - 08:30",
+	"08:30 - 09:15",
+	"09:30 - 10:15",
+	"10:15 - 11:00",
+	"11:00 - 11:45",
+	"12:15 - 13:00",
+	"13:00 - 13:45",
+	"14:00 - 14:45",
+	"14:45 - 15:30",
+];
+
 export default function JadwalClient({
 	kelasList,
 	pemetaanDasar,
@@ -72,6 +85,7 @@ export default function JadwalClient({
 	const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
 	const [loading, setLoading] = useState(false);
+	const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 	const [deleteDataId, setDeleteDataId] = useState<string | null>(null);
 	const [errorMessage, setErrorMessage] = useState("");
 
@@ -162,10 +176,8 @@ export default function JadwalClient({
 		setDeleteDataId(null);
 	};
 
-	// --- FUNGSI DRAG AND DROP DENGAN FITUR COPY (ALT) ---
 	const handleDragStart = (e: React.DragEvent, jadwal: any) => {
 		setDraggedJadwal(jadwal);
-		// Izinkan pindah maupun copy
 		e.dataTransfer.effectAllowed = "copyMove";
 		setTimeout(() => {
 			(e.target as HTMLElement).style.opacity = "0.5";
@@ -179,7 +191,6 @@ export default function JadwalClient({
 
 	const handleDragOver = (e: React.DragEvent) => {
 		e.preventDefault();
-		// Beri efek visual 'plus' jika Alt ditahan, 'panah' jika tidak
 		e.dataTransfer.dropEffect = e.altKey ? "copy" : "move";
 	};
 
@@ -187,10 +198,8 @@ export default function JadwalClient({
 		e.preventDefault();
 		if (!draggedJadwal) return;
 
-		// Cek apakah tombol Alt ditekan saat dilepas
 		const isCopyOperation = e.altKey;
 
-		// Cegah pindah/copy ke tempat yang sama
 		if (
 			draggedJadwal.hari === targetHari &&
 			(draggedJadwal.jam === targetJam || draggedJadwal.waktuMulai === targetJam)
@@ -205,7 +214,6 @@ export default function JadwalClient({
 
 		setLoading(true);
 		const hasil = await simpanJadwalAction({
-			// JIKA COPY: Kosongkan ID agar server membuat record baru. JIKA PINDAH: Kirim ID lama.
 			id: isCopyOperation ? "" : draggedJadwal.id,
 			kelasId: selectedKelasId,
 			mapelId: draggedJadwal.mapelId,
@@ -222,7 +230,6 @@ export default function JadwalClient({
 			setIsErrorModalOpen(true);
 		}
 	};
-	// ----------------------------------------------------
 
 	const handlePrint = () => {
 		setIsPrintModalOpen(false);
@@ -257,11 +264,30 @@ export default function JadwalClient({
 		setIsDownloadModalOpen(false);
 	};
 
-	const exportToPDF = () => {
-		setIsDownloadModalOpen(false);
-		setTimeout(() => {
-			window.print();
-		}, 300);
+	// KUNCI PERBAIKAN: Fitur Export PDF 1 Lembar Landscape
+	const exportToPDF = async () => {
+		setIsDownloadingPdf(true);
+		try {
+			const html2pdf = (await import("html2pdf.js")).default;
+			const element = document.getElementById("pdf-jadwal-container");
+
+			const opt = {
+				margin: 0, // Dibuat 0 karena margin diatur CSS
+				filename: `Jadwal_Kelas_${activeKelasName.replace(" ", "_")}_${daftarTahunAjaran.find((t) => t.id === selectedTahunId)?.nama || ""}.pdf`,
+				image: { type: "jpeg", quality: 1 },
+				html2canvas: { scale: 2, useCORS: true },
+				// Diatur orientasi Landscape
+				jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+			};
+
+			await html2pdf().set(opt).from(element).save();
+			setIsDownloadModalOpen(false);
+		} catch (error) {
+			console.error("Gagal men-generate PDF:", error);
+			alert("Terjadi kesalahan saat memproses PDF.");
+		} finally {
+			setIsDownloadingPdf(false);
+		}
 	};
 
 	const jadwalKelasAktif = jadwalExisting.filter((j) => j.kelasId === selectedKelasId);
@@ -344,7 +370,6 @@ export default function JadwalClient({
 					</h2>
 
 					<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-						<span className={styles.badgeKurikulum}>Kurikulum Merdeka</span>
 						{tahunAjaranTerpilih && (
 							<span
 								style={{
@@ -397,6 +422,205 @@ export default function JadwalClient({
 
 	return (
 		<div className={styles.pageContainer}>
+			{/* CONTAINER TERSEMBUNYI UNTUK EXPORT PDF */}
+			<div style={{ display: "none" }}>
+				{/* Tinggi & Lebar Kertas diset mutlak untuk A4 Landscape */}
+				<div
+					id="pdf-jadwal-container"
+					style={{
+						width: "297mm",
+						height: "209mm",
+						padding: "10mm 15mm",
+						boxSizing: "border-box",
+						backgroundColor: "#fff",
+						color: "#000",
+						fontFamily: "Arial, sans-serif",
+					}}
+				>
+					{/* Kop Surat Header Sesuai Contoh PDF */}
+					<div
+						style={{
+							position: "relative",
+							textAlign: "center",
+							borderBottom: "3px solid #000",
+							paddingBottom: "15px",
+							marginBottom: "15px",
+						}}
+					>
+						<img
+							src="/logo.jpg"
+							alt="Logo SMAN 2 Brebes"
+							style={{
+								position: "absolute",
+								left: "20px",
+								top: "50%",
+								transform: "translateY(-50%)",
+								width: "80px",
+								height: "80px",
+								objectFit: "contain",
+							}}
+						/>
+						<h1
+							style={{
+								margin: "0 0 5px 0",
+								fontSize: "20pt",
+								fontWeight: "bold",
+								color: "#000",
+								fontFamily: '"Times New Roman", Times, serif',
+							}}
+						>
+							SMA NEGERI 2 BREBES
+						</h1>
+						<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+						<p style={{ margin: 0, fontSize: "11pt" }}>Website: www.sman2-brebes.sch.id - Email: smadabes@ymail.com</p>
+					</div>
+
+					<div
+						style={{
+							display: "flex",
+							justifyContent: "space-between",
+							alignItems: "center",
+							marginBottom: "15px",
+							paddingLeft: "5px",
+						}}
+					>
+						<h2 style={{ margin: 0, fontSize: "14pt", fontWeight: "bold", color: "#111827" }}>
+							Kelas: {activeKelasName}
+						</h2>
+						<div style={{ fontSize: "11pt", fontWeight: "bold" }}>
+							T.A {daftarTahunAjaran.find((t) => t.id === selectedTahunId)?.nama || ""}
+						</div>
+					</div>
+
+					<table
+						style={{
+							width: "100%",
+							borderCollapse: "collapse",
+							fontSize: "10pt",
+							border: "1px solid #000",
+							height: "calc(100% - 150px)",
+						}}
+					>
+						<thead>
+							<tr>
+								<th
+									style={{
+										border: "1px solid #000",
+										backgroundColor: "#f1f5f9",
+										width: "15%",
+										textAlign: "center",
+										padding: "8px",
+										verticalAlign: "middle",
+									}}
+								>
+									Jam Ke-
+								</th>
+								{HARI.map((h) => (
+									<th
+										key={h}
+										style={{
+											border: "1px solid #000",
+											backgroundColor: "#f1f5f9",
+											width: "17%",
+											textAlign: "center",
+											padding: "8px",
+											verticalAlign: "middle",
+										}}
+									>
+										{h}
+									</th>
+								))}
+							</tr>
+						</thead>
+						<tbody>
+							{SLOT_WAKTU.map((slot, idx) => (
+								<tr key={slot.jam}>
+									<td
+										style={{
+											border: "1px solid #000",
+											textAlign: "center",
+											fontWeight: "bold",
+											padding: "4px",
+											backgroundColor: "#f8fafc",
+										}}
+									>
+										<div style={{ fontSize: "11pt" }}>{slot.label}</div>
+										<div style={{ fontSize: "8pt", fontWeight: "normal", color: "#4b5563" }}>{WAKTU_JAM[idx]}</div>
+									</td>
+									{HARI.map((hari) => {
+										if (hari === "Senin" && slot.jam === "1") {
+											return (
+												<td
+													key={`${hari}-${slot.jam}`}
+													style={{
+														border: "1px solid #000",
+														backgroundColor: "#bfdbfe",
+														textAlign: "center",
+														fontWeight: "bold",
+														padding: "4px",
+														verticalAlign: "middle",
+													}}
+												>
+													UPACARA BENDERA
+												</td>
+											);
+										}
+										const jadwalSlot = jadwalKelasAktif.find(
+											(j) => j.hari === hari && (j.waktuMulai === slot.jam || j.jam === slot.jam),
+										);
+
+										// Mewarnai Tabel Sesuai Kelompok Mata Pelajaran
+										let bgColor = "#ffffff";
+										if (jadwalSlot) {
+											const mapelNama = jadwalSlot.mapel.nama.toLowerCase();
+											if (mapelNama.includes("wajib") || mapelNama.includes("upacara")) bgColor = "#bfdbfe";
+											else if (
+												mapelNama.includes("pjok") ||
+												mapelNama.includes("lintas") ||
+												mapelNama.includes("agama") ||
+												mapelNama.includes("keterampilan")
+											)
+												bgColor = "#fef08a";
+										}
+
+										return (
+											<td
+												key={`${hari}-${slot.jam}`}
+												style={{
+													border: "1px solid #000",
+													backgroundColor: bgColor,
+													textAlign: "center",
+													verticalAlign: "middle",
+													padding: "4px",
+												}}
+											>
+												{jadwalSlot ? (
+													<>
+														<div
+															style={{ fontWeight: "bold", marginBottom: "2px", fontSize: "9pt", lineHeight: "1.2" }}
+														>
+															{jadwalSlot.mapel.nama}
+														</div>
+														<div style={{ fontSize: "8pt", color: "#374151" }}>{jadwalSlot.guru.user.nama}</div>
+														{jadwalSlot.ruang && (
+															<div style={{ fontSize: "8pt", color: "#dc2626", marginTop: "2px", fontWeight: "bold" }}>
+																{jadwalSlot.ruang}
+															</div>
+														)}
+													</>
+												) : (
+													""
+												)}
+											</td>
+										);
+									})}
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			</div>
+
 			<div>
 				<button className={styles.btnBack} onClick={() => setViewMode("list")}>
 					<ArrowLeft size={16} /> Kembali ke Daftar Kelas
@@ -416,7 +640,6 @@ export default function JadwalClient({
 						Jadwal Kelas: {activeKelasName} <span className={styles.badgeSiswa}>{activeSiswaCount} Siswa</span>
 					</div>
 					<div className={styles.scheduleActions} style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-						{/* TIP UI */}
 						<div
 							style={{
 								fontSize: "0.75rem",
@@ -598,14 +821,11 @@ export default function JadwalClient({
 									<FileSpreadsheet size={40} color="#16a34a" />
 									<span className={styles.exportCardTitle}>Excel (.xlsx)</span>
 								</div>
-								<div className={styles.btnExportCard} onClick={exportToPDF}>
+								<button className={styles.btnExportCard} onClick={exportToPDF} disabled={isDownloadingPdf}>
 									<FileText size={40} color="#ef4444" />
-									<span className={styles.exportCardTitle}>PDF (.pdf)</span>
-								</div>
+									<span className={styles.exportCardTitle}>{isDownloadingPdf ? "Memproses PDF..." : "PDF (.pdf)"}</span>
+								</button>
 							</div>
-							<p style={{ fontSize: "0.75rem", color: "#6b7280", textAlign: "center", marginTop: "1rem" }}>
-								*Untuk format PDF, silakan pilih "Save as PDF" pada jendela Print yang muncul.
-							</p>
 						</div>
 					</div>
 				</div>

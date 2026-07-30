@@ -792,6 +792,42 @@
 	}
 }
 
+/* === MODAL & PDF PREVIEW STYLES === */
+.modalOverlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(15, 23, 42, 0.7);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	z-index: 1000;
+	backdrop-filter: blur(4px);
+}
+.modalContainerLarge {
+	background-color: #f1f5f9;
+	width: 900px;
+	max-width: 95vw;
+	border-radius: 1rem;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+	animation: scaleUp 0.3s ease-out;
+}
+@keyframes scaleUp {
+	from {
+		transform: scale(0.95);
+		opacity: 0;
+	}
+	to {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
 .modalHeader {
 	background-color: white;
 	padding: 1.5rem 2rem;
@@ -844,8 +880,6 @@
 	width: 210mm;
 	min-height: 297mm;
 	padding: 20mm;
-	padding-bottom: 30mm;
-	box-sizing: border-box;
 	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 	margin: 0 auto;
 	color: #000;
@@ -853,11 +887,8 @@
 }
 .pdfCover {
 	text-align: center;
-	height: 230mm;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
+	margin-top: 2rem;
+	margin-bottom: 4rem;
 }
 .pdfContent {
 	font-family: "Arial", sans-serif;
@@ -876,14 +907,12 @@
 	border-collapse: collapse;
 	margin-bottom: 2rem;
 	font-size: 10pt;
-	page-break-inside: avoid;
 }
 .pdfTable th,
 .pdfTable td {
 	border: 1px solid #000;
-	padding: 0.75rem 0.5rem;
+	padding: 0.5rem;
 	text-align: left;
-	vertical-align: top;
 }
 .pdfTable th {
 	background-color: #f1f5f9;

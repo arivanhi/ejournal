@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
 	LayoutDashboard,
 	BookOpen,
@@ -22,6 +22,7 @@ import {
 	AlertTriangle,
 	X,
 	Printer,
+	FileBarChart,
 } from "lucide-react";
 import styles from "./riwayat.module.css";
 import Link from "next/link";
@@ -51,21 +52,64 @@ export default function RiwayatClient({
 	// Modal PDF State
 	const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 	const [isDownloading, setIsDownloading] = useState(false);
+	const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
 
-	// Lakukan Filter Data berdasarkan Dropdown
 	const filteredJadwal = jadwalSemua.filter((j) => j.tahunAjaranId === selectedTahunId);
 
-	// --- FUNGSI KALKULASI STATISTIK KELAS ---
-	const getKelasStats = (jadwal: any) => {
-		const totalPertemuan = jadwal.jurnal.length;
-		if (totalPertemuan === 0) return { totalPertemuan: 0, rataKehadiran: 0 };
+	// Dapatkan daftar bulan unik dari jurnal yang ada di jadwal aktif
+	const uniqueMonths = useMemo(() => {
+		if (!activeJadwal || !activeJadwal.jurnal) return [];
+		const months = activeJadwal.jurnal.map((j: any) => {
+			const d = new Date(j.tanggal);
+			return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; // Format: YYYY-MM
+		});
+		return Array.from(new Set(months)).sort() as string[];
+	}, [activeJadwal]);
 
-		const totalSiswa = jadwal.kelas.riwayatSiswa.length;
-		if (totalSiswa === 0) return { totalPertemuan, rataKehadiran: 0 };
+	// Format string YYYY-MM ke nama bulan yang cantik (cth: "Juli 2026")
+	const formatMonthName = (ym: string) => {
+		const [y, m] = ym.split("-");
+		const date = new Date(parseInt(y), parseInt(m) - 1, 1);
+		return date.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+	};
+
+	// Teks dinamis untuk Cover PDF (Bulan / Periode)
+	const periodeText = useMemo(() => {
+		if (selectedMonths.length === 0) return "Belum ada bulan dipilih";
+		const sorted = [...selectedMonths].sort();
+		if (sorted.length === 1) return `Bulan: ${formatMonthName(sorted[0])}`;
+		return `Periode: ${formatMonthName(sorted[0])} - ${formatMonthName(sorted[sorted.length - 1])}`;
+	}, [selectedMonths]);
+
+	// Saat buka detail jadwal baru, otomatis pilih semua bulan
+	useEffect(() => {
+		setSelectedMonths(uniqueMonths);
+	}, [uniqueMonths]);
+
+	const handleToggleMonth = (month: string) => {
+		setSelectedMonths((prev) => (prev.includes(month) ? prev.filter((m) => m !== month) : [...prev, month]));
+	};
+
+	// Filter Jurnal Khusus untuk Cetak PDF sesuai bulan yang dicentang
+	const jurnalForPdf = useMemo(() => {
+		if (!activeJadwal) return [];
+		return [...activeJadwal.jurnal]
+			.filter((j: any) => {
+				const d = new Date(j.tanggal);
+				const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+				return selectedMonths.includes(ym);
+			})
+			.sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
+	}, [activeJadwal, selectedMonths]);
+
+	// --- FUNGSI KALKULASI STATISTIK (DIBUAT DINAMIS MENERIMA JURNAL ARRAY) ---
+	const getKelasStats = (totalSiswa: number, jurnalList: any[]) => {
+		const totalPertemuan = jurnalList.length;
+		if (totalPertemuan === 0 || totalSiswa === 0) return { totalPertemuan, rataKehadiran: 0 };
 
 		let totalHadirSemua = 0;
-		jadwal.jurnal.forEach((jurnal: any) => {
-			const hadir = jurnal.presensi.filter((p: any) => p.status === "H").length;
+		jurnalList.forEach((jurnal: any) => {
+			const hadir = jurnal.presensi?.filter((p: any) => p.status === "H").length || 0;
 			totalHadirSemua += hadir;
 		});
 
@@ -75,7 +119,6 @@ export default function RiwayatClient({
 		return { totalPertemuan, rataKehadiran };
 	};
 
-	// --- FUNGSI KALKULASI REKAP INDIVIDU SISWA (DIUPDATE UNTUK DETAIL H/I/S/A) ---
 	const getRekapSiswa = (siswaId: string, jurnalList: any[]) => {
 		const totalPertemuan = jurnalList.length;
 		let H = 0,
@@ -84,7 +127,7 @@ export default function RiwayatClient({
 			A = 0;
 
 		jurnalList.forEach((jurnal) => {
-			const absen = jurnal.presensi.find((p: any) => p.siswaId === siswaId);
+			const absen = jurnal.presensi?.find((p: any) => p.siswaId === siswaId);
 			if (absen) {
 				if (absen.status === "H") H++;
 				else if (absen.status === "I") I++;
@@ -93,9 +136,7 @@ export default function RiwayatClient({
 			}
 		});
 
-		const totalHadir = H;
-		const persentase = totalPertemuan > 0 ? Math.round((totalHadir / totalPertemuan) * 100) : 0;
-
+		const persentase = totalPertemuan > 0 ? Math.round((H / totalPertemuan) * 100) : 0;
 		let statusText = "Kurang";
 		let statusClass = styles.badgeKurang;
 		if (persentase >= 90) {
@@ -106,11 +147,12 @@ export default function RiwayatClient({
 			statusClass = styles.badgeBaik;
 		}
 
-		return { H, I, S, A, totalHadir, totalPertemuan, persentase, statusText, statusClass };
+		return { H, I, S, A, totalHadir: H, totalPertemuan, persentase, statusText, statusClass };
 	};
 
 	// --- FUNGSI EXPORT PDF ---
 	const handleDownloadPdf = async () => {
+		if (selectedMonths.length === 0) return alert("Pilih minimal 1 bulan untuk dicetak.");
 		setIsDownloading(true);
 		try {
 			const html2pdf = (await import("html2pdf.js")).default;
@@ -118,7 +160,7 @@ export default function RiwayatClient({
 
 			const opt = {
 				margin: 0,
-				filename: `Riwayat_Jurnal_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}.pdf`,
+				filename: `Riwayat_Jurnal_${activeJadwal.tahunAjaran.nama}_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}.pdf`,
 				image: { type: "jpeg", quality: 1 },
 				html2canvas: { scale: 2, useCORS: true, letterRendering: true },
 				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
@@ -134,17 +176,58 @@ export default function RiwayatClient({
 		}
 	};
 
+	// Komponen Kop Surat agar gampang dipakai berulang
+	const pdfHeader = (
+		<div
+			style={{
+				position: "relative",
+				textAlign: "center",
+				borderBottom: "3px solid #000",
+				paddingBottom: "15px",
+				marginBottom: "15px",
+				paddingTop: "10px",
+			}}
+		>
+			<img
+				src="/logo.jpg"
+				alt="Logo SMAN 2 Brebes"
+				style={{
+					position: "absolute",
+					left: "10px",
+					top: "50%",
+					transform: "translateY(-50%)",
+					width: "80px",
+					height: "80px",
+					objectFit: "contain",
+				}}
+			/>
+			<h1
+				style={{
+					margin: "0 0 5px 0",
+					fontSize: "18pt",
+					fontWeight: "bold",
+					color: "#000",
+					fontFamily: '"Times New Roman", Times, serif',
+				}}
+			>
+				SMA NEGERI 2 BREBES
+			</h1>
+			<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+			<p style={{ margin: 0, fontSize: "11pt" }}>Website: www.sman2-brebes.sch.id - Email: smadabes@ymail.com</p>
+		</div>
+	);
+
 	return (
 		<div className={styles.layoutWrapper}>
-			{/* === MODAL PREVIEW PDF A4 === */}
+			{/* === MODAL PREVIEW & PILIH BULAN PDF === */}
 			{isPdfModalOpen && activeJadwal && (
 				<div className={styles.modalOverlay}>
-					<div className={styles.modalContainerLarge}>
+					<div className={styles.modalContainerLarge} style={{ maxWidth: "600px", height: "auto", maxHeight: "90vh" }}>
 						<div className={styles.modalHeader}>
 							<div>
-								<h3 className={styles.modalTitle}>Preview Cetak Dokumen A4</h3>
+								<h3 className={styles.modalTitle}>Ekspor Riwayat Jurnal</h3>
 								<p style={{ fontSize: "0.875rem", color: "#64748b", margin: 0 }}>
-									Pastikan data Jurnal dan Analisa sudah sesuai.
+									Pilih periode bulan yang ingin Anda cetak ke dalam PDF.
 								</p>
 							</div>
 							<button className={styles.modalCloseBtn} onClick={() => setIsPdfModalOpen(false)}>
@@ -152,278 +235,388 @@ export default function RiwayatClient({
 							</button>
 						</div>
 
-						<div className={styles.modalBodyScroll}>
-							{/* === AREA KERTAS A4 YANG AKAN DICETAK === */}
-							<div id="pdf-portofolio-content" className={styles.pdfA4Container}>
-								{/* HALAMAN 1: COVER */}
-								<div className={styles.pdfCover}>
-									<h2 style={{ fontSize: "18pt", fontWeight: 800, marginBottom: "0.5rem" }}>RIWAYAT JURNAL MENGAJAR</h2>
-									<h1
-										style={{
-											fontSize: "24pt",
-											fontWeight: 900,
-											color: "#0a2540",
-											marginBottom: "1rem",
-											textTransform: "uppercase",
+						<div className={styles.modalBodyScroll} style={{ padding: "1.5rem 2rem", display: "block" }}>
+							<h4 style={{ fontSize: "1rem", fontWeight: "bold", marginBottom: "1rem", color: "#0f172a" }}>
+								Filter Bulan:
+							</h4>
+
+							<div style={{ display: "flex", flexDirection: "column", gap: "0.8rem", marginBottom: "1.5rem" }}>
+								<label
+									style={{
+										display: "flex",
+										alignItems: "center",
+										gap: "0.5rem",
+										cursor: "pointer",
+										fontWeight: "bold",
+									}}
+								>
+									<input
+										type="checkbox"
+										checked={selectedMonths.length === uniqueMonths.length && uniqueMonths.length > 0}
+										onChange={(e) => {
+											if (e.target.checked) setSelectedMonths(uniqueMonths);
+											else setSelectedMonths([]);
 										}}
-									>
-										{activeJadwal.mapel.nama}
-									</h1>
-									<p style={{ fontSize: "12pt", fontWeight: 600 }}>Tahun Akademik {activeJadwal.tahunAjaran.nama}</p>
+										style={{ width: "16px", height: "16px", cursor: "pointer" }}
+									/>
+									Pilih Semua Keseluruhan
+								</label>
+								<hr style={{ border: "0", borderTop: "1px solid #cbd5e1", margin: "0.5rem 0" }} />
+								{uniqueMonths.length === 0 ? (
+									<p style={{ color: "#ef4444", fontSize: "0.875rem" }}>Belum ada data jurnal tersimpan.</p>
+								) : (
+									uniqueMonths.map((m) => (
+										<label
+											key={m}
+											style={{
+												display: "flex",
+												alignItems: "center",
+												gap: "0.5rem",
+												cursor: "pointer",
+												color: "#334155",
+											}}
+										>
+											<input
+												type="checkbox"
+												checked={selectedMonths.includes(m)}
+												onChange={() => handleToggleMonth(m)}
+												style={{ width: "16px", height: "16px", cursor: "pointer" }}
+											/>
+											{formatMonthName(m)}
+										</label>
+									))
+								)}
+							</div>
 
-									<div style={{ margin: "3.5rem 0", display: "flex", justifyContent: "center" }}>
-										<img
-											src="/logo.jpg"
-											alt="Logo SMAN 2 Brebes"
-											style={{ width: "160px", height: "160px", objectFit: "contain" }}
-										/>
-									</div>
+							<div
+								style={{
+									backgroundColor: "#f8fafc",
+									padding: "1rem",
+									borderRadius: "0.5rem",
+									border: "1px dashed #cbd5e1",
+								}}
+							>
+								<p
+									style={{
+										fontSize: "0.875rem",
+										color: "#64748b",
+										margin: 0,
+										display: "flex",
+										alignItems: "center",
+										gap: "0.5rem",
+									}}
+								>
+									<FileBarChart size={16} /> Total Jurnal Terpilih: <strong>{jurnalForPdf.length} Pertemuan</strong>
+								</p>
+							</div>
 
-									<div style={{ textAlign: "center" }}>
-										<p style={{ fontSize: "11pt", marginBottom: "0.5rem" }}>
-											<strong>GURU PENGAMPU:</strong>
-										</p>
-										<p style={{ fontSize: "14pt", fontWeight: 700, color: "#0a2540" }}>{user.nama}</p>
-										<p style={{ fontSize: "11pt", marginTop: "0.5rem" }}>NPP: {user.username}</p>
-									</div>
-
+							{/* === AREA TERSEMBUNYI UNTUK CETAK PDF === */}
+							<div style={{ display: "none" }}>
+								<div id="pdf-portofolio-content" className={styles.pdfA4Container}>
+									{/* HALAMAN 1: COVER FULL HALAMAN */}
 									<div
+										className={styles.pdfCover}
 										style={{
-											marginTop: "3.5rem",
-											textAlign: "center",
-											borderTop: "2px solid #0a2540",
-											paddingTop: "1.5rem",
-											width: "70%",
-											margin: "3.5rem auto 0 auto",
+											height: "240mm",
+											display: "flex",
+											flexDirection: "column",
+											justifyContent: "center",
+											alignItems: "center",
 										}}
 									>
-										<p style={{ fontSize: "14pt", fontWeight: 800 }}>KELAS: {activeJadwal.kelas.nama}</p>
-										<p style={{ fontSize: "12pt" }}>SMA NEGERI 2 BREBES</p>
+										<h2 style={{ fontSize: "18pt", fontWeight: 800, marginBottom: "0.5rem" }}>
+											RIWAYAT JURNAL MENGAJAR
+										</h2>
+										<h1
+											style={{
+												fontSize: "24pt",
+												fontWeight: 900,
+												color: "#0a2540",
+												marginBottom: "0.5rem",
+												textTransform: "uppercase",
+											}}
+										>
+											{activeJadwal.mapel.nama}
+										</h1>
+										<p style={{ fontSize: "12pt", fontWeight: 600 }}>Tahun Akademik {activeJadwal.tahunAjaran.nama}</p>
+
+										{/* TAMPILAN RENTANG BULAN DINAMIS */}
+										<p style={{ fontSize: "12pt", fontWeight: 600, marginTop: "0.5rem", color: "#dc2626" }}>
+											{periodeText}
+										</p>
+
+										<div style={{ margin: "4rem 0", display: "flex", justifyContent: "center" }}>
+											<img
+												src="/logo.jpg"
+												alt="Logo SMAN 2 Brebes"
+												style={{ width: "160px", height: "160px", objectFit: "contain" }}
+											/>
+										</div>
+
+										<div style={{ textAlign: "center" }}>
+											<p style={{ fontSize: "11pt", marginBottom: "0.5rem" }}>
+												<strong>GURU PENGAMPU:</strong>
+											</p>
+											<p style={{ fontSize: "14pt", fontWeight: 700, color: "#0a2540" }}>{user.nama}</p>
+											<p style={{ fontSize: "11pt", marginTop: "0.5rem" }}>NPP: {user.username}</p>
+										</div>
+
+										<div
+											style={{
+												marginTop: "4rem",
+												textAlign: "center",
+												borderTop: "2px solid #0a2540",
+												paddingTop: "1.5rem",
+												width: "70%",
+												margin: "4rem auto 0 auto",
+											}}
+										>
+											<p style={{ fontSize: "14pt", fontWeight: 800 }}>KELAS: {activeJadwal.kelas.nama}</p>
+											<p style={{ fontSize: "12pt" }}>SMA NEGERI 2 BREBES</p>
+										</div>
 									</div>
-								</div>
-
-								<div className="html2pdf__page-break"></div>
-
-								{/* HALAMAN 2: KONTEN */}
-								<div className={styles.pdfContent}>
-									<h3 className={styles.pdfSectionTitle}>A. JURNAL MENGAJAR & CATATAN KBM</h3>
-									<table className={styles.pdfTable}>
-										<thead>
-											<tr>
-												<th style={{ width: "5%" }}>Pert.</th>
-												<th style={{ width: "15%" }}>Tanggal</th>
-												<th style={{ width: "25%" }}>Topik Pembelajaran</th>
-												<th style={{ width: "40%" }}>Catatan Evaluasi / Kendala</th>
-												<th style={{ width: "15%" }}>Status</th>
-											</tr>
-										</thead>
-										<tbody>
-											{(() => {
-												const sortedJurnal = [...activeJadwal.jurnal].sort(
-													(a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime(),
-												);
-												if (sortedJurnal.length === 0)
-													return (
-														<tr>
-															<td colSpan={5} style={{ textAlign: "center" }}>
-																Belum ada jurnal.
-															</td>
-														</tr>
-													);
-
-												return sortedJurnal.map((jur: any, idx: number) => (
-													<tr key={jur.id}>
-														<td style={{ textAlign: "center" }}>{idx + 1}</td>
-														<td style={{ textAlign: "center" }}>
-															{new Date(jur.tanggal).toLocaleDateString("id-ID", {
-																day: "2-digit",
-																month: "short",
-																year: "numeric",
-															})}
-														</td>
-														<td>{jur.materiBab || jur.topik || "-"}</td>
-														<td>{jur.catatan || "Tidak ada kendala"}</td>
-														<td style={{ textAlign: "center" }}>{jur.status === "SUBMITTED" ? "Dibuat" : "Draft"}</td>
-													</tr>
-												));
-											})()}
-										</tbody>
-									</table>
 
 									<div className="html2pdf__page-break"></div>
 
-									<h3 className={styles.pdfSectionTitle}>B. REKAPITULASI KEHADIRAN SISWA</h3>
-									<table className={styles.pdfTable}>
-										<thead>
-											<tr>
-												<th style={{ width: "5%" }}>No.</th>
-												<th style={{ width: "33%" }}>Nama Siswa</th>
-												<th style={{ width: "16%" }}>NIS</th>
-												<th style={{ width: "7%", textAlign: "center" }}>H</th>
-												<th style={{ width: "7%", textAlign: "center" }}>I</th>
-												<th style={{ width: "7%", textAlign: "center" }}>S</th>
-												<th style={{ width: "7%", textAlign: "center" }}>A</th>
-												<th style={{ width: "18%", textAlign: "center" }}>% Hadir</th>
-											</tr>
-										</thead>
-										<tbody>
-											{(() => {
-												// PERBAIKAN: Mengurutkan Siswa dari A-Z
-												const sortedSiswa = [...activeJadwal.kelas.riwayatSiswa].sort((a: any, b: any) => {
-													const nameA = a.siswa?.user?.nama || "";
-													const nameB = b.siswa?.user?.nama || "";
-													return nameA.localeCompare(nameB);
-												});
-
-												return sortedSiswa.map((rs: any, idx: number) => {
-													const rekap = getRekapSiswa(rs.siswa.id, activeJadwal.jurnal);
-													return (
-														<tr key={rs.siswa.id}>
+									{/* HALAMAN 2: TABEL JURNAL */}
+									{pdfHeader}
+									<div className={styles.pdfContent}>
+										<h3 className={styles.pdfSectionTitle}>A. JURNAL MENGAJAR & CATATAN KBM</h3>
+										<table className={styles.pdfTable}>
+											<thead>
+												<tr>
+													<th style={{ width: "5%" }}>Pert.</th>
+													<th style={{ width: "15%" }}>Tanggal</th>
+													<th style={{ width: "25%" }}>Topik Pembelajaran</th>
+													<th style={{ width: "40%" }}>Catatan Evaluasi / Kendala</th>
+													<th style={{ width: "15%" }}>Status</th>
+												</tr>
+											</thead>
+											<tbody>
+												{jurnalForPdf.length === 0 ? (
+													<tr>
+														<td colSpan={5} style={{ textAlign: "center" }}>
+															Belum ada jurnal untuk periode terpilih.
+														</td>
+													</tr>
+												) : (
+													jurnalForPdf.map((jur: any, idx: number) => (
+														<tr key={jur.id}>
 															<td style={{ textAlign: "center" }}>{idx + 1}</td>
-															<td>{rs.siswa.user?.nama}</td>
-															<td>{rs.siswa.nis}</td>
-															<td style={{ textAlign: "center" }}>{rekap.H}</td>
-															<td style={{ textAlign: "center" }}>{rekap.I}</td>
-															<td style={{ textAlign: "center" }}>{rekap.S}</td>
-															<td style={{ textAlign: "center", color: rekap.A > 0 ? "#ef4444" : "inherit" }}>
-																{rekap.A}
+															<td style={{ textAlign: "center" }}>
+																{new Date(jur.tanggal).toLocaleDateString("id-ID", {
+																	day: "2-digit",
+																	month: "short",
+																	year: "numeric",
+																})}
 															</td>
-															<td style={{ textAlign: "center", fontWeight: "bold" }}>{rekap.persentase}%</td>
+															<td>{jur.materiBab || jur.topik || "-"}</td>
+															<td>{jur.catatan || "-"}</td>
+															<td style={{ textAlign: "center" }}>
+																{jur.status === "SUBMITTED" ? "Terkirim" : "Draft"}
+															</td>
 														</tr>
-													);
-												});
-											})()}
-										</tbody>
-									</table>
+													))
+												)}
+											</tbody>
+										</table>
 
-									<h3 className={styles.pdfSectionTitle} style={{ marginTop: "2rem" }}>
-										C. ANALISA HASIL KBM
-									</h3>
-									{(() => {
-										const jurnalSorted = [...activeJadwal.jurnal].sort(
-											(a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime(),
-										);
-										const totalSiswaKls = activeJadwal.kelas.riwayatSiswa.length;
+										<div className="html2pdf__page-break"></div>
 
-										const chartData = jurnalSorted.map((j, i) => {
-											const h = j.presensi?.filter((p: any) => p.status === "H").length || 0;
-											const pct = totalSiswaKls > 0 ? Math.round((h / totalSiswaKls) * 100) : 0;
-											let fillColor = "#0a2540";
-											if (pct < 75) fillColor = "#ef4444";
-											else if (pct < 90) fillColor = "#f59e0b";
+										{/* HALAMAN 3: REKAP KEHADIRAN SISWA */}
+										{pdfHeader}
+										<h3 className={styles.pdfSectionTitle}>B. REKAPITULASI KEHADIRAN SISWA</h3>
+										<p style={{ fontSize: "10pt", marginBottom: "10px" }}>
+											<em>*Berdasarkan periode {periodeText}</em>
+										</p>
+										<table className={styles.pdfTable}>
+											<thead>
+												<tr>
+													<th style={{ width: "5%" }}>No.</th>
+													<th style={{ width: "33%" }}>Nama Siswa</th>
+													<th style={{ width: "16%" }}>NIS</th>
+													<th style={{ width: "7%", textAlign: "center" }}>H</th>
+													<th style={{ width: "7%", textAlign: "center" }}>I</th>
+													<th style={{ width: "7%", textAlign: "center" }}>S</th>
+													<th style={{ width: "7%", textAlign: "center" }}>A</th>
+													<th style={{ width: "18%", textAlign: "center" }}>% Hadir</th>
+												</tr>
+											</thead>
+											<tbody>
+												{(() => {
+													const sortedSiswa = [...activeJadwal.kelas.riwayatSiswa].sort((a: any, b: any) => {
+														const nameA = a.siswa?.user?.nama || "";
+														const nameB = b.siswa?.user?.nama || "";
+														return nameA.localeCompare(nameB);
+													});
 
-											return { pertemuan: i + 1, pct, hadir: h, fillColor };
-										});
+													return sortedSiswa.map((rs: any, idx: number) => {
+														const rekap = getRekapSiswa(rs.siswa.id, jurnalForPdf); // GUNAKAN JURNAL TERFILTER
+														return (
+															<tr key={rs.siswa.id}>
+																<td style={{ textAlign: "center" }}>{idx + 1}</td>
+																<td>{rs.siswa.user?.nama}</td>
+																<td>{rs.siswa.nis}</td>
+																<td style={{ textAlign: "center" }}>{rekap.H}</td>
+																<td style={{ textAlign: "center" }}>{rekap.I}</td>
+																<td style={{ textAlign: "center" }}>{rekap.S}</td>
+																<td style={{ textAlign: "center", color: rekap.A > 0 ? "#ef4444" : "inherit" }}>
+																	{rekap.A}
+																</td>
+																<td style={{ textAlign: "center", fontWeight: "bold" }}>{rekap.persentase}%</td>
+															</tr>
+														);
+													});
+												})()}
+											</tbody>
+										</table>
 
-										return (
-											<div
-												style={{
-													border: "1px solid #000",
-													padding: "1rem",
-													marginBottom: "1.5rem",
-													pageBreakInside: "avoid",
-												}}
-											>
-												<p
-													style={{ fontWeight: "bold", marginBottom: "1.5rem", textAlign: "center", fontSize: "11pt" }}
-												>
-													GRAFIK TREN KEHADIRAN SISWA
-												</p>
+										<div className="html2pdf__page-break"></div>
 
-												<div
-													style={{
-														display: "flex",
-														justifyContent: "space-around",
-														alignItems: "flex-end",
-														height: "140px",
-														borderBottom: "1px solid #cbd5e1",
-														paddingBottom: "0.5rem",
-														margin: "0 2rem",
-													}}
-												>
-													{chartData.length === 0 ? (
-														<div style={{ color: "#64748b", fontSize: "10pt", alignSelf: "center" }}>
-															Belum ada data kehadiran.
-														</div>
-													) : (
-														chartData.map((data, idx) => (
-															<div
-																key={idx}
-																style={{
-																	display: "flex",
-																	flexDirection: "column",
-																	alignItems: "center",
-																	width: "30px",
-																}}
-															>
-																<span style={{ fontSize: "8pt", fontWeight: "bold", marginBottom: "4px" }}>
-																	{data.pct}%
-																</span>
-																<div
-																	style={{
-																		height: "100px",
-																		width: "100%",
-																		backgroundColor: "#f1f5f9",
-																		display: "flex",
-																		alignItems: "flex-end",
-																	}}
-																>
-																	<div
-																		style={{ width: "100%", height: `${data.pct}%`, backgroundColor: data.fillColor }}
-																	></div>
+										{/* HALAMAN 4: ANALISA KBM */}
+										{pdfHeader}
+										<h3 className={styles.pdfSectionTitle} style={{ marginTop: "2rem" }}>
+											C. ANALISA HASIL KBM
+										</h3>
+
+										{(() => {
+											const totalSiswaKls = activeJadwal.kelas.riwayatSiswa.length;
+
+											// Chart data berdasarkan jurnal terpilih
+											const chartData = jurnalForPdf.map((j: any, i: number) => {
+												const h = j.presensi?.filter((p: any) => p.status === "H").length || 0;
+												const pct = totalSiswaKls > 0 ? Math.round((h / totalSiswaKls) * 100) : 0;
+												let fillColor = "#0a2540";
+												if (pct < 75) fillColor = "#ef4444";
+												else if (pct < 90) fillColor = "#f59e0b";
+
+												return { pertemuan: i + 1, pct, hadir: h, fillColor };
+											});
+
+											const statsPdf = getKelasStats(totalSiswaKls, jurnalForPdf);
+
+											return (
+												<>
+													<div
+														style={{
+															border: "1px solid #000",
+															padding: "1rem",
+															marginBottom: "1.5rem",
+															pageBreakInside: "avoid",
+														}}
+													>
+														<p
+															style={{
+																fontWeight: "bold",
+																marginBottom: "1.5rem",
+																textAlign: "center",
+																fontSize: "11pt",
+															}}
+														>
+															GRAFIK TREN KEHADIRAN SISWA
+														</p>
+
+														<div
+															style={{
+																display: "flex",
+																justifyContent: "space-around",
+																alignItems: "flex-end",
+																height: "140px",
+																borderBottom: "1px solid #cbd5e1",
+																paddingBottom: "0.5rem",
+																margin: "0 2rem",
+															}}
+														>
+															{chartData.length === 0 ? (
+																<div style={{ color: "#64748b", fontSize: "10pt", alignSelf: "center" }}>
+																	Belum ada data kehadiran.
 																</div>
-																<span style={{ fontSize: "8pt", marginTop: "4px" }}>P-{data.pertemuan}</span>
-															</div>
-														))
-													)}
-												</div>
-											</div>
-										);
-									})()}
+															) : (
+																chartData.map((data: any, idx: number) => (
+																	<div
+																		key={idx}
+																		style={{
+																			display: "flex",
+																			flexDirection: "column",
+																			alignItems: "center",
+																			width: "30px",
+																		}}
+																	>
+																		<span style={{ fontSize: "8pt", fontWeight: "bold", marginBottom: "4px" }}>
+																			{data.pct}%
+																		</span>
+																		<div
+																			style={{
+																				height: "100px",
+																				width: "100%",
+																				backgroundColor: "#f1f5f9",
+																				display: "flex",
+																				alignItems: "flex-end",
+																			}}
+																		>
+																			<div
+																				style={{
+																					width: "100%",
+																					height: `${data.pct}%`,
+																					backgroundColor: data.fillColor,
+																				}}
+																			></div>
+																		</div>
+																		<span style={{ fontSize: "8pt", marginTop: "4px" }}>P-{data.pertemuan}</span>
+																	</div>
+																))
+															)}
+														</div>
+													</div>
 
-									<div style={{ border: "1px solid #000", padding: "1rem", pageBreakInside: "avoid" }}>
-										<p>
-											<strong>REKAPITULASI CAPAIAN KELAS:</strong>
-										</p>
-										<p style={{ marginBottom: "1rem" }}>
-											Rata-rata persentase kehadiran kelas {activeJadwal.kelas.nama} adalah{" "}
-											<strong>{getKelasStats(activeJadwal).rataKehadiran}%</strong> selama{" "}
-											<strong>{getKelasStats(activeJadwal).totalPertemuan} pertemuan</strong>.
-										</p>
+													<div style={{ border: "1px solid #000", padding: "1rem", pageBreakInside: "avoid" }}>
+														<p>
+															<strong>REKAPITULASI CAPAIAN KELAS:</strong>
+														</p>
+														<p style={{ marginBottom: "1rem" }}>
+															Rata-rata persentase kehadiran kelas {activeJadwal.kelas.nama} adalah{" "}
+															<strong>{statsPdf.rataKehadiran}%</strong> selama{" "}
+															<strong>{statsPdf.totalPertemuan} pertemuan</strong>.
+														</p>
 
-										<p>
-											<strong>RANGKUMAN CATATAN EVALUASI:</strong>
-										</p>
-										<ul style={{ paddingLeft: "1.5rem", marginBottom: "2rem" }}>
-											{(() => {
-												const sortedJurnal = [...activeJadwal.jurnal].sort(
-													(a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime(),
-												);
-												const notes = sortedJurnal.filter((j) => j.catatan && j.catatan.trim() !== "");
-												if (notes.length === 0)
-													return <li>Tidak ada catatan kendala yang direkam pada semester ini.</li>;
-												return notes.map((n, i) => (
-													<li key={i} style={{ marginBottom: "0.5rem" }}>
-														<strong>
-															Pertemuan {i + 1} ({new Date(n.tanggal).toLocaleDateString("id-ID")}):
-														</strong>{" "}
-														{n.catatan}
-													</li>
-												));
-											})()}
-										</ul>
+														<p>
+															<strong>RANGKUMAN CATATAN EVALUASI:</strong>
+														</p>
+														<ul style={{ paddingLeft: "1.5rem", marginBottom: "2rem" }}>
+															{(() => {
+																const notes = jurnalForPdf.filter((j: any) => j.catatan && j.catatan.trim() !== "");
+																if (notes.length === 0)
+																	return <li>Tidak ada catatan kendala yang direkam pada periode ini.</li>;
+																return notes.map((n: any, i: number) => (
+																	<li key={i} style={{ marginBottom: "0.5rem" }}>
+																		<strong>
+																			Pertemuan ke-{i + 1} ({new Date(n.tanggal).toLocaleDateString("id-ID")}):
+																		</strong>{" "}
+																		{n.catatan}
+																	</li>
+																));
+															})()}
+														</ul>
 
-										<div style={{ textAlign: "right", marginTop: "3rem" }}>
-											<p>
-												Brebes,{" "}
-												{new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-											</p>
-											<p style={{ marginBottom: "4rem" }}>Guru Pengampu,</p>
-											<p>
-												<strong>{user.nama}</strong>
-											</p>
-											<p>NPP: {user.username}</p>
-										</div>
+														<div style={{ textAlign: "right", marginTop: "3rem" }}>
+															<p>
+																Brebes,{" "}
+																{new Date().toLocaleDateString("id-ID", {
+																	day: "numeric",
+																	month: "long",
+																	year: "numeric",
+																})}
+															</p>
+															<p style={{ marginBottom: "4rem" }}>Guru Pengampu,</p>
+															<p>
+																<strong>{user.nama}</strong>
+															</p>
+															<p>NPP: {user.username}</p>
+														</div>
+													</div>
+												</>
+											);
+										})()}
 									</div>
 								</div>
 							</div>
@@ -433,12 +626,16 @@ export default function RiwayatClient({
 							<button className={styles.btnOutline} onClick={() => setIsPdfModalOpen(false)}>
 								Batal
 							</button>
-							<button className={styles.btnPrimary} onClick={handleDownloadPdf} disabled={isDownloading}>
+							<button
+								className={styles.btnPrimary}
+								onClick={handleDownloadPdf}
+								disabled={isDownloading || selectedMonths.length === 0}
+							>
 								{isDownloading ? (
 									"Memproses PDF..."
 								) : (
 									<>
-										<Printer size={16} /> Simpan File PDF
+										<Printer size={16} /> Unduh PDF
 									</>
 								)}
 							</button>
@@ -561,7 +758,7 @@ export default function RiwayatClient({
 									</div>
 								) : (
 									filteredJadwal.map((jadwal) => {
-										const stats = getKelasStats(jadwal);
+										const stats = getKelasStats(jadwal.kelas.riwayatSiswa.length, jadwal.jurnal);
 										const ta = tahunAjaranList.find((t) => t.id === jadwal.tahunAjaranId)?.nama || "";
 
 										return (
@@ -637,7 +834,8 @@ export default function RiwayatClient({
 							</div>
 
 							{(() => {
-								const stats = getKelasStats(activeJadwal);
+								// Statistik Utama Web UI Menampilkan Semua Jurnal yang Ada
+								const stats = getKelasStats(activeJadwal.kelas.riwayatSiswa.length, activeJadwal.jurnal);
 								return (
 									<div className={styles.statsGrid}>
 										<div className={styles.statBox}>
@@ -720,7 +918,6 @@ export default function RiwayatClient({
 										</thead>
 										<tbody>
 											{(() => {
-												// PERBAIKAN: Mengurutkan Siswa dari A-Z
 												const sortedSiswa = [...activeJadwal.kelas.riwayatSiswa].sort((a: any, b: any) => {
 													const nameA = a.siswa?.user?.nama || "";
 													const nameB = b.siswa?.user?.nama || "";

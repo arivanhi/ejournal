@@ -163,14 +163,13 @@ export default async function MonitoringPage() {
 						: `Jam ke ${foundBlock.jamAwal}-${foundBlock.jamAkhir}`;
 			}
 
-			// PERBAIKAN: Format Waktu Aktual Mengajar dari Database
 			const waktuMengajarStr = jur.waktuMulai && jur.waktuSelesai ? `${jur.waktuMulai} - ${jur.waktuSelesai} WIB` : "-";
 
 			expectedSessions.push({
 				tanggalRaw: jur.tanggal.getTime(),
 				tanggalStr: jur.tanggal.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
 				jamStr: jamStr,
-				waktuMengajar: waktuMengajarStr, // Data Baru
+				waktuMengajar: waktuMengajarStr,
 				topik: jur.materiBab || "-",
 				status: "Terisi",
 			});
@@ -195,7 +194,7 @@ export default async function MonitoringPage() {
 						tanggalRaw: new Date(d).getTime(),
 						tanggalStr: new Date(d).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
 						jamStr: jamStr,
-						waktuMengajar: "-", // Karena kosong, tidak ada waktu aktual
+						waktuMengajar: "-",
 						topik: "-",
 						status: "Jam Kosong",
 					});
@@ -234,6 +233,8 @@ export default async function MonitoringPage() {
 			totalSesi: expectedSessions.length,
 			jamKosong: kosong,
 			riwayat,
+			// KUNCI PERBAIKAN: Menambahkan tahunAjaranNama agar terbaca di Client
+			tahunAjaranNama: tahunAjaranAktif.nama,
 		};
 	});
 

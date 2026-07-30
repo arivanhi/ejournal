@@ -21,6 +21,10 @@ import {
 	Bell,
 	Building,
 	User,
+	Download,
+	X,
+	Printer,
+	FileText,
 } from "lucide-react";
 import styles from "./monitoring.module.css";
 import Link from "next/link";
@@ -36,10 +40,13 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 	const cardsPerPage = 6;
 
 	const [searchTopik, setSearchTopik] = useState("");
-	// PERBAIKAN: Default sorting menjadi 'asc' (Pertemuan dari kecil ke besar)
 	const [sortConfig, setSortConfig] = useState({ key: "pertemuanKe", direction: "asc" });
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 5;
+
+	// State Modal PDF
+	const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+	const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
 	useEffect(() => {
 		setCurrentCardPage(1);
@@ -49,7 +56,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 		setSelectedItem(item);
 		setSearchTopik("");
 		setCurrentPage(1);
-		setSortConfig({ key: "pertemuanKe", direction: "asc" }); // Pastikan selalu ASC saat dibuka
+		setSortConfig({ key: "pertemuanKe", direction: "asc" });
 		setViewMode("detail");
 	};
 
@@ -96,8 +103,353 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 		return "";
 	};
 
+	// --- FUNGSI EXPORT PDF POTRAIT ---
+	const exportToPDF = async () => {
+		setIsDownloadingPdf(true);
+		try {
+			const html2pdf = (await import("html2pdf.js")).default;
+			const element = document.getElementById("pdf-monitoring-content");
+
+			const opt = {
+				margin: 0,
+				filename: `Rekap_KBM_${selectedItem.mapelNama.replace(/\s+/g, "_")}_${selectedItem.kelasNama.replace(/\s+/g, "_")}_TA_${selectedItem.tahunAjaranNama}.pdf`,
+				image: { type: "jpeg", quality: 1 },
+				html2canvas: { scale: 2, useCORS: true },
+				// PERBAIKAN: Ubah kembali menjadi Portrait
+				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+			};
+
+			await html2pdf().set(opt).from(element).save();
+		} catch (error) {
+			console.error("Gagal men-generate PDF:", error);
+			alert("Terjadi kesalahan saat memproses PDF!");
+		} finally {
+			setIsDownloadingPdf(false);
+			setIsPdfModalOpen(false);
+		}
+	};
+
 	return (
 		<div className={styles.layoutWrapper}>
+			{/* --- CONTAINER TERSEMBUNYI UNTUK CETAK PDF PORTRAIT --- */}
+			{selectedItem && (
+				<div style={{ display: "none" }}>
+					{/* PERBAIKAN: Ukuran diganti ke 210mm untuk A4 Portrait */}
+					<div
+						id="pdf-monitoring-content"
+						style={{
+							width: "210mm",
+							minHeight: "297mm",
+							padding: "15mm",
+							boxSizing: "border-box",
+							backgroundColor: "#fff",
+							color: "#000",
+							fontFamily: "Arial, sans-serif",
+						}}
+					>
+						{/* HALAMAN 1: COVER PAGE */}
+						<div
+							style={{
+								height: "240mm",
+								display: "flex",
+								flexDirection: "column",
+								justifyContent: "center",
+								alignItems: "center",
+							}}
+						>
+							<h2
+								style={{
+									fontSize: "16pt",
+									fontWeight: 800,
+									marginBottom: "0.5rem",
+									fontFamily: '"Times New Roman", Times, serif',
+								}}
+							>
+								REKAP KEHADIRAN KEGIATAN KBM
+							</h2>
+							<h1
+								style={{
+									fontSize: "24pt",
+									fontWeight: 900,
+									color: "#0a2540",
+									marginBottom: "0.5rem",
+									textTransform: "uppercase",
+									fontFamily: '"Times New Roman", Times, serif',
+									textAlign: "center",
+								}}
+							>
+								{selectedItem.mapelNama}
+							</h1>
+							{/* Menampilkan Tahun Ajaran yang ditarik secara real */}
+							<p style={{ fontSize: "14pt", fontWeight: 600 }}>Tahun Ajaran {selectedItem.tahunAjaranNama}</p>
+
+							<div style={{ margin: "4rem 0", display: "flex", justifyContent: "center" }}>
+								<img
+									src="/logo.jpg"
+									alt="Logo SMAN 2 Brebes"
+									style={{ width: "160px", height: "160px", objectFit: "contain" }}
+								/>
+							</div>
+
+							<div style={{ textAlign: "center" }}>
+								<p style={{ fontSize: "12pt", marginBottom: "0.5rem" }}>
+									<strong>GURU PENGAMPU:</strong>
+								</p>
+								<p style={{ fontSize: "16pt", fontWeight: 700, color: "#0a2540" }}>{selectedItem.guruNama}</p>
+								<p style={{ fontSize: "12pt", marginTop: "0.5rem" }}>NPP: {selectedItem.guruNpp || "-"}</p>
+							</div>
+
+							<div
+								style={{
+									marginTop: "4rem",
+									textAlign: "center",
+									borderTop: "2px solid #0a2540",
+									paddingTop: "1.5rem",
+									width: "60%",
+									margin: "4rem auto 0 auto",
+								}}
+							>
+								<p style={{ fontSize: "14pt", fontWeight: "bold" }}>KELAS {selectedItem.kelasNama}</p>
+								<p
+									style={{
+										fontSize: "12pt",
+										fontWeight: "bold",
+										fontFamily: '"Times New Roman", Times, serif',
+										marginTop: "0.5rem",
+									}}
+								>
+									SMA NEGERI 2 BREBES
+								</p>
+							</div>
+						</div>
+
+						<div className="html2pdf__page-break"></div>
+
+						{/* HALAMAN 2: KOP SURAT & TABEL RIWAYAT */}
+						<div
+							style={{
+								position: "relative",
+								textAlign: "center",
+								borderBottom: "3px solid #000",
+								paddingBottom: "15px",
+								marginBottom: "20px",
+								paddingTop: "10px",
+							}}
+						>
+							<img
+								src="/logo.jpg"
+								alt="Logo SMAN 2 Brebes"
+								style={{
+									position: "absolute",
+									left: "10px",
+									top: "50%",
+									transform: "translateY(-50%)",
+									width: "80px",
+									height: "80px",
+									objectFit: "contain",
+								}}
+							/>
+							<h1
+								style={{
+									margin: "0 0 5px 0",
+									fontSize: "16pt",
+									fontWeight: "bold",
+									color: "#000",
+									fontFamily: '"Times New Roman", Times, serif',
+								}}
+							>
+								SMA NEGERI 2 BREBES
+							</h1>
+							<p style={{ margin: "2px 0", fontSize: "10pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+							<p style={{ margin: 0, fontSize: "10pt" }}>
+								Website: www.sman2-brebes.sch.id - Email: smadabes@ymail.com
+							</p>
+						</div>
+
+						<h3
+							style={{
+								fontSize: "11pt",
+								fontWeight: "bold",
+								borderBottom: "2px solid #000",
+								paddingBottom: "0.5rem",
+								marginBottom: "1rem",
+								textTransform: "uppercase",
+							}}
+						>
+							RIWAYAT KEGIATAN BELAJAR MENGAJAR (KBM)
+						</h3>
+
+						{/* Disesuaikan persentasenya agar proporsional untuk ukuran Portrait */}
+						<table
+							style={{
+								width: "100%",
+								borderCollapse: "collapse",
+								border: "1px solid #000",
+								marginBottom: "2rem",
+								fontSize: "9pt",
+							}}
+						>
+							<thead>
+								<tr>
+									<th
+										style={{
+											border: "1px solid #000",
+											backgroundColor: "#f1f5f9",
+											padding: "6px",
+											width: "5%",
+											textAlign: "center",
+										}}
+									>
+										Pert.
+									</th>
+									<th
+										style={{
+											border: "1px solid #000",
+											backgroundColor: "#f1f5f9",
+											padding: "6px",
+											width: "15%",
+											textAlign: "center",
+										}}
+									>
+										Tanggal
+									</th>
+									<th
+										style={{
+											border: "1px solid #000",
+											backgroundColor: "#f1f5f9",
+											padding: "6px",
+											width: "12%",
+											textAlign: "center",
+										}}
+									>
+										Jam Ke-
+									</th>
+									<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "20%" }}>
+										Waktu Mengajar
+									</th>
+									<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "33%" }}>
+										Topik Pembelajaran
+									</th>
+									<th
+										style={{
+											border: "1px solid #000",
+											backgroundColor: "#f1f5f9",
+											padding: "6px",
+											width: "15%",
+											textAlign: "center",
+										}}
+									>
+										Status
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								{(() => {
+									// PENGURUTAN ASCENDING KHUSUS PDF
+									const sortedRiwayat = [...(selectedItem.riwayat || [])].sort((a, b) => a.pertemuanKe - b.pertemuanKe);
+
+									if (sortedRiwayat.length === 0) {
+										return (
+											<tr>
+												<td colSpan={6} style={{ textAlign: "center", padding: "1rem", border: "1px solid #000" }}>
+													Belum ada riwayat.
+												</td>
+											</tr>
+										);
+									}
+
+									return sortedRiwayat.map((row: any, idx: number) => (
+										<tr key={idx}>
+											<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center", fontWeight: "bold" }}>
+												{row.pertemuanKe}
+											</td>
+											<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>
+												{row.tanggalStr}
+											</td>
+											<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{row.jamStr}</td>
+											<td style={{ border: "1px solid #000", padding: "4px", color: "#1e3a8a", fontWeight: "bold" }}>
+												{row.waktuMengajar}
+											</td>
+											<td style={{ border: "1px solid #000", padding: "4px" }}>{row.topik || "-"}</td>
+											<td
+												style={{
+													border: "1px solid #000",
+													padding: "4px",
+													textAlign: "center",
+													fontWeight: "bold",
+													color: row.status === "Terisi" ? "#10b981" : "#ef4444",
+												}}
+											>
+												{row.status}
+											</td>
+										</tr>
+									));
+								})()}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			)}
+
+			{/* MODAL UNDUH (UI) */}
+			{isPdfModalOpen && selectedItem && (
+				<div className={styles.modalOverlay}>
+					<div
+						className={styles.modalContainer}
+						style={{ maxWidth: "420px", backgroundColor: "#fff", borderRadius: "1rem", padding: "0" }}
+					>
+						<div
+							className={styles.modalHeader}
+							style={{
+								padding: "1.5rem 2rem",
+								borderBottom: "1px solid #e2e8f0",
+								display: "flex",
+								justifyContent: "space-between",
+							}}
+						>
+							<h3 className={styles.modalTitle} style={{ fontSize: "1.25rem", fontWeight: "bold", margin: 0 }}>
+								Ekspor Data Monitoring
+							</h3>
+							<button
+								onClick={() => setIsPdfModalOpen(false)}
+								style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}
+							>
+								<X size={20} />
+							</button>
+						</div>
+						<div style={{ padding: "2rem", textAlign: "center" }}>
+							<p style={{ fontSize: "0.875rem", color: "#374151", marginBottom: "1.5rem" }}>
+								Unduh rekapitulasi kehadiran kegiatan KBM kelas <strong>{selectedItem.kelasNama}</strong> -{" "}
+								<strong>{selectedItem.mapelNama}</strong>.
+							</p>
+							<div style={{ display: "flex", justifyContent: "center" }}>
+								<button
+									onClick={exportToPDF}
+									disabled={isDownloadingPdf}
+									style={{
+										display: "flex",
+										flexDirection: "column",
+										alignItems: "center",
+										background: "#f8fafc",
+										border: "1px solid #e2e8f0",
+										borderRadius: "0.75rem",
+										padding: "1.5rem",
+										cursor: "pointer",
+										transition: "0.2s",
+										width: "140px",
+									}}
+								>
+									<FileText size={40} color="#ef4444" style={{ marginBottom: "0.5rem" }} />
+									<span style={{ fontWeight: "bold", color: "#0f172a" }}>
+										{isDownloadingPdf ? "Memproses..." : "PDF (.pdf)"}
+									</span>
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
 			<aside className={styles.sidebar}>
 				<div className={styles.sidebarHeader}>
 					<div className={styles.logoWrapper}>
@@ -259,9 +611,20 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 
 					{viewMode === "detail" && selectedItem && (
 						<div>
-							<button className={styles.btnBack} onClick={() => setViewMode("list")}>
-								<ArrowLeft size={16} /> Detail Jurnal & Monitoring
-							</button>
+							<div
+								style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}
+							>
+								<button className={styles.btnBack} onClick={() => setViewMode("list")}>
+									<ArrowLeft size={16} /> Detail Jurnal & Monitoring
+								</button>
+								<button
+									className={styles.btnPrimary}
+									onClick={() => setIsPdfModalOpen(true)}
+									style={{ padding: "0.5rem 1rem", borderRadius: "0.5rem" }}
+								>
+									<Download size={16} /> Export PDF
+								</button>
+							</div>
 
 							<div className={styles.detailHeaderGrid}>
 								<div className={styles.detailSummaryCard}>
@@ -337,7 +700,6 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 												>
 													JAM{renderSortIcon("jamStr")}
 												</th>
-												{/* PERBAIKAN: Tambah Kolom Waktu Mengajar */}
 												<th
 													className={styles.sortableTh}
 													onClick={() => handleSort("waktuMengajar")}
@@ -372,7 +734,6 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 														</td>
 														<td style={{ color: "#475569", fontWeight: 600 }}>{row.tanggalStr}</td>
 														<td style={{ color: "#475569" }}>{row.jamStr}</td>
-														{/* PERBAIKAN: Render Data Waktu Mengajar */}
 														<td style={{ color: "#1e3a8a", fontWeight: 600 }}>{row.waktuMengajar}</td>
 														<td style={{ color: "#334155" }}>{row.topik}</td>
 														<td style={{ textAlign: "center" }}>

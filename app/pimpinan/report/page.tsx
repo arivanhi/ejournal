@@ -31,16 +31,17 @@ export default async function ReportPage() {
 	const semuaJurnal = await prisma.jurnalMengajar.findMany();
 	const semuaPresensi = await prisma.presensiSiswa.findMany();
 
+	const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
+
 	const dataRekap = semuaTahunAjaran.map((ta) => {
 		const pdcaRecord = semuaPdca.find((p) => p.tahunAjaranId === ta.id);
-
-		// --- 1. Kalkulasi Top Guru Jam Kosong (Real) ---
 		const jadwalTaIni = semuaJadwal.filter((j) => j.tahunAjaranId === ta.id);
-		const guruStats: Record<string, { nama: string; mapel: string; totalSesi: number; terisi: number }> = {};
 
+		// --- 1. Kalkulasi Top Guru Jam Kosong ---
+		const guruStats: Record<string, { nama: string; mapel: string; totalSesi: number; terisi: number }> = {};
 		jadwalTaIni.forEach((j) => {
 			if (!guruStats[j.guruId]) {
-				guruStats[j.guruId] = { nama: j.guru.user.nama, mapel: j.mapel.nama, totalSesi: 16, terisi: 0 }; // Asumsi 16 pertemuan
+				guruStats[j.guruId] = { nama: j.guru.user.nama, mapel: j.mapel.nama, totalSesi: 16, terisi: 0 };
 			} else {
 				guruStats[j.guruId].totalSesi += 16;
 			}
@@ -56,23 +57,57 @@ export default async function ReportPage() {
 		const topGuruReal = Object.values(guruStats)
 			.map((g) => ({ ...g, jamKosong: Math.max(0, g.totalSesi - g.terisi) }))
 			.sort((a, b) => b.jamKosong - a.jamKosong)
-			.slice(0, 3); // Ambil 3 Teratas
+			.slice(0, 3);
 
-		// --- 2. Kalkulasi Top Kelas Alpha (Real) ---
+		// --- 2. Kalkulasi Top Kelas Alpha & Distribusi Alasan Absen ---
 		const kelasStats: Record<string, { nama: string; totalHadir: number; totalAlpha: number }> = {};
+		let H = 0,
+			I = 0,
+			S = 0,
+			A = 0;
 
-		// Asumsi kasar untuk mendapatkan nama wali (karena di relasi sebelumnya lebih rumit, kita ambil id kelas saja)
+		// --- 3. Kalkulasi Tren Bulanan ---
+		const trenMap: Record<number, { hadir: number; total: number; jurnal: number; target: number }> = {};
+
 		semuaPresensi.forEach((p) => {
 			const jurRef = semuaJurnal.find((j) => j.id === p.jurnalId);
 			if (jurRef) {
 				const jadwalRef = jadwalTaIni.find((j) => j.id === jurRef.jadwalId);
 				if (jadwalRef) {
+					// Kelas Stats
 					if (!kelasStats[jadwalRef.kelasId]) {
 						kelasStats[jadwalRef.kelasId] = { nama: jadwalRef.kelas.nama, totalHadir: 0, totalAlpha: 0 };
 					}
-					if (p.status === "A") kelasStats[jadwalRef.kelasId].totalAlpha += 1;
-					if (p.status === "H") kelasStats[jadwalRef.kelasId].totalHadir += 1;
+					if (p.status === "A") {
+						kelasStats[jadwalRef.kelasId].totalAlpha += 1;
+						A++;
+					} else if (p.status === "H") {
+						kelasStats[jadwalRef.kelasId].totalHadir += 1;
+						H++;
+					} else if (p.status === "I") {
+						I++;
+					} else if (p.status === "S") {
+						S++;
+					}
+
+					// Tren Data Mapping
+					const monthIdx = jurRef.tanggal.getMonth();
+					if (!trenMap[monthIdx]) {
+						trenMap[monthIdx] = { hadir: 0, total: 0, jurnal: 0, target: jadwalTaIni.length * 4 }; // Estimasi 4 minggu/bulan
+					}
+					trenMap[monthIdx].total++;
+					if (p.status === "H") trenMap[monthIdx].hadir++;
 				}
+			}
+		});
+
+		// Hitung Jurnal per Bulan
+		semuaJurnal.forEach((jur) => {
+			const jadwalRef = jadwalTaIni.find((j) => j.id === jur.jadwalId);
+			if (jadwalRef) {
+				const monthIdx = jur.tanggal.getMonth();
+				if (!trenMap[monthIdx]) trenMap[monthIdx] = { hadir: 0, total: 0, jurnal: 0, target: jadwalTaIni.length * 4 };
+				trenMap[monthIdx].jurnal++;
 			}
 		});
 
@@ -81,20 +116,36 @@ export default async function ReportPage() {
 				const total = k.totalAlpha + k.totalHadir;
 				return {
 					nama: k.nama,
-					wali: "Wali Kelas", // Disimplifikasi
 					alpha: total > 0 ? Math.round((k.totalAlpha / total) * 100) : 0,
 				};
 			})
 			.sort((a, b) => b.alpha - a.alpha)
 			.slice(0, 3);
 
+		const totalAbsen = H + I + S + A;
+		const distribusiReal = {
+			hadir: totalAbsen > 0 ? Math.round((H / totalAbsen) * 100) : 0,
+			izin: totalAbsen > 0 ? Math.round((I / totalAbsen) * 100) : 0,
+			sakit: totalAbsen > 0 ? Math.round((S / totalAbsen) * 100) : 0,
+			alpha: totalAbsen > 0 ? Math.round((A / totalAbsen) * 100) : 0,
+		};
+
+		const trenDataReal = Object.keys(trenMap)
+			.sort((a, b) => parseInt(a) - parseInt(b))
+			.map((mIdx) => {
+				const data = trenMap[parseInt(mIdx)];
+				return {
+					bulan: months[parseInt(mIdx)],
+					pctKehadiran: data.total > 0 ? Math.round((data.hadir / data.total) * 100) : 0,
+					pctJurnal: data.target > 0 ? Math.min(100, Math.round((data.jurnal / data.target) * 100)) : 0,
+				};
+			});
+
 		const defaultPdca = {
 			id: `temp-${ta.id}`,
 			status: "DRAFT",
-			actRekomendasi: "Belum ada rekomendasi yang ditulis untuk semester ini.",
-			doImplementasi: [
-				{ aspek: "Sistem", temuan: "Data belum diisi.", aksi: "Harap isi rencana aksi.", status: "Planning" },
-			],
+			actRekomendasi: "",
+			doImplementasi: [],
 		};
 
 		return {
@@ -104,13 +155,14 @@ export default async function ReportPage() {
 			totalSiswa,
 			topGuru: topGuruReal,
 			topKelas: topKelasReal,
-			distribusi: { dinas: 45, sakit: 30, tanpaKeterangan: 25 },
+			distribusi: distribusiReal,
+			trenKinerja: trenDataReal,
 			pdca: pdcaRecord
 				? {
 						id: pdcaRecord.id,
 						judul: pdcaRecord.judul,
 						status: pdcaRecord.status,
-						actRekomendasi: pdcaRecord.actRekomendasi || defaultPdca.actRekomendasi,
+						actRekomendasi: pdcaRecord.actRekomendasi || "",
 						doImplementasi: pdcaRecord.doImplementasi ? JSON.parse(JSON.stringify(pdcaRecord.doImplementasi)) : [],
 					}
 				: defaultPdca,
