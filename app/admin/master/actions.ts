@@ -4,18 +4,36 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { revalidatePath } from "next/cache";
 import * as XLSX from "xlsx";
+import { Role } from "@prisma/client"; // <-- KUNCI PERBAIKAN: Import Enum
 
-// Fungsi untuk menambah data Siswa
-// Fungsi untuk menambah data Siswa
+// ==========================================
+// FITUR RESET PASSWORD
+// ==========================================
+export async function resetPasswordAction(userId: string) {
+	try {
+		const hashedPassword = await bcrypt.hash("smanda123", 10);
+		await prisma.user.update({
+			where: { id: userId },
+			data: { password: hashedPassword },
+		});
+		return { success: true, message: "Password berhasil direset menjadi 'smanda123'!" };
+	} catch (error) {
+		console.error("Error reset password:", error);
+		return { success: false, message: "Terjadi kesalahan saat mereset password." };
+	}
+}
+
+// ==========================================
+// CRUD SISWA
+// ==========================================
 export async function tambahSiswaAction(formData: {
-	nis: string; // <-- TAMBAHKAN INI
+	nis: string;
 	nisn: string;
 	nama: string;
 	jenisKelamin: string;
 	kelasNama: string;
 }) {
 	try {
-		// 1. Validasi apakah username/NISN sudah terdaftar
 		const userExist = await prisma.user.findUnique({
 			where: { username: formData.nisn },
 		});
@@ -24,10 +42,7 @@ export async function tambahSiswaAction(formData: {
 			return { success: false, message: "NISN sudah terdaftar di sistem!" };
 		}
 
-		// 2. Hash password default 'smanda123'
 		const hashedPassword = await bcrypt.hash("smanda123", 10);
-
-		// 3. Ambil Tahun Ajaran yang sedang aktif
 		const tahunAjaranAktif = await prisma.tahunAjaran.findFirst({
 			where: { isActive: true },
 		});
@@ -36,7 +51,6 @@ export async function tambahSiswaAction(formData: {
 			return { success: false, message: "Tidak ada Tahun Ajaran aktif yang ditemukan!" };
 		}
 
-		// 4. Cari atau buat entitas Kelas
 		let kelas = await prisma.kelas.findFirst({
 			where: { nama: formData.kelasNama },
 		});
@@ -47,21 +61,20 @@ export async function tambahSiswaAction(formData: {
 			});
 		}
 
-		// 5. Transaksi Database
 		await prisma.$transaction(async (tx) => {
 			const newUser = await tx.user.create({
 				data: {
-					username: formData.nisn, // NISN tetap sebagai username login
+					username: formData.nisn,
 					password: hashedPassword,
 					nama: formData.nama,
-					role: "SISWA",
+					role: Role.SISWA, // <-- Perbaikan menggunakan Enum
 				},
 			});
 
 			const newSiswa = await tx.siswa.create({
 				data: {
 					userId: newUser.id,
-					nis: formData.nis, // <-- TAMBAHKAN INI (Kirim NIS ke database)
+					nis: formData.nis,
 					nisn: formData.nisn,
 					jenisKelamin: formData.jenisKelamin,
 				},
@@ -84,49 +97,6 @@ export async function tambahSiswaAction(formData: {
 	}
 }
 
-// Fungsi untuk menambah data Guru
-// Fungsi untuk menambah data Guru
-export async function tambahGuruAction(formData: { nipNpp: string; nama: string; jenisKelamin: string }) {
-	try {
-		const userExist = await prisma.user.findUnique({
-			where: { username: formData.nipNpp },
-		});
-
-		if (userExist) {
-			return { success: false, message: "NIP/NPP sudah terdaftar di sistem!" };
-		}
-
-		const hashedPassword = await bcrypt.hash("smanda123", 10);
-
-		await prisma.$transaction(async (tx) => {
-			const newUser = await tx.user.create({
-				data: {
-					username: formData.nipNpp,
-					password: hashedPassword,
-					nama: formData.nama,
-					role: "GURU",
-				},
-			});
-
-			await tx.guru.create({
-				data: {
-					userId: newUser.id,
-					npp: formData.nipNpp, // <-- REVISI DISINI: Ubah dari nipNpp menjadi npp
-					jenisKelamin: formData.jenisKelamin,
-					status: true,
-				},
-			});
-		});
-
-		revalidatePath("/admin/master");
-		return { success: true, message: "Data Guru berhasil disimpan!" };
-	} catch (error) {
-		console.error("Error tambahGuru:", error);
-		return { success: false, message: "Terjadi kesalahan internal pada server." };
-	}
-}
-
-// Fungsi untuk mengedit data Siswa
 export async function editSiswaAction(
 	id: string,
 	formData: { nis: string; nisn: string; nama: string; jenisKelamin: string; kelasNama: string },
@@ -135,37 +105,31 @@ export async function editSiswaAction(
 		const siswa = await prisma.siswa.findUnique({ where: { id }, include: { user: true } });
 		if (!siswa) return { success: false, message: "Data siswa tidak ditemukan!" };
 
-		// Jika NISN diubah, cek apakah NISN baru sudah dipakai orang lain
 		if (siswa.nisn !== formData.nisn) {
 			const exist = await prisma.user.findUnique({ where: { username: formData.nisn } });
 			if (exist) return { success: false, message: "NISN sudah dipakai akun lain!" };
 		}
 
 		const tahunAjaranAktif = await prisma.tahunAjaran.findFirst({ where: { isActive: true } });
-
 		let kelas = await prisma.kelas.findFirst({ where: { nama: formData.kelasNama } });
 		if (!kelas) kelas = await prisma.kelas.create({ data: { nama: formData.kelasNama } });
 
 		await prisma.$transaction(async (tx) => {
-			// Update User
 			await tx.user.update({
 				where: { id: siswa.userId },
 				data: { username: formData.nisn, nama: formData.nama },
 			});
-			// Update Siswa
 			await tx.siswa.update({
 				where: { id },
 				data: { nis: formData.nis, nisn: formData.nisn, jenisKelamin: formData.jenisKelamin },
 			});
 
-			// Update atau buat Riwayat Kelas
 			if (tahunAjaranAktif) {
 				const riwayatExist = await tx.riwayatKelasSiswa.findFirst({
 					where: { siswaId: id, tahunAjaranId: tahunAjaranAktif.id },
 				});
 
 				if (riwayatExist) {
-					// REVISI TYPO: Sebelumnya tx.tx, sekarang cukup tx
 					await tx.riwayatKelasSiswa.update({
 						where: { id: riwayatExist.id },
 						data: { kelasId: kelas.id },
@@ -186,48 +150,11 @@ export async function editSiswaAction(
 	}
 }
 
-// Fungsi untuk mengedit data Guru
-export async function editGuruAction(
-	id: string,
-	formData: { nipNpp: string; nama: string; jenisKelamin: string; status: boolean }, // <-- Tambah status
-) {
-	try {
-		const guru = await prisma.guru.findUnique({ where: { id }, include: { user: true } });
-		if (!guru) return { success: false, message: "Data guru tidak ditemukan!" };
-
-		if (guru.npp !== formData.nipNpp) {
-			const exist = await prisma.user.findUnique({ where: { username: formData.nipNpp } });
-			if (exist) return { success: false, message: "NIP/NPP sudah dipakai akun lain!" };
-		}
-
-		await prisma.$transaction(async (tx) => {
-			await tx.user.update({
-				where: { id: guru.userId },
-				data: { username: formData.nipNpp, nama: formData.nama },
-			});
-			await tx.guru.update({
-				where: { id },
-				// REVISI: Sisipkan data status untuk diperbarui
-				data: { npp: formData.nipNpp, jenisKelamin: formData.jenisKelamin, status: formData.status },
-			});
-		});
-
-		revalidatePath("/admin/master");
-		return { success: true, message: "Data Guru berhasil diperbarui!" };
-	} catch (error) {
-		console.error("Error editGuru:", error);
-		return { success: false, message: "Terjadi kesalahan saat memperbarui data." };
-	}
-}
-
-// Fungsi untuk menghapus data Siswa (Satu atau Massal)
 export async function hapusSiswaAction(ids: string[]) {
 	try {
-		// Cari data Siswa untuk mendapatkan userId-nya
 		const siswaRecords = await prisma.siswa.findMany({ where: { id: { in: ids } } });
 		const userIds = siswaRecords.map((s) => s.userId);
 
-		// Hapus dari tabel User (Data di tabel Siswa dan Riwayat otomatis terhapus karena Cascade)
 		await prisma.user.deleteMany({ where: { id: { in: userIds } } });
 
 		revalidatePath("/admin/master");
@@ -238,23 +165,103 @@ export async function hapusSiswaAction(ids: string[]) {
 	}
 }
 
-// Fungsi untuk menghapus data Guru (Satu atau Massal)
-export async function hapusGuruAction(ids: string[]) {
+// ==========================================
+// CRUD GURU & STAF
+// ==========================================
+export async function tambahGuruAction(formData: { nipNpp: string; nama: string; jenisKelamin: string; role: string }) {
 	try {
-		const guruRecords = await prisma.guru.findMany({ where: { id: { in: ids } } });
-		const userIds = guruRecords.map((g) => g.userId);
+		const userExist = await prisma.user.findUnique({
+			where: { username: formData.nipNpp },
+		});
 
+		if (userExist) {
+			return { success: false, message: "NIP/NPP sudah terdaftar di sistem!" };
+		}
+
+		const hashedPassword = await bcrypt.hash("smanda123", 10);
+
+		await prisma.$transaction(async (tx) => {
+			const newUser = await tx.user.create({
+				data: {
+					username: formData.nipNpp,
+					password: hashedPassword,
+					nama: formData.nama,
+					role: formData.role as Role, // <-- Casting agar Prisma tidak error
+				},
+			});
+
+			await tx.guru.create({
+				data: {
+					userId: newUser.id,
+					npp: formData.nipNpp,
+					jenisKelamin: formData.jenisKelamin,
+					status: true,
+				},
+			});
+		});
+
+		revalidatePath("/admin/master");
+		return { success: true, message: "Data Guru/Staf berhasil disimpan!" };
+	} catch (error) {
+		console.error("Error tambahGuru:", error);
+		return { success: false, message: "Terjadi kesalahan internal pada server." };
+	}
+}
+
+export async function editGuruAction(
+	userId: string,
+	formData: { nipNpp: string; nama: string; jenisKelamin: string; status: boolean; role: string },
+) {
+	try {
+		const user = await prisma.user.findUnique({ where: { id: userId }, include: { guru: true } });
+		if (!user) return { success: false, message: "Data guru/staf tidak ditemukan!" };
+
+		if (user.username !== formData.nipNpp) {
+			const exist = await prisma.user.findUnique({ where: { username: formData.nipNpp } });
+			if (exist) return { success: false, message: "NIP/NPP sudah dipakai akun lain!" };
+		}
+
+		await prisma.$transaction(async (tx) => {
+			await tx.user.update({
+				where: { id: userId },
+				data: { username: formData.nipNpp, nama: formData.nama, role: formData.role as Role }, // Casting Role
+			});
+
+			if (user.guru) {
+				await tx.guru.update({
+					where: { id: user.guru.id },
+					data: { npp: formData.nipNpp, jenisKelamin: formData.jenisKelamin, status: formData.status },
+				});
+			} else {
+				await tx.guru.create({
+					data: { userId: userId, npp: formData.nipNpp, jenisKelamin: formData.jenisKelamin, status: formData.status },
+				});
+			}
+		});
+
+		revalidatePath("/admin/master");
+		return { success: true, message: "Data berhasil diperbarui!" };
+	} catch (error) {
+		console.error("Error editGuru:", error);
+		return { success: false, message: "Terjadi kesalahan saat memperbarui data." };
+	}
+}
+
+export async function hapusGuruAction(userIds: string[]) {
+	try {
 		await prisma.user.deleteMany({ where: { id: { in: userIds } } });
 
 		revalidatePath("/admin/master");
-		return { success: true, message: `${ids.length} data Guru berhasil dihapus!` };
+		return { success: true, message: `${userIds.length} data Guru/Staf berhasil dihapus!` };
 	} catch (error) {
 		console.error("Error hapusGuru:", error);
 		return { success: false, message: "Terjadi kesalahan saat menghapus data." };
 	}
 }
 
-// Fungsi untuk memproses Upload Excel Assign Kelas Massal & Import Siswa Baru
+// ==========================================
+// IMPORT MASSAL EXCEL
+// ==========================================
 export async function assignKelasMassalAction(formData: FormData) {
 	try {
 		const file = formData.get("file") as File;
@@ -279,36 +286,30 @@ export async function assignKelasMassalAction(formData: FormData) {
 		}
 
 		let successCount = 0;
-		// Cache password hash agar tidak perlu di-hash berulang kali di dalam loop
 		const hashedPassword = await bcrypt.hash("smanda123", 10);
 
 		for (const row of dataExcel) {
-			// Pastikan kolom wajib ada
 			if (!row.NISN || !row.Kelas_Tujuan) continue;
 
 			const nisnStr = String(row.NISN).trim();
 			const namaKelasStr = String(row.Kelas_Tujuan).trim();
 
-			// Ambil data tambahan untuk pembuatan siswa baru (gunakan fallback jika kosong)
 			const namaStr = row.Nama_Lengkap ? String(row.Nama_Lengkap).trim() : "Siswa Tanpa Nama";
-			const nisStr = row.NIS ? String(row.NIS).trim() : nisnStr.slice(-4); // Ambil 4 digit terakhir NISN sebagai fallback NIS
+			const nisStr = row.NIS ? String(row.NIS).trim() : nisnStr.slice(-4);
 			const jkStr = row.Jenis_Kelamin ? String(row.Jenis_Kelamin).trim() : "Laki-laki";
 
 			await prisma.$transaction(async (tx) => {
-				// 1. Cek atau Buat Siswa Baru
 				let siswa = await tx.siswa.findUnique({ where: { nisn: nisnStr } });
 
 				if (!siswa) {
-					// Buat akun login
 					const newUser = await tx.user.create({
 						data: {
 							username: nisnStr,
 							password: hashedPassword,
 							nama: namaStr,
-							role: "SISWA",
+							role: Role.SISWA,
 						},
 					});
-					// Buat profil siswa
 					siswa = await tx.siswa.create({
 						data: {
 							userId: newUser.id,
@@ -318,20 +319,17 @@ export async function assignKelasMassalAction(formData: FormData) {
 						},
 					});
 				} else if (siswa && row.Nama_Lengkap) {
-					// Opsional: Update nama jika data Excel memiliki nama yang berbeda
 					await tx.user.update({
 						where: { id: siswa.userId },
 						data: { nama: namaStr },
 					});
 				}
 
-				// 2. Cek atau Buat Kelas
 				let kelas = await tx.kelas.findFirst({ where: { nama: namaKelasStr } });
 				if (!kelas) {
 					kelas = await tx.kelas.create({ data: { nama: namaKelasStr } });
 				}
 
-				// 3. Masukkan ke Riwayat Kelas Tahun Ajaran Aktif
 				const riwayatExist = await tx.riwayatKelasSiswa.findFirst({
 					where: { siswaId: siswa.id, tahunAjaranId: tahunAjaranAktif.id },
 				});
@@ -347,19 +345,17 @@ export async function assignKelasMassalAction(formData: FormData) {
 					});
 				}
 			});
-
 			successCount++;
 		}
 
 		revalidatePath("/admin/master");
-		return { success: true, message: `${successCount} data siswa berhasil diproses (diimpor & diassign)!` };
+		return { success: true, message: `${successCount} data siswa berhasil diproses!` };
 	} catch (error) {
 		console.error("Error upload Excel:", error);
 		return { success: false, message: "Gagal memproses file Excel. Pastikan format kolom benar." };
 	}
 }
 
-// Fungsi untuk memproses Upload Excel Import Guru Massal
 export async function importGuruMassalAction(formData: FormData) {
 	try {
 		const file = formData.get("file") as File;
@@ -387,42 +383,40 @@ export async function importGuruMassalAction(formData: FormData) {
 			const nppStr = String(row.NPP).trim();
 			const namaStr = String(row.Nama_Lengkap).trim();
 			const jkStr = row.Jenis_Kelamin ? String(row.Jenis_Kelamin).trim() : "Laki-laki";
+			const roleStr = row.Role || "GURU";
 
 			await prisma.$transaction(async (tx) => {
-				// Cek apakah NPP sudah terdaftar
-				let guru = await tx.guru.findUnique({ where: { npp: nppStr } });
+				let guru = await tx.guru.findUnique({ where: { npp: nppStr }, include: { user: true } });
 
 				if (!guru) {
-					// Buat user login baru
 					const newUser = await tx.user.create({
 						data: {
 							username: nppStr,
 							password: hashedPassword,
 							nama: namaStr,
-							role: "GURU",
+							role: roleStr as Role, // <-- Casting
 						},
 					});
-					// Buat profil guru
 					await tx.guru.create({
 						data: {
 							userId: newUser.id,
 							npp: nppStr,
 							jenisKelamin: jkStr,
+							status: true,
 						},
 					});
 					successCount++;
 				} else {
-					// Jika guru sudah ada, perbarui namanya saja
 					await tx.user.update({
 						where: { id: guru.userId },
-						data: { nama: namaStr },
+						data: { nama: namaStr, role: roleStr as Role }, // <-- Casting
 					});
 				}
 			});
 		}
 
 		revalidatePath("/admin/master");
-		return { success: true, message: `${successCount} data Guru baru berhasil diimpor ke sistem!` };
+		return { success: true, message: `${successCount} data Staf/Guru baru berhasil diimpor ke sistem!` };
 	} catch (error) {
 		console.error("Error import Guru:", error);
 		return { success: false, message: "Gagal memproses file Excel Guru. Pastikan format benar." };
@@ -432,7 +426,6 @@ export async function importGuruMassalAction(formData: FormData) {
 // ==========================================
 // CRUD MATA PELAJARAN
 // ==========================================
-
 export async function tambahMapelAction(formData: { kode: string; nama: string }) {
 	try {
 		const exist = await prisma.mataPelajaran.findUnique({ where: { kode: formData.kode } });
@@ -475,15 +468,11 @@ export async function editMapelAction(id: string, formData: { kode: string; nama
 
 export async function hapusMapelAction(ids: string[]) {
 	try {
-		// Menghapus data mapel.
-		// Catatan: Jika ada error constraint (sedang dipakai di relasi jadwal), akan ditangkap oleh catch
 		await prisma.mataPelajaran.deleteMany({ where: { id: { in: ids } } });
-
 		revalidatePath("/admin/master");
 		return { success: true, message: `${ids.length} Mata Pelajaran berhasil dihapus!` };
 	} catch (error: any) {
 		console.error("Error hapusMapel:", error);
-		// P2003 adalah kode error Prisma jika data sedang dipakai di tabel relasi lain
 		if (error.code === "P2003") {
 			return { success: false, message: "Gagal menghapus: Mapel sedang digunakan pada pemetaan (Manajemen Mapel)!" };
 		}
@@ -491,7 +480,6 @@ export async function hapusMapelAction(ids: string[]) {
 	}
 }
 
-// Fungsi untuk memproses Upload Excel Import Mapel Massal
 export async function importMapelMassalAction(formData: FormData) {
 	try {
 		const file = formData.get("file") as File;
@@ -518,7 +506,6 @@ export async function importMapelMassalAction(formData: FormData) {
 			const kodeStr = String(row.Kode_Mapel).trim();
 			const namaStr = String(row.Nama_Mapel).trim();
 
-			// Gunakan upsert: jika kode sudah ada maka update namanya, jika belum ada maka buat baru
 			await prisma.mataPelajaran.upsert({
 				where: { kode: kodeStr },
 				update: { nama: namaStr },
@@ -537,26 +524,19 @@ export async function importMapelMassalAction(formData: FormData) {
 }
 
 // ==========================================
-// ACTIONS UNTUK TAHUN AJARAN
+// ACTIONS UNTUK TAHUN AJARAN & PEMETAAN
 // ==========================================
-
 export async function tambahTahunAjarAction(data: { nama: string; isActive: boolean }) {
 	try {
-		// Jika tahun ajaran baru ini diset Aktif, kita bisa menonaktifkan yang lain dulu (opsional tapi disarankan)
 		if (data.isActive) {
 			await prisma.tahunAjaran.updateMany({
 				where: { isActive: true },
 				data: { isActive: false },
 			});
 		}
-
 		await prisma.tahunAjaran.create({
-			data: {
-				nama: data.nama,
-				isActive: data.isActive,
-			},
+			data: { nama: data.nama, isActive: data.isActive },
 		});
-
 		revalidatePath("/admin/master");
 		return { success: true, message: "Tahun Ajaran berhasil ditambahkan!" };
 	} catch (error) {
@@ -567,22 +547,16 @@ export async function tambahTahunAjarAction(data: { nama: string; isActive: bool
 
 export async function editTahunAjarAction(id: string, data: { nama: string; isActive: boolean }) {
 	try {
-		// Jika diubah menjadi Aktif, nonaktifkan tahun ajaran yang lain
 		if (data.isActive) {
 			await prisma.tahunAjaran.updateMany({
 				where: { id: { not: id }, isActive: true },
 				data: { isActive: false },
 			});
 		}
-
 		await prisma.tahunAjaran.update({
 			where: { id },
-			data: {
-				nama: data.nama,
-				isActive: data.isActive,
-			},
+			data: { nama: data.nama, isActive: data.isActive },
 		});
-
 		revalidatePath("/admin/master");
 		return { success: true, message: "Tahun Ajaran berhasil diperbarui!" };
 	} catch (error) {
@@ -594,11 +568,8 @@ export async function editTahunAjarAction(id: string, data: { nama: string; isAc
 export async function hapusTahunAjarAction(ids: string[]) {
 	try {
 		await prisma.tahunAjaran.deleteMany({
-			where: {
-				id: { in: ids },
-			},
+			where: { id: { in: ids } },
 		});
-
 		revalidatePath("/admin/master");
 		return { success: true, message: `${ids.length} Tahun Ajaran berhasil dihapus!` };
 	} catch (error) {
@@ -607,27 +578,16 @@ export async function hapusTahunAjarAction(ids: string[]) {
 	}
 }
 
-// ==========================================
-// ACTIONS UNTUK PEMETAAN MAPEL - TAHUN AJAR
-// ==========================================
-
 export async function simpanPemetaanMapelAction(tahunAjarId: string, mapelIds: string[]) {
 	try {
-		// CATATAN PENTING:
-		// Kode Prisma di bawah ini menggunakan asumsi relasi Many-to-Many Implisit.
-		// Jika di database Bapak menggunakan tabel perantara khusus (misal: TahunAjaranMapel),
-		// kodenya perlu disesuaikan (deleteMany lalu createMany).
-
 		await prisma.tahunAjaran.update({
 			where: { id: tahunAjarId },
 			data: {
-				// Menghubungkan (sync) Tahun Ajaran dengan Mapel yang dicentang
 				mataPelajaran: {
 					set: mapelIds.map((id) => ({ id })),
 				},
 			},
 		});
-
 		revalidatePath("/admin/master");
 		return { success: true, message: "Pemetaan mata pelajaran berhasil disimpan!" };
 	} catch (error) {

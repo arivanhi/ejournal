@@ -14,7 +14,8 @@ import {
 	AlertCircle,
 	UploadCloud,
 	ArrowUpDown,
-	Network, // Ikon tambahan untuk tombol Mapping
+	Network,
+	Key, // Icon Reset Password
 } from "lucide-react";
 import styles from "./adminMaster.module.css";
 import * as XLSX from "xlsx";
@@ -35,10 +36,12 @@ import {
 	editTahunAjarAction,
 	hapusTahunAjarAction,
 	simpanPemetaanMapelAction,
+	resetPasswordAction, // Action baru
 } from "./actions";
 
 interface SiswaProps {
 	id: string;
+	userId: string;
 	nisn: string;
 	nis: string;
 	nama: string;
@@ -47,17 +50,18 @@ interface SiswaProps {
 }
 interface GuruProps {
 	id: string;
+	userId: string;
 	npp: string;
 	nama: string;
 	jenisKelamin: string;
 	status: boolean;
+	role: string;
 }
 interface MapelProps {
 	id: string;
 	kode: string;
 	nama: string;
 }
-
 interface TahunAjarProps {
 	id: string;
 	nama: string;
@@ -69,26 +73,30 @@ export default function MasterClient({
 	initialSiswa,
 	initialGuru,
 	initialMapel,
-	initialTahunAjar, // <-- Tambahkan baris ini
+	initialTahunAjar,
 }: {
 	initialSiswa: SiswaProps[];
 	initialGuru: GuruProps[];
 	initialMapel: MapelProps[];
-	initialTahunAjar: TahunAjarProps[]; // <-- Tambahkan baris ini
+	initialTahunAjar: TahunAjarProps[];
 }) {
-	// 1. TAMBAH STATE TAHUN AJAR
 	const [activeTab, setActiveTab] = useState<"siswa" | "guru" | "mapel" | "tahunAjar">("siswa");
 
 	// States untuk Modal
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 	const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+	const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 	const [modalMode, setModalMode] = useState<"create" | "edit">("create");
 
 	// States untuk Data & Centang Massal
 	const [editingId, setEditingId] = useState("");
 	const [selectedIds, setSelectedIds] = useState<string[]>([]);
 	const [idsToDelete, setIdsToDelete] = useState<string[]>([]);
+
+	// State Reset Password
+	const [resetUserId, setResetUserId] = useState("");
+	const [resetUserName, setResetUserName] = useState("");
 
 	// States untuk Filter & Pencarian
 	const [searchQuery, setSearchQuery] = useState("");
@@ -110,9 +118,10 @@ export default function MasterClient({
 	const [jenisKelamin, setJenisKelamin] = useState("");
 	const [kelasAwal, setKelasAwal] = useState("");
 	const [statusGuru, setStatusGuru] = useState(true);
+	const [roleGuru, setRoleGuru] = useState("GURU");
 	const [namaTahun, setNamaTahun] = useState("");
 	const [isActiveTahun, setIsActiveTahun] = useState(true);
-	// --- TAMBAHKAN 3 STATE INI UNTUK MAPPING ---
+
 	const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
 	const [selectedTahunAjarId, setSelectedTahunAjarId] = useState("");
 	const [mappedMapelIds, setMappedMapelIds] = useState<string[]>([]);
@@ -195,13 +204,13 @@ export default function MasterClient({
 		let valB = sortBy === "kode" ? b.kode : b.nama;
 		return valA < valB ? (sortOrder === "asc" ? -1 : 1) : valA > valB ? (sortOrder === "asc" ? 1 : -1) : 0;
 	});
+
 	const sortedTahunAjar = [...filteredTahunAjar].sort((a, b) => {
 		let valA = sortBy === "nama" ? a.nama : a.isActive ? "1" : "0";
 		let valB = sortBy === "nama" ? b.nama : b.isActive ? "1" : "0";
 		return valA < valB ? (sortOrder === "asc" ? -1 : 1) : valA > valB ? (sortOrder === "asc" ? 1 : -1) : 0;
 	});
 
-	// --- LOGIKA CENTANG MASSAL ---
 	const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (e.target.checked) {
 			const allIds =
@@ -239,10 +248,28 @@ export default function MasterClient({
 		setJenisKelamin("");
 		setKelasAwal("");
 		setStatusGuru(true);
+		setRoleGuru("GURU");
 		setEditingId("");
 		setModalMode("create");
 		setNamaTahun("");
 		setIsActiveTahun(true);
+	};
+
+	// --- LOGIKA RESET PASSWORD ---
+	const handleOpenReset = (userId: string, userName: string) => {
+		setResetUserId(userId);
+		setResetUserName(userName);
+		setIsResetModalOpen(true);
+	};
+
+	const executeResetPassword = async () => {
+		setLoading(true);
+		const hasil = await resetPasswordAction(resetUserId);
+		setLoading(false);
+		setIsResetModalOpen(false);
+		if (hasil.success) setToast({ show: true, message: hasil.message, type: "success" });
+		else setToast({ show: true, message: hasil.message, type: "error" });
+		setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 3000);
 	};
 
 	// --- LOGIKA EDIT BUTTON ---
@@ -259,11 +286,12 @@ export default function MasterClient({
 
 	const handleEditGuru = (guru: GuruProps) => {
 		setModalMode("edit");
-		setEditingId(guru.id);
+		setEditingId(guru.id); // Ini User ID
 		setIdentifier(guru.npp);
 		setNama(guru.nama);
 		setJenisKelamin(guru.jenisKelamin || "");
 		setStatusGuru(guru.status);
+		setRoleGuru(guru.role);
 		setIsModalOpen(true);
 	};
 
@@ -283,17 +311,13 @@ export default function MasterClient({
 		setIsModalOpen(true);
 	};
 
-	// --- LOGIKA HAPUS BUTTON ---
 	const confirmDelete = (ids: string[]) => {
 		setIdsToDelete(ids);
 		setIsDeleteModalOpen(true);
 	};
 
-	// --- LOGIKA MAPPING MAPEL ---
 	const handleOpenMapping = (tahun: TahunAjarProps) => {
 		setSelectedTahunAjarId(tahun.id);
-
-		// Ubah mapels menjadi mataPelajaran
 		if (tahun.mataPelajaran && tahun.mataPelajaran.length > 0) {
 			setMappedMapelIds(tahun.mataPelajaran.map((m: any) => m.id));
 		} else {
@@ -303,19 +327,14 @@ export default function MasterClient({
 	};
 
 	const handleToggleMapelMapping = (mapelId: string, isChecked: boolean) => {
-		if (isChecked) {
-			setMappedMapelIds((prev) => [...prev, mapelId]);
-		} else {
-			setMappedMapelIds((prev) => prev.filter((id) => id !== mapelId));
-		}
+		if (isChecked) setMappedMapelIds((prev) => [...prev, mapelId]);
+		else setMappedMapelIds((prev) => prev.filter((id) => id !== mapelId));
 	};
 
 	const handleSimpanMapping = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setLoading(true);
-
 		const hasil = await simpanPemetaanMapelAction(selectedTahunAjarId, mappedMapelIds);
-
 		setLoading(false);
 		if (hasil.success) {
 			setToast({ show: true, message: hasil.message, type: "success" });
@@ -343,7 +362,6 @@ export default function MasterClient({
 		setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 3000);
 	};
 
-	// --- LOGIKA SIMPAN DATA FORM (CREATE/EDIT) ---
 	const handleSimpanData = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setLoading(true);
@@ -355,8 +373,16 @@ export default function MasterClient({
 			else
 				hasil = await editSiswaAction(editingId, { nis, nisn: identifier, nama, jenisKelamin, kelasNama: kelasAwal });
 		} else if (activeTab === "guru") {
-			if (modalMode === "create") hasil = await tambahGuruAction({ nipNpp: identifier, nama, jenisKelamin });
-			else hasil = await editGuruAction(editingId, { nipNpp: identifier, nama, jenisKelamin, status: statusGuru });
+			if (modalMode === "create")
+				hasil = await tambahGuruAction({ nipNpp: identifier, nama, jenisKelamin, role: roleGuru });
+			else
+				hasil = await editGuruAction(editingId, {
+					nipNpp: identifier,
+					nama,
+					jenisKelamin,
+					status: statusGuru,
+					role: roleGuru,
+				});
 		} else if (activeTab === "mapel") {
 			if (modalMode === "create") hasil = await tambahMapelAction({ kode: identifier, nama });
 			else hasil = await editMapelAction(editingId, { kode: identifier, nama });
@@ -374,7 +400,6 @@ export default function MasterClient({
 		setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 3000);
 	};
 
-	// --- LOGIKA DRAG & DROP AREA EXCEL ---
 	const handleDragOver = (e: React.DragEvent) => {
 		e.preventDefault();
 		setIsDragging(true);
@@ -408,8 +433,10 @@ export default function MasterClient({
 			];
 			fileName = "Template_Import_Siswa_Massal.xlsx";
 		} else if (activeTab === "guru") {
-			templateData = [{ NPP: "198501232010011001", Nama_Lengkap: "Drs. Hartono, M.Pd", Jenis_Kelamin: "Laki-laki" }];
-			fileName = "Template_Import_Guru_Massal.xlsx";
+			templateData = [
+				{ NPP: "198501232010011001", Nama_Lengkap: "Drs. Hartono, M.Pd", Jenis_Kelamin: "Laki-laki", Role: "GURU" },
+			];
+			fileName = "Template_Import_Staf_Massal.xlsx";
 		} else if (activeTab === "mapel") {
 			templateData = [
 				{ Kode_Mapel: "MAT-WAJIB", Nama_Mapel: "Matematika Wajib" },
@@ -448,7 +475,7 @@ export default function MasterClient({
 		setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 3000);
 	};
 
-	const titleLabels = { siswa: "Siswa", guru: "Guru", mapel: "Mata Pelajaran", tahunAjar: "Tahun Ajar" };
+	const titleLabels = { siswa: "Siswa", guru: "Staf & Guru", mapel: "Mata Pelajaran", tahunAjar: "Tahun Ajar" };
 
 	return (
 		<>
@@ -466,14 +493,13 @@ export default function MasterClient({
 							</button>
 						)}
 
-						{/* Sembunyikan tombol Import Massal jika berada di tab Tahun Ajar */}
 						{activeTab !== "tahunAjar" && (
 							<button className={styles.btnSecondary} onClick={() => setIsUploadModalOpen(true)}>
 								<Users size={16} />
 								{activeTab === "siswa"
 									? "Import Siswa Massal"
 									: activeTab === "guru"
-										? "Import Guru Massal"
+										? "Import Staf Massal"
 										: "Import Mapel Massal"}
 							</button>
 						)}
@@ -502,7 +528,7 @@ export default function MasterClient({
 						className={`${styles.tabButton} ${activeTab === "guru" ? styles.tabButtonActive : ""}`}
 						onClick={() => handleTabChange("guru")}
 					>
-						Data Guru
+						Data Staf & Guru
 					</button>
 					<button
 						className={`${styles.tabButton} ${activeTab === "mapel" ? styles.tabButtonActive : ""}`}
@@ -510,8 +536,6 @@ export default function MasterClient({
 					>
 						Data Mapel
 					</button>
-
-					{/* TAB BARU: TAHUN AJAR */}
 					<button
 						className={`${styles.tabButton} ${activeTab === "tahunAjar" ? styles.tabButtonActive : ""}`}
 						onClick={() => handleTabChange("tahunAjar")}
@@ -636,6 +660,7 @@ export default function MasterClient({
 														Jenis Kelamin <ArrowUpDown size={12} />
 													</div>
 												</th>
+												{activeTab === "guru" && <th style={{ cursor: "pointer" }}>Jabatan</th>}
 												<th
 													style={{ cursor: "pointer" }}
 													onClick={() => handleSort(activeTab === "siswa" ? "kelas" : "status")}
@@ -659,12 +684,12 @@ export default function MasterClient({
 												</th>
 											</>
 										)}
-										<th>Aksi</th>
+										<th style={{ textAlign: "center" }}>Aksi</th>
 									</tr>
 								)}
 							</thead>
 							<tbody>
-								{/* RENDER KHUSUS TAHUN AJAR (PLACEHOLDER) */}
+								{/* RENDER TAHUN AJAR */}
 								{activeTab === "tahunAjar" &&
 									(sortedTahunAjar.length === 0 ? (
 										<tr>
@@ -701,7 +726,7 @@ export default function MasterClient({
 														<button
 															className={styles.btnSecondary}
 															style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem", height: "auto" }}
-															onClick={() => handleOpenMapping(tahun)} // <--- UBAH BAGIAN INI
+															onClick={() => handleOpenMapping(tahun)}
 														>
 															<Network size={14} /> Pemetaan Mapel
 														</button>
@@ -721,6 +746,7 @@ export default function MasterClient({
 										))
 									))}
 
+								{/* RENDER SISWA */}
 								{activeTab === "siswa" &&
 									(sortedSiswa.length === 0 ? (
 										<tr>
@@ -755,7 +781,14 @@ export default function MasterClient({
 													</span>
 												</td>
 												<td>
-													<div style={{ display: "flex", gap: "0.75rem" }}>
+													<div style={{ display: "flex", gap: "0.75rem", justifyContent: "center" }}>
+														<button
+															className={styles.btnIconGhost}
+															onClick={() => handleOpenReset(siswa.userId, siswa.nama)}
+															title="Reset Password"
+														>
+															<Key size={16} color="#eab308" />
+														</button>
 														<Edit2 size={16} className={styles.actionIcon} onClick={() => handleEditSiswa(siswa)} />
 														<Trash2
 															size={16}
@@ -768,11 +801,13 @@ export default function MasterClient({
 											</tr>
 										))
 									))}
+
+								{/* RENDER GURU */}
 								{activeTab === "guru" &&
 									(sortedGuru.length === 0 ? (
 										<tr>
 											<td colSpan={6} style={{ textAlign: "center", color: "#6b7280", padding: "2rem" }}>
-												Tidak ada data guru ditemukan.
+												Tidak ada data staf ditemukan.
 											</td>
 										</tr>
 									) : (
@@ -789,13 +824,21 @@ export default function MasterClient({
 												<td>{guru.npp}</td>
 												<td>{guru.nama}</td>
 												<td>{guru.jenisKelamin || "-"}</td>
+												<td>{guru.role.replace("_", " ")}</td>
 												<td>
 													<span className={guru.status ? styles.badgeActive : styles.badgeUnassigned}>
 														{guru.status ? "Aktif" : "Nonaktif"}
 													</span>
 												</td>
 												<td>
-													<div style={{ display: "flex", gap: "0.75rem" }}>
+													<div style={{ display: "flex", gap: "0.75rem", justifyContent: "center" }}>
+														<button
+															className={styles.btnIconGhost}
+															onClick={() => handleOpenReset(guru.userId, guru.nama)}
+															title="Reset Password"
+														>
+															<Key size={16} color="#eab308" />
+														</button>
 														<Edit2 size={16} className={styles.actionIcon} onClick={() => handleEditGuru(guru)} />
 														<Trash2
 															size={16}
@@ -808,6 +851,8 @@ export default function MasterClient({
 											</tr>
 										))
 									))}
+
+								{/* RENDER MAPEL */}
 								{activeTab === "mapel" &&
 									(sortedMapel.length === 0 ? (
 										<tr>
@@ -829,7 +874,7 @@ export default function MasterClient({
 												<td style={{ fontWeight: 600, color: "#0369a1" }}>{mapel.kode}</td>
 												<td>{mapel.nama}</td>
 												<td>
-													<div style={{ display: "flex", gap: "0.75rem" }}>
+													<div style={{ display: "flex", gap: "0.75rem", justifyContent: "center" }}>
 														<Edit2 size={16} className={styles.actionIcon} onClick={() => handleEditMapel(mapel)} />
 														<Trash2
 															size={16}
@@ -845,33 +890,50 @@ export default function MasterClient({
 							</tbody>
 						</table>
 					</div>
+				</div>
+			</div>
 
-					<div className={styles.paginationSection}>
-						<div className={styles.paginationText}>
-							Menampilkan{" "}
-							{activeTab === "siswa"
-								? sortedSiswa.length
-								: activeTab === "guru"
-									? sortedGuru.length
-									: activeTab === "mapel"
-										? sortedMapel.length
-										: 0}{" "}
-							data
-						</div>
-						<div className={styles.paginationControls}>
-							<button className={styles.pageBtn}>
-								<ChevronLeft size={18} />
+			{/* === MODAL RESET PASSWORD === */}
+			{isResetModalOpen && (
+				<div className={styles.modalOverlay}>
+					<div className={styles.modalContainer} style={{ maxWidth: "400px" }}>
+						<div className={styles.modalHeader}>
+							<h2 className={styles.modalTitle} style={{ color: "#eab308" }}>
+								<Key size={20} /> Reset Password
+							</h2>
+							<button onClick={() => setIsResetModalOpen(false)} className={styles.closeBtn}>
+								<X size={20} />
 							</button>
-							<button className={`${styles.pageBtn} ${styles.pageBtnActive}`}>1</button>
-							<button className={styles.pageBtn}>
-								<ChevronRight size={18} />
+						</div>
+						<div className={styles.modalBody}>
+							<p style={{ fontSize: "0.875rem", color: "#374151", lineHeight: "1.5" }}>
+								Anda yakin ingin mengembalikan password untuk <strong>{resetUserName}</strong> menjadi{" "}
+								<strong style={{ color: "#1e3a8a" }}>"smanda123"</strong>?
+							</p>
+						</div>
+						<div className={styles.modalFooter}>
+							<button
+								type="button"
+								disabled={loading}
+								onClick={() => setIsResetModalOpen(false)}
+								className={styles.btnCancel}
+							>
+								Batal
+							</button>
+							<button
+								type="button"
+								disabled={loading}
+								onClick={executeResetPassword}
+								className={styles.btnPrimary}
+								style={{ backgroundColor: "#eab308" }}
+							>
+								{loading ? "Mereset..." : "Ya, Reset Password"}
 							</button>
 						</div>
 					</div>
 				</div>
-			</div>
+			)}
 
-			{/* MODAL DAN TOAST TETAP SAMA, TIDAK ADA PERUBAHAN */}
 			{/* === MODAL TAMBAH / EDIT FORM === */}
 			{isModalOpen && (
 				<div className={styles.modalOverlay}>
@@ -887,7 +949,6 @@ export default function MasterClient({
 
 						<form onSubmit={handleSimpanData}>
 							<div className={styles.modalBody}>
-								{/* KHUSUS UNTUK TAHUN AJAR - Placeholder Form Sementara */}
 								{activeTab === "tahunAjar" ? (
 									<>
 										<div className={styles.formGroup}>
@@ -918,11 +979,11 @@ export default function MasterClient({
 									<>
 										<div className={styles.formGroup}>
 											<label className={styles.formLabel}>
-												{activeTab === "siswa"
-													? "NISN (Username)"
-													: activeTab === "guru"
-														? "NIP / NPP (Username)"
-														: "Kode Mata Pelajaran"}
+												{activeTab === "mapel"
+													? "Kode Mata Pelajaran"
+													: activeTab === "siswa"
+														? "NISN (Username)"
+														: "NIP / NPP (Username)"}
 											</label>
 											<input
 												type="text"
@@ -984,19 +1045,38 @@ export default function MasterClient({
 											</div>
 										)}
 
-										{activeTab === "guru" && modalMode === "edit" && (
-											<div className={styles.formGroup}>
-												<label className={styles.formLabel}>Status Mengajar</label>
-												<select
-													required
-													value={statusGuru ? "true" : "false"}
-													onChange={(e) => setStatusGuru(e.target.value === "true")}
-													className={styles.formSelect}
-												>
-													<option value="true">Aktif Mengajar</option>
-													<option value="false">Nonaktif / Cuti</option>
-												</select>
-											</div>
+										{activeTab === "guru" && (
+											<>
+												<div className={styles.formGroup}>
+													<label className={styles.formLabel}>Jabatan / Role</label>
+													<select
+														required
+														value={roleGuru}
+														onChange={(e) => setRoleGuru(e.target.value)}
+														className={styles.formSelect}
+													>
+														<option value="GURU">Guru</option>
+														<option value="WALI_KELAS">Wali Kelas</option>
+														{/* PERBAIKAN: Value diubah menjadi WAKA */}
+														<option value="WAKA">Wakil Kepala Sekolah</option>
+														<option value="KEPSEK">Kepala Sekolah</option>
+													</select>
+												</div>
+												{modalMode === "edit" && (
+													<div className={styles.formGroup}>
+														<label className={styles.formLabel}>Status Staf</label>
+														<select
+															required
+															value={statusGuru ? "true" : "false"}
+															onChange={(e) => setStatusGuru(e.target.value === "true")}
+															className={styles.formSelect}
+														>
+															<option value="true">Aktif</option>
+															<option value="false">Nonaktif / Cuti</option>
+														</select>
+													</div>
+												)}
+											</>
 										)}
 
 										{activeTab === "siswa" && (
@@ -1097,7 +1177,7 @@ export default function MasterClient({
 											{activeTab === "siswa"
 												? "Siswa (NISN, NIS, Nama, JK, Kelas)"
 												: activeTab === "guru"
-													? "Guru (NPP, Nama, Jenis Kelamin)"
+													? "Staf (NPP, Nama, Jenis Kelamin, Role)"
 													: "Mata Pelajaran (Kode_Mapel, Nama_Mapel)"}
 											.
 										</li>
@@ -1194,13 +1274,13 @@ export default function MasterClient({
 								Batal
 							</button>
 							<button type="button" disabled={loading} onClick={executeDelete} className={styles.btnDangerSolid}>
-								Ya, Hapus Data
+								{loading ? "Menghapus..." : "Ya, Hapus Data"}
 							</button>
 						</div>
 					</div>
 				</div>
 			)}
-			{/* === MODAL PEMETAAN (MAPPING) MAPEL === */}
+
 			{isMappingModalOpen && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContainer}>
@@ -1210,14 +1290,11 @@ export default function MasterClient({
 								<X size={20} />
 							</button>
 						</div>
-
 						<form onSubmit={handleSimpanMapping}>
 							<div className={styles.modalBody}>
 								<p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "1rem" }}>
 									Pilih mata pelajaran yang akan diajarkan pada Tahun Ajaran ini.
 								</p>
-
-								{/* Kotak Daftar Mapel yang bisa di-scroll */}
 								<div
 									style={{
 										maxHeight: "300px",
@@ -1258,12 +1335,10 @@ export default function MasterClient({
 										))
 									)}
 								</div>
-
 								<div style={{ marginTop: "1rem", fontSize: "0.8rem", color: "#10b981", fontWeight: 600 }}>
 									Total terpilih: {mappedMapelIds.length} Mata Pelajaran
 								</div>
 							</div>
-
 							<div className={styles.modalFooter}>
 								<button
 									type="button"

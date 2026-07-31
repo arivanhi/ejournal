@@ -16,6 +16,7 @@ services:
       - db_data_dev:/var/lib/mysql
     networks:
       - ejournal_network_dev
+      - smandabes_net
 
   pma:
     image: phpmyadmin/phpmyadmin
@@ -30,6 +31,7 @@ services:
       - "8099:80"
     networks:
       - ejournal_network_dev
+      - smandabes_net
 
   web:
     # Langsung menggunakan image node tanpa perlu Dockerfile
@@ -54,6 +56,7 @@ services:
       - db
     networks:
       - ejournal_network_dev
+      - smandabes_net
 
 volumes:
   db_data_dev:
@@ -61,3 +64,5 @@ volumes:
 networks:
   ejournal_network_dev:
     driver: bridge
+  smandabes_net:
+    external: true

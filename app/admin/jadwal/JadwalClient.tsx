@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -18,6 +18,7 @@ import {
 	AlertTriangle,
 	FileSpreadsheet,
 	FileText,
+	CheckSquare,
 } from "lucide-react";
 import styles from "./jadwal.module.css";
 import { simpanJadwalAction, hapusJadwalAction } from "./actions";
@@ -84,6 +85,11 @@ export default function JadwalClient({
 	const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 	const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
+	// State Modal Download ALL
+	const [isDownloadAllModalOpen, setIsDownloadAllModalOpen] = useState(false);
+	const [selectedClassesForDownload, setSelectedClassesForDownload] = useState<string[]>([]);
+	const [isDownloadingAllPdf, setIsDownloadingAllPdf] = useState(false);
+
 	const [loading, setLoading] = useState(false);
 	const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 	const [deleteDataId, setDeleteDataId] = useState<string | null>(null);
@@ -100,6 +106,16 @@ export default function JadwalClient({
 	const [formHari, setFormHari] = useState("Senin");
 	const [formJam, setFormJam] = useState(SLOT_WAKTU[1].jam);
 	const [formRuang, setFormRuang] = useState("");
+
+	const filteredKelasList = kelasList.filter((k) => filterTingkat === "Semua" || k.nama.startsWith(filterTingkat));
+	const tahunAjaranTerpilih = daftarTahunAjaran.find((t) => t.id === selectedTahunId);
+
+	// Otomatis pilih semua kelas yang tampil di layar saat modal Download All dibuka
+	useEffect(() => {
+		if (isDownloadAllModalOpen) {
+			setSelectedClassesForDownload(filteredKelasList.map((k) => k.id));
+		}
+	}, [isDownloadAllModalOpen, filterTingkat]);
 
 	const masukKeJadwal = (kelasId: string, kelasNama: string, jumlahSiswa: number) => {
 		setSelectedKelasId(kelasId);
@@ -264,7 +280,6 @@ export default function JadwalClient({
 		setIsDownloadModalOpen(false);
 	};
 
-	// KUNCI PERBAIKAN: Fitur Export PDF 1 Lembar Landscape
 	const exportToPDF = async () => {
 		setIsDownloadingPdf(true);
 		try {
@@ -272,11 +287,10 @@ export default function JadwalClient({
 			const element = document.getElementById("pdf-jadwal-container");
 
 			const opt = {
-				margin: 0, // Dibuat 0 karena margin diatur CSS
-				filename: `Jadwal_Kelas_${activeKelasName.replace(" ", "_")}_${daftarTahunAjaran.find((t) => t.id === selectedTahunId)?.nama || ""}.pdf`,
+				margin: 0,
+				filename: `Jadwal_Kelas_${activeKelasName.replace(" ", "_")}.pdf`,
 				image: { type: "jpeg", quality: 1 },
 				html2canvas: { scale: 2, useCORS: true },
-				// Diatur orientasi Landscape
 				jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
 			};
 
@@ -288,6 +302,41 @@ export default function JadwalClient({
 		} finally {
 			setIsDownloadingPdf(false);
 		}
+	};
+
+	// --- FITUR EXPORT ALL PDF ---
+	const exportAllToPDF = async () => {
+		if (selectedClassesForDownload.length === 0) return alert("Pilih minimal 1 kelas untuk diexport.");
+		setIsDownloadingAllPdf(true);
+		try {
+			const html2pdf = (await import("html2pdf.js")).default;
+			const element = document.getElementById("pdf-download-all-container");
+
+			const opt = {
+				margin: 0,
+				filename: `Kumpulan_Jadwal_Pelajaran_${tahunAjaranTerpilih?.nama || "TA"}.pdf`,
+				image: { type: "jpeg", quality: 1 },
+				html2canvas: { scale: 2, useCORS: true },
+				jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+			};
+
+			await html2pdf().set(opt).from(element).save();
+			setIsDownloadAllModalOpen(false);
+		} catch (error) {
+			console.error("Gagal men-generate PDF:", error);
+			alert("Terjadi kesalahan saat memproses PDF multi-halaman.");
+		} finally {
+			setIsDownloadingAllPdf(false);
+		}
+	};
+
+	const handleToggleClassDownload = (id: string) => {
+		setSelectedClassesForDownload((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
+	};
+
+	const handleToggleAllClasses = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (e.target.checked) setSelectedClassesForDownload(filteredKelasList.map((k) => k.id));
+		else setSelectedClassesForDownload([]);
 	};
 
 	const jadwalKelasAktif = jadwalExisting.filter((j) => j.kelasId === selectedKelasId);
@@ -302,23 +351,293 @@ export default function JadwalClient({
 		if (
 			mapelNama.toLowerCase().includes("pjok") ||
 			mapelNama.toLowerCase().includes("lintas") ||
-			mapelNama.toLowerCase().includes("agama")
+			mapelNama.toLowerCase().includes("agama") ||
+			mapelNama.toLowerCase().includes("keterampilan")
 		)
 			return styles.cardYellow;
 		return styles.cardWhite;
 	};
 
-	if (viewMode === "list") {
-		const filteredKelasList = kelasList.filter((k) => filterTingkat === "Semua" || k.nama.startsWith(filterTingkat));
-		const tahunAjaranTerpilih = daftarTahunAjaran.find((t) => t.id === selectedTahunId);
+	// FUNGSI RENDER PDF TEMPLATE BERSAMA
+	const renderPdfTemplate = (namaKelas: string, jadwalUntukKelasIni: any[]) => {
+		return (
+			<div
+				style={{
+					width: "297mm",
+					height: "209mm",
+					padding: "10mm 15mm",
+					boxSizing: "border-box",
+					backgroundColor: "#fff",
+					color: "#000",
+					fontFamily: "Arial, sans-serif",
+				}}
+			>
+				<div
+					style={{
+						position: "relative",
+						textAlign: "center",
+						borderBottom: "3px solid #000",
+						paddingBottom: "15px",
+						marginBottom: "15px",
+					}}
+				>
+					<img
+						src="/logo.jpg"
+						alt="Logo SMAN 2 Brebes"
+						style={{
+							position: "absolute",
+							left: "20px",
+							top: "50%",
+							transform: "translateY(-50%)",
+							width: "80px",
+							height: "80px",
+							objectFit: "contain",
+						}}
+					/>
+					<h1
+						style={{
+							margin: "0 0 5px 0",
+							fontSize: "20pt",
+							fontWeight: "bold",
+							color: "#000",
+							fontFamily: '"Times New Roman", Times, serif',
+						}}
+					>
+						SMA NEGERI 2 BREBES
+					</h1>
+					<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+					<p style={{ margin: 0, fontSize: "11pt" }}>Website: www.sman2-brebes.sch.id - Email: smadabes@ymail.com</p>
+				</div>
+				<div
+					style={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "center",
+						marginBottom: "15px",
+						paddingLeft: "5px",
+					}}
+				>
+					<h2 style={{ margin: 0, fontSize: "14pt", fontWeight: "bold", color: "#111827" }}>Kelas: {namaKelas}</h2>
+					<div style={{ fontSize: "11pt", fontWeight: "bold" }}>T.A {tahunAjaranTerpilih?.nama || ""}</div>
+				</div>
+				<table
+					style={{
+						width: "100%",
+						borderCollapse: "collapse",
+						fontSize: "10pt",
+						border: "1px solid #000",
+						height: "calc(100% - 150px)",
+					}}
+				>
+					<thead>
+						<tr>
+							<th
+								style={{
+									border: "1px solid #000",
+									backgroundColor: "#f1f5f9",
+									width: "15%",
+									textAlign: "center",
+									padding: "8px",
+									verticalAlign: "middle",
+								}}
+							>
+								Jam Ke-
+							</th>
+							{HARI.map((h) => (
+								<th
+									key={h}
+									style={{
+										border: "1px solid #000",
+										backgroundColor: "#f1f5f9",
+										width: "17%",
+										textAlign: "center",
+										padding: "8px",
+										verticalAlign: "middle",
+									}}
+								>
+									{h}
+								</th>
+							))}
+						</tr>
+					</thead>
+					<tbody>
+						{SLOT_WAKTU.map((slot, idx) => (
+							<tr key={slot.jam}>
+								<td
+									style={{
+										border: "1px solid #000",
+										textAlign: "center",
+										fontWeight: "bold",
+										padding: "4px",
+										backgroundColor: "#f8fafc",
+									}}
+								>
+									<div style={{ fontSize: "11pt" }}>{slot.label}</div>
+									<div style={{ fontSize: "8pt", fontWeight: "normal", color: "#4b5563" }}>{WAKTU_JAM[idx]}</div>
+								</td>
+								{HARI.map((hari) => {
+									if (hari === "Senin" && slot.jam === "1") {
+										return (
+											<td
+												key={`${hari}-${slot.jam}`}
+												style={{
+													border: "1px solid #000",
+													backgroundColor: "#bfdbfe",
+													textAlign: "center",
+													fontWeight: "bold",
+													padding: "4px",
+													verticalAlign: "middle",
+												}}
+											>
+												UPACARA BENDERA
+											</td>
+										);
+									}
+									const jadwalSlot = jadwalUntukKelasIni.find(
+										(j: any) => j.hari === hari && (j.waktuMulai === slot.jam || j.jam === slot.jam),
+									);
+									let bgColor = "#ffffff";
+									if (jadwalSlot) {
+										const mapelNama = jadwalSlot.mapel.nama.toLowerCase();
+										if (mapelNama.includes("wajib") || mapelNama.includes("upacara")) bgColor = "#bfdbfe";
+										else if (
+											mapelNama.includes("pjok") ||
+											mapelNama.includes("lintas") ||
+											mapelNama.includes("agama") ||
+											mapelNama.includes("keterampilan")
+										)
+											bgColor = "#fef08a";
+									}
+									return (
+										<td
+											key={`${hari}-${slot.jam}`}
+											style={{
+												border: "1px solid #000",
+												backgroundColor: bgColor,
+												textAlign: "center",
+												verticalAlign: "middle",
+												padding: "4px",
+											}}
+										>
+											{jadwalSlot ? (
+												<>
+													<div style={{ fontWeight: "bold", marginBottom: "2px", fontSize: "9pt", lineHeight: "1.2" }}>
+														{jadwalSlot.mapel.nama}
+													</div>
+													<div style={{ fontSize: "8pt", color: "#374151" }}>{jadwalSlot.guru.user.nama}</div>
+													{jadwalSlot.ruang && (
+														<div style={{ fontSize: "8pt", color: "#dc2626", marginTop: "2px", fontWeight: "bold" }}>
+															{jadwalSlot.ruang}
+														</div>
+													)}
+												</>
+											) : (
+												""
+											)}
+										</td>
+									);
+								})}
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		);
+	};
 
+	if (viewMode === "list") {
 		return (
 			<div className={styles.pageContainer}>
-				<div className={styles.pageHeader}>
+				{/* --- MODAL DOWNLOAD ALL PDF --- */}
+				{isDownloadAllModalOpen && (
+					<div className={styles.modalOverlay}>
+						<div className={styles.modalContainerLarge} style={{ maxWidth: "600px" }}>
+							<div className={styles.modalHeader}>
+								<h2 className={styles.modalTitle}>
+									<Download size={20} style={{ display: "inline", marginBottom: "-3px" }} /> Export Semua Jadwal
+								</h2>
+								<button onClick={() => setIsDownloadAllModalOpen(false)} className={styles.modalCloseBtn}>
+									<X size={20} />
+								</button>
+							</div>
+							<div className={styles.modalBodyScroll} style={{ padding: "1.5rem" }}>
+								<p style={{ fontSize: "0.875rem", color: "#374151", marginBottom: "1rem" }}>
+									Pilih kelas yang jadwalnya ingin Anda export dan jadikan satu file PDF:
+								</p>
+								<div style={{ marginBottom: "1rem", paddingBottom: "1rem", borderBottom: "1px solid #e2e8f0" }}>
+									<label className={styles.checkboxLabel}>
+										<input
+											type="checkbox"
+											checked={
+												selectedClassesForDownload.length === filteredKelasList.length && filteredKelasList.length > 0
+											}
+											onChange={handleToggleAllClasses}
+											style={{ width: "16px", height: "16px", cursor: "pointer" }}
+										/>
+										<span style={{ fontWeight: "bold" }}>Pilih Semua Kelas ({filteredKelasList.length})</span>
+									</label>
+								</div>
+								<div className={styles.checkboxGrid}>
+									{filteredKelasList.map((kelas) => (
+										<label key={kelas.id} className={styles.checkboxLabel}>
+											<input
+												type="checkbox"
+												checked={selectedClassesForDownload.includes(kelas.id)}
+												onChange={() => handleToggleClassDownload(kelas.id)}
+												style={{ width: "16px", height: "16px", cursor: "pointer" }}
+											/>
+											{kelas.nama}
+										</label>
+									))}
+								</div>
+
+								{/* HIDDEN CONTAINER FOR MASSIVE EXPORT */}
+								<div style={{ display: "none" }}>
+									<div id="pdf-download-all-container">
+										{selectedClassesForDownload.map((kelasId, index) => {
+											const kelasInfo = kelasList.find((k) => k.id === kelasId);
+											const jadwalUntukKelasIni = jadwalExisting.filter((j) => j.kelasId === kelasId);
+											return (
+												<div key={kelasId}>
+													{renderPdfTemplate(kelasInfo?.nama || "", jadwalUntukKelasIni)}
+													{index < selectedClassesForDownload.length - 1 && (
+														<div className="html2pdf__page-break"></div>
+													)}
+												</div>
+											);
+										})}
+									</div>
+								</div>
+							</div>
+							<div className={styles.modalFooter}>
+								<button type="button" onClick={() => setIsDownloadAllModalOpen(false)} className={styles.btnOutline}>
+									Batal
+								</button>
+								<button
+									type="button"
+									onClick={exportAllToPDF}
+									disabled={isDownloadingAllPdf || selectedClassesForDownload.length === 0}
+									className={styles.btnPrimary}
+								>
+									{isDownloadingAllPdf ? "Memproses PDF..." : `Unduh ${selectedClassesForDownload.length} Jadwal`}
+								</button>
+							</div>
+						</div>
+					</div>
+				)}
+
+				<div
+					className={styles.pageHeader}
+					style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+				>
 					<div>
 						<h1 className={styles.pageTitle}>Manajemen Jadwal Pelajaran</h1>
 						<p className={styles.pageSubtitle}>Pilih kelas untuk mengatur atau melihat jadwal pelajaran.</p>
 					</div>
+					{/* KUNCI PERBAIKAN: Tombol Download All Jadwal */}
+					<button className={styles.btnPrimary} onClick={() => setIsDownloadAllModalOpen(true)}>
+						<CheckSquare size={16} /> Export Banyak Jadwal
+					</button>
 				</div>
 
 				<div className={styles.filterCard}>
@@ -370,6 +689,7 @@ export default function JadwalClient({
 					</h2>
 
 					<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+						<span className={styles.badgeKurikulum}>Kurikulum Merdeka</span>
 						{tahunAjaranTerpilih && (
 							<span
 								style={{
@@ -422,203 +742,9 @@ export default function JadwalClient({
 
 	return (
 		<div className={styles.pageContainer}>
-			{/* CONTAINER TERSEMBUNYI UNTUK EXPORT PDF */}
+			{/* CONTAINER TERSEMBUNYI UNTUK EXPORT PDF 1 KELAS */}
 			<div style={{ display: "none" }}>
-				{/* Tinggi & Lebar Kertas diset mutlak untuk A4 Landscape */}
-				<div
-					id="pdf-jadwal-container"
-					style={{
-						width: "297mm",
-						height: "209mm",
-						padding: "10mm 15mm",
-						boxSizing: "border-box",
-						backgroundColor: "#fff",
-						color: "#000",
-						fontFamily: "Arial, sans-serif",
-					}}
-				>
-					{/* Kop Surat Header Sesuai Contoh PDF */}
-					<div
-						style={{
-							position: "relative",
-							textAlign: "center",
-							borderBottom: "3px solid #000",
-							paddingBottom: "15px",
-							marginBottom: "15px",
-						}}
-					>
-						<img
-							src="/logo.jpg"
-							alt="Logo SMAN 2 Brebes"
-							style={{
-								position: "absolute",
-								left: "20px",
-								top: "50%",
-								transform: "translateY(-50%)",
-								width: "80px",
-								height: "80px",
-								objectFit: "contain",
-							}}
-						/>
-						<h1
-							style={{
-								margin: "0 0 5px 0",
-								fontSize: "20pt",
-								fontWeight: "bold",
-								color: "#000",
-								fontFamily: '"Times New Roman", Times, serif',
-							}}
-						>
-							SMA NEGERI 2 BREBES
-						</h1>
-						<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-						<p style={{ margin: 0, fontSize: "11pt" }}>Website: www.sman2-brebes.sch.id - Email: smadabes@ymail.com</p>
-					</div>
-
-					<div
-						style={{
-							display: "flex",
-							justifyContent: "space-between",
-							alignItems: "center",
-							marginBottom: "15px",
-							paddingLeft: "5px",
-						}}
-					>
-						<h2 style={{ margin: 0, fontSize: "14pt", fontWeight: "bold", color: "#111827" }}>
-							Kelas: {activeKelasName}
-						</h2>
-						<div style={{ fontSize: "11pt", fontWeight: "bold" }}>
-							T.A {daftarTahunAjaran.find((t) => t.id === selectedTahunId)?.nama || ""}
-						</div>
-					</div>
-
-					<table
-						style={{
-							width: "100%",
-							borderCollapse: "collapse",
-							fontSize: "10pt",
-							border: "1px solid #000",
-							height: "calc(100% - 150px)",
-						}}
-					>
-						<thead>
-							<tr>
-								<th
-									style={{
-										border: "1px solid #000",
-										backgroundColor: "#f1f5f9",
-										width: "15%",
-										textAlign: "center",
-										padding: "8px",
-										verticalAlign: "middle",
-									}}
-								>
-									Jam Ke-
-								</th>
-								{HARI.map((h) => (
-									<th
-										key={h}
-										style={{
-											border: "1px solid #000",
-											backgroundColor: "#f1f5f9",
-											width: "17%",
-											textAlign: "center",
-											padding: "8px",
-											verticalAlign: "middle",
-										}}
-									>
-										{h}
-									</th>
-								))}
-							</tr>
-						</thead>
-						<tbody>
-							{SLOT_WAKTU.map((slot, idx) => (
-								<tr key={slot.jam}>
-									<td
-										style={{
-											border: "1px solid #000",
-											textAlign: "center",
-											fontWeight: "bold",
-											padding: "4px",
-											backgroundColor: "#f8fafc",
-										}}
-									>
-										<div style={{ fontSize: "11pt" }}>{slot.label}</div>
-										<div style={{ fontSize: "8pt", fontWeight: "normal", color: "#4b5563" }}>{WAKTU_JAM[idx]}</div>
-									</td>
-									{HARI.map((hari) => {
-										if (hari === "Senin" && slot.jam === "1") {
-											return (
-												<td
-													key={`${hari}-${slot.jam}`}
-													style={{
-														border: "1px solid #000",
-														backgroundColor: "#bfdbfe",
-														textAlign: "center",
-														fontWeight: "bold",
-														padding: "4px",
-														verticalAlign: "middle",
-													}}
-												>
-													UPACARA BENDERA
-												</td>
-											);
-										}
-										const jadwalSlot = jadwalKelasAktif.find(
-											(j) => j.hari === hari && (j.waktuMulai === slot.jam || j.jam === slot.jam),
-										);
-
-										// Mewarnai Tabel Sesuai Kelompok Mata Pelajaran
-										let bgColor = "#ffffff";
-										if (jadwalSlot) {
-											const mapelNama = jadwalSlot.mapel.nama.toLowerCase();
-											if (mapelNama.includes("wajib") || mapelNama.includes("upacara")) bgColor = "#bfdbfe";
-											else if (
-												mapelNama.includes("pjok") ||
-												mapelNama.includes("lintas") ||
-												mapelNama.includes("agama") ||
-												mapelNama.includes("keterampilan")
-											)
-												bgColor = "#fef08a";
-										}
-
-										return (
-											<td
-												key={`${hari}-${slot.jam}`}
-												style={{
-													border: "1px solid #000",
-													backgroundColor: bgColor,
-													textAlign: "center",
-													verticalAlign: "middle",
-													padding: "4px",
-												}}
-											>
-												{jadwalSlot ? (
-													<>
-														<div
-															style={{ fontWeight: "bold", marginBottom: "2px", fontSize: "9pt", lineHeight: "1.2" }}
-														>
-															{jadwalSlot.mapel.nama}
-														</div>
-														<div style={{ fontSize: "8pt", color: "#374151" }}>{jadwalSlot.guru.user.nama}</div>
-														{jadwalSlot.ruang && (
-															<div style={{ fontSize: "8pt", color: "#dc2626", marginTop: "2px", fontWeight: "bold" }}>
-																{jadwalSlot.ruang}
-															</div>
-														)}
-													</>
-												) : (
-													""
-												)}
-											</td>
-										);
-									})}
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
+				<div id="pdf-jadwal-container">{renderPdfTemplate(activeKelasName, jadwalKelasAktif)}</div>
 			</div>
 
 			<div>
@@ -654,7 +780,7 @@ export default function JadwalClient({
 						<span title="Cetak Jadwal" style={{ cursor: "pointer", display: "flex" }}>
 							<Printer size={20} onClick={() => setIsPrintModalOpen(true)} />
 						</span>
-						<span title="Unduh Jadwal" style={{ cursor: "pointer", display: "flex" }}>
+						<span title="Export Jadwal" style={{ cursor: "pointer", display: "flex" }}>
 							<Download size={20} onClick={() => setIsDownloadModalOpen(true)} />
 						</span>
 					</div>
@@ -803,7 +929,7 @@ export default function JadwalClient({
 					<div className={styles.modalContainer} style={{ maxWidth: "420px" }}>
 						<div className={styles.modalHeader}>
 							<h2 className={styles.modalTitle}>
-								<Download size={20} /> Unduh Jadwal
+								<Download size={20} /> Export Jadwal
 							</h2>
 							<button
 								onClick={() => setIsDownloadModalOpen(false)}

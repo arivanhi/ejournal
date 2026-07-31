@@ -546,3 +546,48 @@
 		color: #000 !important;
 	}
 }
+
+/* === EXTRA MODAL STYLES === */
+.modalContainerLarge {
+	background-color: #ffffff;
+	width: 650px;
+	max-width: 95vw;
+	border-radius: 1rem;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+	animation: scaleUp 0.3s ease-out;
+}
+.modalBodyScroll {
+	flex: 1;
+	overflow-y: auto;
+	padding: 2rem;
+	max-height: 60vh;
+}
+.checkboxLabel {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	cursor: pointer;
+	padding: 0.75rem;
+	border: 1px solid #e2e8f0;
+	border-radius: 0.5rem;
+	transition: 0.2s;
+	font-size: 0.95rem;
+	color: #334155;
+}
+.checkboxLabel:hover {
+	background-color: #f8fafc;
+}
+.checkboxGrid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.8rem;
+}
+
+/* Memastikan pemotongan halaman PDF berfungsi sempurna */
+.html2pdf__page-break {
+	page-break-before: always !important;
+	page-break-after: always !important;
+}
