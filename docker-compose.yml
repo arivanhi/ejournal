@@ -16,6 +16,7 @@ services:
       - db_data:/var/lib/mysql
     networks:
       - ejournal_network
+      - smandabes_net
 
   # 2. Service phpMyAdmin untuk manajemen GUI
   pma:
@@ -32,6 +33,7 @@ services:
       - "8099:80" # Akses PMA di http://IP_VM:8099
     networks:
       - ejournal_network
+      - smandabes_net
 
   # 3. Service Aplikasi Next.js
   web:
@@ -51,6 +53,7 @@ services:
       - NEXTAUTH_URL=${NEXTAUTH_URL}
     networks:
       - ejournal_network
+      - smandabes_net
 
 # Mengamankan data database agar tidak hilang saat container mati
 volumes:
@@ -60,3 +63,5 @@ volumes:
 networks:
   ejournal_network:
     driver: bridge
+  smandabes_net:
+    external: true
