@@ -81,13 +81,13 @@ export default function LoginPage() {
 				<div className={styles.formContainer}>
 					<p className={styles.preTitle}>Masuk ke Akun Anda</p>
 					<h2 className={styles.welcomeTitle}>Selamat Datang 👋</h2>
-					<p className={styles.welcomeSubtitle}>Gunakan NPP, NIP, atau NISN untuk mengakses dashboard Anda.</p>
+					<p className={styles.welcomeSubtitle}>Gunakan NPP, atau NIP untuk mengakses dashboard Anda.</p>
 
 					<form onSubmit={handleLogin}>
 						{error && <div className={styles.errorAlert}>{error}</div>}
 
 						<div className={styles.inputGroup}>
-							<label className={styles.inputLabel}>NPP / NIP / NISN</label>
+							<label className={styles.inputLabel}>NPP / NIP</label>
 							<div className={styles.inputWrapper}>
 								<input
 									type="text"
