@@ -222,6 +222,23 @@ export default function JurnalClient({
 
 	const handleSimpanJurnalBaru = async () => {
 		setLoading(true);
+
+		// --- CEK SYARAT AUTO-HADIR (HANYA JAM KE 2-9) ---
+		let isAutoHadir = false;
+		if (activeJadwal.jams && activeJadwal.jams.length > 0) {
+			// Ambil angka jam terkecil dan terbesar dari sesi jadwal
+			const minJam = Math.min(...activeJadwal.jams);
+			const maxJam = Math.max(...activeJadwal.jams);
+
+			// Jika jam paling awal minimal jam ke-2, DAN jam terakhir maksimal jam ke-9, maka Auto-Hadir
+			if (minJam >= 2 && maxJam <= 9) {
+				isAutoHadir = true;
+			}
+		}
+
+		// --- AMBIL SEMUA ID SISWA DI KELAS INI ---
+		const siswaIds = activeJadwal.kelas?.riwayatSiswa?.map((rs: any) => rs.siswa.id) || [];
+
 		const res = await buatJurnalAction({
 			jadwalId: activeJadwal.id,
 			tanggal,
@@ -230,13 +247,22 @@ export default function JurnalClient({
 			materi,
 			tujuan: "",
 			catatan: "",
+			isAutoHadir, // Kirim status kelayakan auto-hadir
+			siswaIds, // Kirim daftar id siswa
 		});
+
 		setLoading(false);
 		setModal(null);
 		if (res.success) {
-			showToast("Jurnal berhasil dibuat!", "success");
+			if (isAutoHadir) {
+				showToast("Jurnal berhasil dibuat & Presensi siswa otomatis diisi HADIR!", "success");
+			} else {
+				showToast("Jurnal berhasil dibuat! (Silakan isi presensi secara manual)", "success");
+			}
 			setMateri("");
-		} else showToast(res.message, "error");
+		} else {
+			showToast(res.message, "error");
+		}
 	};
 
 	const handleBukaQR = async (jurnalId: string) => {
@@ -293,10 +319,21 @@ export default function JurnalClient({
 			showToast("Peringatan: Tanggal dan Topik Materi wajib diisi!", "error");
 			return;
 		}
+
+		// Tampilkan pesan dinamis di modal untuk memberi tahu guru apakah ini auto-hadir atau manual
+		let autoHadirMsg = "";
+		if (activeJadwal.jams && activeJadwal.jams.length > 0) {
+			const minJam = Math.min(...activeJadwal.jams);
+			const maxJam = Math.max(...activeJadwal.jams);
+			if (minJam >= 2 && maxJam <= 9) {
+				autoHadirMsg = " (Kehadiran siswa akan otomatis diisi 'Hadir' untuk jam ini)";
+			}
+		}
+
 		setModal({
 			isOpen: true,
 			title: "Simpan Jurnal Baru?",
-			message: `Menyimpan jurnal untuk tanggal ${new Date(tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })} jam ${waktuMulai} - ${waktuSelesai}.`,
+			message: `Menyimpan jurnal untuk tanggal ${new Date(tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })} jam ${waktuMulai} - ${waktuSelesai}.${autoHadirMsg}`,
 			onConfirm: handleSimpanJurnalBaru,
 		});
 	};

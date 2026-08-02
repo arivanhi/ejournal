@@ -649,9 +649,9 @@ export default function JadwalClient({
 							onChange={(e) => setFilterTingkat(e.target.value)}
 						>
 							<option value="Semua">Semua Tingkat</option>
-							<option value="X ">Kelas X</option>
-							<option value="XI ">Kelas XI</option>
-							<option value="XII ">Kelas XII</option>
+							<option value="X">Kelas X</option>
+							<option value="XI">Kelas XI</option>
+							<option value="XII">Kelas XII</option>
 						</select>
 					</div>
 
@@ -689,7 +689,6 @@ export default function JadwalClient({
 					</h2>
 
 					<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-						<span className={styles.badgeKurikulum}>Kurikulum Merdeka</span>
 						{tahunAjaranTerpilih && (
 							<span
 								style={{

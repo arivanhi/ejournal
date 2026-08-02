@@ -1,25 +1,27 @@
+// app/teacher/jurnal/actions.ts
 "use server";
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-// Fungsi 1: Buat Jurnal Baru berdasarkan Input Form
+// Fungsi 1: Buat Jurnal Baru & Auto-Presensi (Jika Memenuhi Syarat Jam 2-9)
 export async function buatJurnalAction(data: {
 	jadwalId: string;
-	tanggal: string; // Format YYYY-MM-DD
+	tanggal: string;
 	waktuMulai: string;
 	waktuSelesai: string;
 	materi: string;
 	tujuan: string;
 	catatan: string;
+	isAutoHadir: boolean; // Parameter baru: Apakah jam 2-9?
+	siswaIds: string[]; // Parameter baru: Daftar ID siswa di kelas
 }) {
 	try {
-		// --- 1. LOGIKA CEK DUPLIKAT (Cek 1 hari penuh: 00:00 s.d 23:59) ---
 		const startOfDay = new Date(data.tanggal);
-		startOfDay.setHours(0, 0, 0, 0); // Kunci di jam 00:00
+		startOfDay.setHours(0, 0, 0, 0);
 
 		const endOfDay = new Date(startOfDay);
-		endOfDay.setDate(endOfDay.getDate() + 1); // Tambah 1 hari untuk batas akhir
+		endOfDay.setDate(endOfDay.getDate() + 1);
 
 		const existingJurnal = await prisma.jurnalMengajar.findFirst({
 			where: {
@@ -35,16 +37,15 @@ export async function buatJurnalAction(data: {
 			};
 		}
 
-		// --- 2. LOGIKA PENYIMPANAN WAKTU AKTUAL (Real-time) ---
 		const inputDate = new Date(data.tanggal);
 		const now = new Date();
-		// Suntikkan jam, menit, dan detik saat ini ke tanggal yang dipilih di form
 		inputDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
+		// 1. Buat Jurnal Baru
 		const jurnal = await prisma.jurnalMengajar.create({
 			data: {
 				jadwalId: data.jadwalId,
-				tanggal: inputDate, // Sekarang akan tersimpan: YYYY-MM-DD HH:MM:SS
+				tanggal: inputDate,
 				waktuMulai: data.waktuMulai,
 				waktuSelesai: data.waktuSelesai,
 				materiBab: data.materi + (data.tujuan ? `\nTujuan: ${data.tujuan}` : ""),
@@ -53,6 +54,21 @@ export async function buatJurnalAction(data: {
 			},
 		});
 
+		// 2. LOGIKA BARU: Jika memenuhi syarat (Jam 2-9), langsung set semua siswa "Hadir"
+		if (data.isAutoHadir && data.siswaIds && data.siswaIds.length > 0) {
+			const presensiData = data.siswaIds.map((id) => ({
+				jurnalId: jurnal.id,
+				siswaId: id,
+				status: "H",
+				waktuScan: new Date(),
+			}));
+
+			await prisma.presensiSiswa.createMany({
+				data: presensiData,
+				skipDuplicates: true,
+			});
+		}
+
 		revalidatePath("/teacher/jurnal");
 		return { success: true, data: jurnal };
 	} catch (error) {
@@ -60,7 +76,6 @@ export async function buatJurnalAction(data: {
 	}
 }
 
-// Fungsi 2: Generate Token QR Presensi (QR Dinamis, Kode Manual Statis)
 export async function aktifkanPresensiQR(jurnalId: string) {
 	try {
 		const jurnal = await prisma.jurnalMengajar.findUnique({ where: { id: jurnalId } });
@@ -95,7 +110,6 @@ export async function aktifkanPresensiQR(jurnalId: string) {
 	}
 }
 
-// Fungsi 3: Simpan Presensi Manual
 export async function simpanPresensiManualAction(
 	jurnalId: string,
 	presensiData: { siswaId: string; status: string }[],
@@ -131,7 +145,6 @@ export async function simpanPresensiManualAction(
 	}
 }
 
-// Fungsi 4: Update/Edit Jurnal (Tanggal & Topik Materi)
 export async function updateJurnalAction(
 	jurnalId: string,
 	data: { tanggal: string; waktuMulai: string; waktuSelesai: string; materi: string },
@@ -139,7 +152,6 @@ export async function updateJurnalAction(
 	try {
 		const inputDate = new Date(data.tanggal);
 		const now = new Date();
-		// Saat diedit, jamnya juga akan otomatis ter-update ke jam edit terbaru
 		inputDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
 		await prisma.jurnalMengajar.update({
@@ -158,14 +170,10 @@ export async function updateJurnalAction(
 	}
 }
 
-// Fungsi 5: Tutup Presensi QR & Simpan Catatan KBM
 export async function tutupPresensiQR(jurnalId: string, catatan: string = "") {
 	try {
 		const updateData: any = { qrToken: null };
-
-		if (catatan.trim() !== "") {
-			updateData.catatan = catatan;
-		}
+		if (catatan.trim() !== "") updateData.catatan = catatan;
 
 		await prisma.jurnalMengajar.update({
 			where: { id: jurnalId },

@@ -57,11 +57,11 @@ export default function LoginPage() {
 					<img src="/logo.jpg" alt="Logo" style={{ height: "5rem", width: "5rem", objectFit: "contain" }} />
 				</div>
 				<h1 className={styles.brandTitle}>
-					E-Journal & Presensi
+					SMART E-Journal
 					<br />
 					SMAN 2 Brebes
 				</h1>
-				<p className={styles.brandSubtitle}>Sistem Akademik Digital</p>
+				<p className={styles.brandSubtitle}>Sistem Monitoring Akademik Terintegarsi</p>
 
 				<div className={styles.badgeContainer}>
 					<span className={styles.badge}>

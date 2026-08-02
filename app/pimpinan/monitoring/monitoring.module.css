@@ -631,3 +631,52 @@
 	page-break-before: always !important;
 	page-break-after: always !important;
 }
+
+/* ========================================================
+   TOAST NOTIFICATION (NOTIFIKASI MENGAMBANG)
+   ======================================================== */
+
+.toastContainer {
+	position: fixed;
+	bottom: 2rem;
+	right: 2rem;
+	background-color: #10b981; /* Warna hijau sukses */
+	color: #ffffff;
+	padding: 1rem 1.5rem;
+	border-radius: 0.5rem;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	box-shadow:
+		0 10px 15px -3px rgba(0, 0, 0, 0.1),
+		0 4px 6px -2px rgba(0, 0, 0, 0.05);
+	z-index: 9999;
+	animation: slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toastIcon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: rgba(255, 255, 255, 0.2);
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+}
+
+.toastText {
+	font-size: 0.875rem;
+	font-weight: 600;
+}
+
+/* Animasi muncul dari bawah */
+@keyframes slideUpFade {
+	0% {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}

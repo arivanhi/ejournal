@@ -1,6 +1,7 @@
+// app/pimpinan/dashboard/PimpinanDashboardClient.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
 	LayoutDashboard,
 	Users,
@@ -29,13 +30,12 @@ export default function PimpinanDashboardClient({
 	tingkatAbsensi,
 	peringatanJamKosong,
 	riwayatJurnal,
-	dataSiswaAbsen,
+	dataKehadiranSiswa = [],
 }: any) {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 10;
 
-	// State Modal Download PDF Harian
 	const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 	const [isDownloading, setIsDownloading] = useState(false);
 
@@ -50,9 +50,7 @@ export default function PimpinanDashboardClient({
 	const startIndex = (currentPage - 1) * itemsPerPage;
 	const currentItems = filteredJurnal.slice(startIndex, startIndex + itemsPerPage);
 
-	const handlePageChange = (page: number) => {
-		setCurrentPage(page);
-	};
+	const handlePageChange = (page: number) => setCurrentPage(page);
 
 	const todayObj = new Date();
 	const todayFormatted = todayObj.toLocaleDateString("id-ID", {
@@ -62,14 +60,41 @@ export default function PimpinanDashboardClient({
 		year: "numeric",
 	});
 
-	// Nama File Export
 	const safeTahun = tahunAjaran?.nama ? tahunAjaran.nama.replace(/\//g, "-") : "Unknown";
 	const dayStr = String(todayObj.getDate()).padStart(2, "0");
 	const monthStr = String(todayObj.getMonth() + 1).padStart(2, "0");
 	const yearStr = todayObj.getFullYear();
 	const pdfFilename = `${dayStr}_${monthStr}_${yearStr}_rekap_harian_(${safeTahun}).pdf`;
 
-	// --- FUNGSI EXPORT PDF HARIAN ---
+	const classNames = Array.from(new Set(dataKehadiranSiswa.map((s: any) => s.kelas))).sort() as string[];
+	const [activeClassTab, setActiveClassTab] = useState<string>("");
+
+	useEffect(() => {
+		if (classNames.length > 0 && !classNames.includes(activeClassTab)) {
+			setActiveClassTab(classNames[0]);
+		}
+	}, [classNames, activeClassTab]);
+
+	const filteredAbsenByClass = dataKehadiranSiswa.filter((s: any) => s.kelas === activeClassTab);
+
+	// --- FUNGSI FORMAT JAM SESI DARI JADWAL ---
+	const formatJamSesi = (jadwal: any) => {
+		let jamStart = jadwal?.waktuMulai?.trim() || "";
+		let jamEnd = jadwal?.waktuSelesai?.trim() || "";
+
+		if (jamStart === "-") jamStart = "";
+		if (jamEnd === "-") jamEnd = "";
+
+		if (jamStart && jamEnd && jamStart !== jamEnd) {
+			return `Jam ke ${jamStart}-${jamEnd}`;
+		} else if (jamStart) {
+			return `Jam ke ${jamStart}`;
+		} else if (jamEnd) {
+			return `Jam ke ${jamEnd}`;
+		}
+		return "-";
+	};
+
 	const handleDownloadPdf = async () => {
 		setIsDownloading(true);
 		try {
@@ -94,7 +119,6 @@ export default function PimpinanDashboardClient({
 		}
 	};
 
-	// KOMPONEN KOP SURAT (Agar bisa dipanggil berulang di setiap halaman)
 	const pdfHeader = (
 		<div
 			style={{
@@ -108,7 +132,7 @@ export default function PimpinanDashboardClient({
 		>
 			<img
 				src="/logo.jpg"
-				alt="Logo SMAN 2 Brebes"
+				alt="Logo"
 				style={{
 					position: "absolute",
 					left: "10px",
@@ -137,7 +161,6 @@ export default function PimpinanDashboardClient({
 
 	return (
 		<div className={styles.layoutWrapper}>
-			{/* === CONTAINER TERSEMBUNYI UNTUK EXPORT PDF A4 POTRAIT === */}
 			<div style={{ display: "none" }}>
 				<div
 					id="pdf-harian-container"
@@ -151,9 +174,7 @@ export default function PimpinanDashboardClient({
 						fontFamily: "Arial, sans-serif",
 					}}
 				>
-					{/* HALAMAN 1: KOP SURAT & RINGKASAN */}
 					{pdfHeader}
-
 					<div style={{ textAlign: "center", marginBottom: "20px" }}>
 						<h2 style={{ margin: 0, fontSize: "14pt", fontWeight: "bold", textTransform: "uppercase" }}>
 							REKAP LAPORAN HARI INI
@@ -180,7 +201,6 @@ export default function PimpinanDashboardClient({
 						</div>
 					</div>
 
-					{/* DAFTAR JAM KOSONG */}
 					<h3
 						style={{
 							fontSize: "12pt",
@@ -208,9 +228,7 @@ export default function PimpinanDashboardClient({
 								<th style={{ border: "1px solid #000", padding: "6px", width: "30%" }}>Nama Guru Pengampu</th>
 								<th style={{ border: "1px solid #000", padding: "6px", width: "35%" }}>Mata Pelajaran</th>
 								<th style={{ border: "1px solid #000", padding: "6px", width: "15%", textAlign: "center" }}>Kelas</th>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "15%", textAlign: "center" }}>
-									Sesi Ke-
-								</th>
+								<th style={{ border: "1px solid #000", padding: "6px", width: "15%", textAlign: "center" }}>Jam Ke-</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -234,7 +252,6 @@ export default function PimpinanDashboardClient({
 						</tbody>
 					</table>
 
-					{/* HALAMAN 2: DAFTAR SISWA ABSEN */}
 					<div className="html2pdf__page-break"></div>
 					{pdfHeader}
 					<h3
@@ -247,7 +264,7 @@ export default function PimpinanDashboardClient({
 							marginTop: "10px",
 						}}
 					>
-						B. Daftar Kehadrian Siswa (Sakit/Izin/Alpa)
+						B. Daftar Kehadiran Siswa (Semua Status)
 					</h3>
 					<table
 						style={{
@@ -263,26 +280,30 @@ export default function PimpinanDashboardClient({
 								<th style={{ border: "1px solid #000", padding: "6px", width: "5%", textAlign: "center" }}>No</th>
 								<th style={{ border: "1px solid #000", padding: "6px", width: "40%" }}>Nama Siswa</th>
 								<th style={{ border: "1px solid #000", padding: "6px", width: "20%", textAlign: "center" }}>Kelas</th>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "20%", textAlign: "center" }}>
-									Status Absen
-								</th>
+								<th style={{ border: "1px solid #000", padding: "6px", width: "20%", textAlign: "center" }}>Status</th>
 							</tr>
 						</thead>
 						<tbody>
-							{!dataSiswaAbsen || dataSiswaAbsen.length === 0 ? (
+							{!dataKehadiranSiswa || dataKehadiranSiswa.length === 0 ? (
 								<tr>
 									<td colSpan={4} style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-										Belum ada data siswa absen terekam hari ini.
+										Belum ada data kehadiran siswa hari ini.
 									</td>
 								</tr>
 							) : (
-								dataSiswaAbsen.map((siswa: any, i: number) => (
+								dataKehadiranSiswa.map((siswa: any, i: number) => (
 									<tr key={i}>
 										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{i + 1}</td>
 										<td style={{ border: "1px solid #000", padding: "6px" }}>{siswa.nama}</td>
 										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{siswa.kelas}</td>
 										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-											{siswa.status === "S" ? "Sakit" : siswa.status === "I" ? "Izin" : "Alpa"}
+											{siswa.status === "H"
+												? "Hadir"
+												: siswa.status === "S"
+													? "Sakit"
+													: siswa.status === "I"
+														? "Izin"
+														: "Alpa"}
 										</td>
 									</tr>
 								))
@@ -290,7 +311,6 @@ export default function PimpinanDashboardClient({
 						</tbody>
 					</table>
 
-					{/* HALAMAN 3: RIWAYAT JURNAL TERKUMPUL */}
 					<div className="html2pdf__page-break"></div>
 					{pdfHeader}
 					<h3
@@ -320,7 +340,7 @@ export default function PimpinanDashboardClient({
 								<th style={{ border: "1px solid #000", padding: "6px", width: "30%" }}>Nama Guru</th>
 								<th style={{ border: "1px solid #000", padding: "6px", width: "25%" }}>Mata Pelajaran</th>
 								<th style={{ border: "1px solid #000", padding: "6px", width: "20%", textAlign: "center" }}>
-									Kelas (Sesi)
+									Kelas (Jam Ke)
 								</th>
 								<th style={{ border: "1px solid #000", padding: "6px", width: "20%", textAlign: "center" }}>
 									Waktu Submit
@@ -340,9 +360,12 @@ export default function PimpinanDashboardClient({
 										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{i + 1}</td>
 										<td style={{ border: "1px solid #000", padding: "6px" }}>{jurnal.jadwal.guru.user.nama}</td>
 										<td style={{ border: "1px solid #000", padding: "6px" }}>{jurnal.jadwal.mapel.nama}</td>
+
+										{/* PERUBAHAN DI PDF: Memanggil helper formatJamSesi() */}
 										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-											{jurnal.jadwal.kelas.nama} ({jurnal.waktuMulai})
+											{jurnal.jadwal.kelas.nama} ({formatJamSesi(jurnal.jadwal)})
 										</td>
+
 										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
 											{new Date(jurnal.tanggal).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB
 										</td>
@@ -352,7 +375,6 @@ export default function PimpinanDashboardClient({
 						</tbody>
 					</table>
 
-					{/* TTD Pimpinan */}
 					<div style={{ textAlign: "right", marginTop: "40px" }}>
 						<p style={{ margin: 0, fontSize: "11pt" }}>Brebes, {todayFormatted}</p>
 						<p style={{ margin: "5px 0 50px 0", fontSize: "11pt" }}>Kepala Sekolah SMAN 2 Brebes</p>
@@ -362,7 +384,6 @@ export default function PimpinanDashboardClient({
 				</div>
 			</div>
 
-			{/* === MODAL PREVIEW PDF (UI) === */}
 			{isPdfModalOpen && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContainerLarge} style={{ maxWidth: "600px", height: "auto" }}>
@@ -379,7 +400,7 @@ export default function PimpinanDashboardClient({
 							</p>
 							<ul style={{ textAlign: "left", display: "inline-block", color: "#475569", fontSize: "0.875rem" }}>
 								<li>Daftar Kelas dengan Jam Kosong</li>
-								<li>Daftar Siswa Absen (Sakit/Izin/Alpa)</li>
+								<li>Daftar Kehadiran Siswa (Semua Status)</li>
 								<li>Riwayat Lengkap Jurnal Masuk Hari Ini</li>
 							</ul>
 						</div>
@@ -401,7 +422,6 @@ export default function PimpinanDashboardClient({
 				</div>
 			)}
 
-			{/* SIDEBAR PIMPINAN */}
 			<aside className={styles.sidebar}>
 				<div className={styles.sidebarHeader}>
 					<div className={styles.logoWrapper}>
@@ -441,9 +461,7 @@ export default function PimpinanDashboardClient({
 				</div>
 			</aside>
 
-			{/* MAIN CONTENT */}
 			<main className={styles.mainContent}>
-				{/* TOPBAR */}
 				<header className={styles.topbar}>
 					<div>
 						<h1 className={styles.topbarTitle}>E-Journal & Presensi</h1>
@@ -463,7 +481,6 @@ export default function PimpinanDashboardClient({
 				</header>
 
 				<div className={styles.dashboardContainer}>
-					{/* SECTION: RINGKASAN HARI INI */}
 					<div className={styles.sectionHeader}>
 						<div>
 							<h2 className={styles.sectionTitle}>Ringkasan Hari Ini</h2>
@@ -476,9 +493,7 @@ export default function PimpinanDashboardClient({
 						</div>
 					</div>
 
-					{/* SUMMARY CARDS */}
 					<div className={styles.summaryGrid}>
-						{/* Card 1: Absen */}
 						<div className={styles.summaryCard}>
 							<div className={styles.cardTop}>
 								<div className={styles.iconWrapperRed}>
@@ -496,7 +511,6 @@ export default function PimpinanDashboardClient({
 							</div>
 						</div>
 
-						{/* Card 2: Jam Kosong */}
 						<div className={styles.summaryCard}>
 							<div className={styles.cardTop}>
 								<div className={styles.iconWrapperYellow}>
@@ -512,7 +526,6 @@ export default function PimpinanDashboardClient({
 							<div className={styles.cardDesc}>Membutuhkan perhatian segera</div>
 						</div>
 
-						{/* Card 3: Jurnal Terkumpul */}
 						<div className={styles.summaryCard}>
 							<div className={styles.cardTop}>
 								<div className={styles.iconWrapperBlue}>
@@ -542,9 +555,7 @@ export default function PimpinanDashboardClient({
 						</div>
 					</div>
 
-					{/* ALERTS & CHART ROW */}
 					<div className={styles.twoColGrid}>
-						{/* Peringatan Jam Kosong */}
 						<div className={styles.boxCard}>
 							<div className={styles.boxHeader}>
 								<div className={styles.boxTitle}>
@@ -563,7 +574,7 @@ export default function PimpinanDashboardClient({
 											<div className={styles.alertJamBox}>
 												Jam
 												<br />
-												<strong>{alert.jam.split(":")[0]}</strong>
+												<strong>{alert.jam}</strong>
 											</div>
 											<div className={styles.alertInfo}>
 												<div className={styles.alertClass}>
@@ -582,7 +593,6 @@ export default function PimpinanDashboardClient({
 							</div>
 						</div>
 
-						{/* Tingkat Absensi Tertinggi */}
 						<div className={styles.boxCard}>
 							<div className={styles.boxHeader}>
 								<div className={styles.boxTitle} style={{ color: "#0f172a" }}>
@@ -611,11 +621,121 @@ export default function PimpinanDashboardClient({
 									))
 								)}
 							</div>
-							<p className={styles.chartFootnote}>Berdasarkan data presensi sesi 1-3 hari ini.</p>
+							<p className={styles.chartFootnote}>Berdasarkan data presensi jurnal terkirim hari ini.</p>
 						</div>
 					</div>
 
-					{/* TABLE: RIWAYAT JURNAL GURU */}
+					<div className={styles.boxCard} style={{ marginTop: "1.5rem" }}>
+						<div className={styles.boxHeader}>
+							<div className={styles.boxTitle} style={{ color: "#0f172a", fontSize: "1.1rem" }}>
+								<Users
+									size={20}
+									color="#3b82f6"
+									style={{ marginRight: "0.5rem", display: "inline-block", verticalAlign: "text-bottom" }}
+								/>
+								Tabel Kehadiran Siswa Hari Ini
+							</div>
+						</div>
+
+						{classNames.length === 0 ? (
+							<div className={styles.emptyText} style={{ padding: "2rem", textAlign: "center" }}>
+								Belum ada data kehadiran siswa yang dilaporkan hari ini.
+							</div>
+						) : (
+							<>
+								<div
+									style={{
+										display: "flex",
+										gap: "0.5rem",
+										borderBottom: "1px solid #e2e8f0",
+										paddingBottom: "1rem",
+										marginBottom: "1rem",
+										overflowX: "auto",
+										scrollbarWidth: "none",
+									}}
+								>
+									{classNames.map((cls) => (
+										<button
+											key={cls}
+											onClick={() => setActiveClassTab(cls)}
+											style={{
+												padding: "0.5rem 1rem",
+												borderRadius: "0.5rem",
+												backgroundColor: activeClassTab === cls ? "#0b1c36" : "#f8fafc",
+												color: activeClassTab === cls ? "#ffffff" : "#475569",
+												fontWeight: activeClassTab === cls ? "600" : "500",
+												border: activeClassTab === cls ? "1px solid #0b1c36" : "1px solid #e2e8f0",
+												cursor: "pointer",
+												whiteSpace: "nowrap",
+												transition: "all 0.2s ease",
+											}}
+										>
+											{cls}
+										</button>
+									))}
+								</div>
+
+								<div className={styles.tableWrapper}>
+									<table className={styles.dataTable}>
+										<thead>
+											<tr>
+												<th style={{ width: "5%" }}>NO</th>
+												<th style={{ width: "40%" }}>NAMA SISWA</th>
+												<th style={{ width: "35%" }}>MATA PELAJARAN (JURNAL)</th>
+												<th style={{ width: "20%", textAlign: "center" }}>STATUS</th>
+											</tr>
+										</thead>
+										<tbody>
+											{filteredAbsenByClass.map((siswa: any, idx: number) => (
+												<tr key={idx}>
+													<td style={{ textAlign: "center" }}>{idx + 1}</td>
+													<td style={{ fontWeight: 500 }}>{siswa.nama}</td>
+													<td style={{ color: "#64748b" }}>{siswa.mapel}</td>
+													<td style={{ textAlign: "center" }}>
+														<span
+															style={{
+																padding: "0.35rem 0.85rem",
+																borderRadius: "9999px",
+																fontSize: "0.8rem",
+																fontWeight: 600,
+																display: "inline-block",
+																backgroundColor:
+																	siswa.status === "H"
+																		? "#dcfce7"
+																		: siswa.status === "S"
+																			? "#fef3c7"
+																			: siswa.status === "I"
+																				? "#e0f2fe"
+																				: "#fee2e2",
+																color:
+																	siswa.status === "H"
+																		? "#16a34a"
+																		: siswa.status === "S"
+																			? "#d97706"
+																			: siswa.status === "I"
+																				? "#0284c7"
+																				: "#dc2626",
+																border: `1px solid ${siswa.status === "H" ? "#bbf7d0" : siswa.status === "S" ? "#fde68a" : siswa.status === "I" ? "#bae6fd" : "#fecaca"}`,
+															}}
+														>
+															{siswa.status === "H"
+																? "Hadir"
+																: siswa.status === "S"
+																	? "Sakit"
+																	: siswa.status === "I"
+																		? "Izin"
+																		: "Alpa"}
+														</span>
+													</td>
+												</tr>
+											))}
+										</tbody>
+									</table>
+								</div>
+							</>
+						)}
+					</div>
+
 					<div className={styles.boxCard} style={{ marginTop: "1.5rem" }}>
 						<div className={styles.boxHeader}>
 							<div className={styles.boxTitle} style={{ color: "#0f172a", fontSize: "1.25rem" }}>
@@ -668,9 +788,13 @@ export default function PimpinanDashboardClient({
 													</div>
 												</td>
 												<td style={{ color: "#64748b" }}>{jurnal.jadwal.mapel.nama}</td>
+
+												{/* PERUBAHAN DI UI WEB: Memanggil helper formatJamSesi() */}
 												<td>
-													{jurnal.jadwal.kelas.nama} <span className={styles.badgeSesi}>{jurnal.waktuMulai}</span>
+													{jurnal.jadwal.kelas.nama}{" "}
+													<span className={styles.badgeSesi}>{formatJamSesi(jurnal.jadwal)}</span>
 												</td>
+
 												<td>
 													<span className={styles.badgeGreen}>
 														<CheckCircle2 size={12} /> Lengkap
@@ -687,7 +811,6 @@ export default function PimpinanDashboardClient({
 							</table>
 						</div>
 
-						{/* Paginasi Real */}
 						<div className={styles.pagination}>
 							<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
 								Menampilkan {filteredJurnal.length === 0 ? 0 : startIndex + 1}-

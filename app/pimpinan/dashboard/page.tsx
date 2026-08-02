@@ -1,3 +1,4 @@
+// app/pimpinan/dashboard/page.tsx
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -39,12 +40,16 @@ export default async function PimpinanDashboard() {
 			})
 		: [];
 
-	// 2. Ambil Semua Jurnal Hari Ini
+	// 2. Ambil Semua Jurnal Hari Ini (Sertakan detail Siswa untuk absensi)
 	const jurnalHariIni = await prisma.jurnalMengajar.findMany({
 		where: { tanggal: { gte: startOfDay, lt: endOfDay } },
 		include: {
 			jadwal: { include: { mapel: true, kelas: true, guru: { include: { user: true } } } },
-			presensi: true,
+			presensi: {
+				include: {
+					siswa: { include: { user: true } },
+				},
+			},
 		},
 		orderBy: { waktuMulai: "desc" },
 	});
@@ -53,52 +58,60 @@ export default async function PimpinanDashboard() {
 	const totalJadwal = jadwalHariIni.length;
 	const terkumpul = jurnalHariIni.length;
 
-	// 4. Kalkulasi: Total Siswa Absen (A, I, S)
+	// 4. Kalkulasi: Total Siswa Absen & Rekapitulasi SELURUH Kehadiran Siswa
 	let totalSiswaAbsen = 0;
 	const absenPerKelas: Record<string, number> = {};
+	const dataKehadiranSiswa: any[] = []; // <-- Menyimpan Hadir, Sakit, Izin, Alpa
 
 	jurnalHariIni.forEach((jurnal) => {
-		const absenDiJurnalIni = jurnal.presensi.filter((p) => ["A", "I", "S"].includes(p.status));
-		totalSiswaAbsen += absenDiJurnalIni.length;
-
 		const namaKelas = jurnal.jadwal.kelas.nama;
 		if (!absenPerKelas[namaKelas]) absenPerKelas[namaKelas] = 0;
-		absenPerKelas[namaKelas] += absenDiJurnalIni.length;
+
+		jurnal.presensi.forEach((p) => {
+			// Hanya hitung angka statistik untuk yang bolos/izin
+			if (["A", "I", "S"].includes(p.status)) {
+				totalSiswaAbsen++;
+				absenPerKelas[namaKelas]++;
+			}
+
+			// Namun masukkan SEMUA siswa ke dalam tabel kehadiran
+			dataKehadiranSiswa.push({
+				nama: p.siswa.user.nama,
+				kelas: namaKelas,
+				status: p.status, // "H", "S", "I", "A"
+				mapel: jurnal.jadwal.mapel.nama,
+			});
+		});
 	});
 
-	// Urutkan Tingkat Absensi Tertinggi
+	// Urutkan Tingkat Absensi Tertinggi (Statistik)
 	const tingkatAbsensiTertinggi = Object.entries(absenPerKelas)
-		.map(([kelas, jumlah]) => ({ kelas, jumlah, persentase: Math.min(Math.round((jumlah / 36) * 100), 100) })) // Asumsi 1 kelas 36 siswa sbg persentase kasar
+		.map(([kelas, jumlah]) => ({ kelas, jumlah, persentase: Math.min(Math.round((jumlah / 36) * 100), 100) }))
 		.sort((a, b) => b.jumlah - a.jumlah)
 		.slice(0, 4);
 
-	// 5. Kalkulasi: Peringatan Jam Kosong (Jadwal hari ini yang belum ada jurnalnya)
+	// 5. Kalkulasi: Peringatan Jam Kosong
 	const jadwalTerkumpulIds = jurnalHariIni.map((j) => j.jadwalId);
 	let jamKosongCount = 0;
 	const peringatanJamKosong: any[] = [];
-
-	const currentTimeMinutes = today.getHours() * 60 + today.getMinutes();
 
 	jadwalHariIni.forEach((jadwal) => {
 		if (!jadwalTerkumpulIds.includes(jadwal.id)) {
 			jamKosongCount++;
 
-			// Cek apakah sudah terlambat (asumsi waktuMulai format "07:00")
-			let status = "Belum Dikonfirmasi";
-			if (jadwal.waktuMulai) {
-				const [h, m] = jadwal.waktuMulai.split(":");
-				const startMins = parseInt(h) * 60 + parseInt(m);
-				if (currentTimeMinutes > startMins + 15) {
-					status = "Belum Mulai (Telat 15m+)";
-				}
+			// Logika format jam yang kebal terhadap isi database yang kosong / strip "-"
+			let jamSesi = jadwal.waktuMulai && jadwal.waktuMulai !== "-" ? jadwal.waktuMulai : "";
+			if (jadwal.waktuSelesai && jadwal.waktuSelesai !== "-" && jadwal.waktuSelesai !== jadwal.waktuMulai) {
+				jamSesi = jamSesi ? `${jamSesi}-${jadwal.waktuSelesai}` : jadwal.waktuSelesai;
 			}
+			if (!jamSesi) jamSesi = "-"; // Fallback terakhir jika database benar-benar hanya berisi "-"
 
 			peringatanJamKosong.push({
-				jam: jadwal.waktuMulai || "-",
+				jam: jamSesi,
 				mapel: jadwal.mapel.nama,
 				kelas: jadwal.kelas.nama,
 				guru: jadwal.guru.user.nama,
-				status: status,
+				status: "Belum Dikonfirmasi",
 			});
 		}
 	});
@@ -114,8 +127,9 @@ export default async function PimpinanDashboard() {
 				totalJadwalTarget: totalJadwal,
 			}}
 			tingkatAbsensi={tingkatAbsensiTertinggi}
-			peringatanJamKosong={peringatanJamKosong.slice(0, 3)} // Ambil 3 teratas
-			riwayatJurnal={jurnalHariIni} // Kirim jurnal real
+			peringatanJamKosong={peringatanJamKosong.slice(0, 3)}
+			riwayatJurnal={jurnalHariIni}
+			dataKehadiranSiswa={dataKehadiranSiswa}
 		/>
 	);
 }

@@ -1,3 +1,4 @@
+// app/pimpinan/jurnal/page.tsx
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -16,15 +17,10 @@ function getInitials(fullName: string) {
 	return "G";
 }
 
-// Fungsi Parser Pintar: Memastikan hanya mengambil angka sesi
 const parseSesi = (val: any) => {
 	if (val === null || val === undefined) return null;
 	const strVal = String(val).trim();
-
-	// Jika mengandung titik dua (:), ini adalah format jam asli, abaikan
 	if (strVal.includes(":")) return null;
-
-	// Tarik angka murni
 	const match = strVal.match(/\d+/);
 	if (match) {
 		const num = Number(match[0]);
@@ -51,7 +47,16 @@ export default async function JurnalPage() {
 
 	const semuaJadwal = await prisma.jadwalPelajaran.findMany({
 		include: {
-			kelas: { include: { riwayatSiswa: true } },
+			// PERBAIKAN: Menarik relasi siswa dan user agar namanya muncul
+			kelas: {
+				include: {
+					riwayatSiswa: {
+						include: {
+							siswa: { include: { user: true } },
+						},
+					},
+				},
+			},
 			mapel: true,
 			guru: { include: { user: true } },
 		},
@@ -70,6 +75,9 @@ export default async function JurnalPage() {
 	semuaJadwal.forEach((jadwal) => {
 		const key = `${jadwal.kelasId}_${jadwal.mapelId}_${jadwal.guruId}_${jadwal.tahunAjaranId}`;
 		if (!groups[key]) {
+			// Filter siswa yang aktif di tahun ajaran ini pada kelas ini
+			const muridDiKelas = jadwal.kelas.riwayatSiswa.filter((rs) => rs.tahunAjaranId === jadwal.tahunAjaranId);
+
 			groups[key] = {
 				id: key,
 				tahunAjaranAsli: semuaTahunAjaran.find((t) => t.id === jadwal.tahunAjaranId)?.nama || "Unknown",
@@ -77,7 +85,9 @@ export default async function JurnalPage() {
 				mapelNama: jadwal.mapel.nama,
 				kelasNama: jadwal.kelas.nama,
 				guruNama: jadwal.guru.user.nama,
-				totalSiswa: jadwal.kelas.riwayatSiswa.filter((rs) => rs.tahunAjaranId === jadwal.tahunAjaranId).length,
+				guruNpp: jadwal.guru.npp || "-", // PERBAIKAN: Memasukkan NPP
+				totalSiswa: muridDiKelas.length,
+				muridAktif: muridDiKelas, // Simpan daftar murid untuk diolah nanti
 				jadwalList: [],
 				jurnals: [],
 			};
@@ -104,7 +114,6 @@ export default async function JurnalPage() {
 		g.jurnals.forEach((j: any) => (totalHadir += j.hadirSiswa));
 		const totalPotensiHadir = terisi * g.totalSiswa;
 		const persentaseKehadiran = totalPotensiHadir > 0 ? Math.round((totalHadir / totalPotensiHadir) * 100) : 0;
-
 		const ketercapaian = targetSesi > 0 ? Math.min(Math.round((terisi / targetSesi) * 100), 100) : 0;
 
 		const HARI_MAP: Record<number, string> = {
@@ -138,7 +147,6 @@ export default async function JurnalPage() {
 				const minJam = jams[0];
 				const maxJam = jams[jams.length - 1];
 				const jamStr = minJam === maxJam ? `Jam ke-${minJam}` : `Jam ke ${minJam}-${maxJam}`;
-
 				const namaHari = HARI_MAP[i] || "Hari ?";
 				const formattedStr = `${namaHari}, ${jamStr}`;
 				if (!formattedJadwalArr.includes(formattedStr)) {
@@ -149,19 +157,51 @@ export default async function JurnalPage() {
 
 		const jadwalTextFinal = formattedJadwalArr.length > 0 ? formattedJadwalArr.join(" | ") : "Jadwal belum diset";
 
-		// PERBAIKAN: Menarik materiBab, catatan, memetakan status, dan mengurutkan secara logis
 		const detailSesi = g.jurnals
-			.sort((a: any, b: any) => a.tanggal.getTime() - b.tanggal.getTime()) // Urutkan tanggal dari lama ke baru
+			.sort((a: any, b: any) => a.tanggal.getTime() - b.tanggal.getTime())
 			.map((j: any, idx: number) => ({
 				id: j.id,
 				pertemuanKe: idx + 1,
 				tanggal: j.tanggal.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
 				tanggalRaw: j.tanggal.getTime(),
-				topik: j.materiBab || "-", // Membaca kolom materiBab
-				catatan: j.catatan || "-", // Membaca kolom catatan
+				topik: j.materiBab || "-",
+				catatan: j.catatan || "-",
 				hadir: j.hadirSiswa,
-				status: j.status === "SUBMITTED" ? "TERKIRIM" : "DRAFT", // Memetakan Status
+				status: j.status === "SUBMITTED" ? "TERKIRIM" : "DRAFT",
 			}));
+
+		// PERBAIKAN: Membangun Data Rekapitulasi Kehadiran Siswa
+		const siswaList = g.muridAktif.map((muridObj: any) => {
+			let H = 0,
+				S = 0,
+				I = 0,
+				A = 0;
+			// Loop ke semua jurnal (pertemuan) di mapel ini
+			g.jurnals.forEach((jurnal: any) => {
+				// Cari status presensi murid ini di jurnal tersebut
+				const presensiMurid = jurnal.presensi.find((p: any) => p.siswaId === muridObj.siswa.id);
+				if (presensiMurid) {
+					if (presensiMurid.status === "H") H++;
+					else if (presensiMurid.status === "S") S++;
+					else if (presensiMurid.status === "I") I++;
+					else if (presensiMurid.status === "A") A++;
+				}
+			});
+
+			const totalAbsenTercatat = H + S + I + A;
+			const persentase = totalAbsenTercatat > 0 ? Math.round((H / totalAbsenTercatat) * 100) : 0;
+
+			return {
+				id: muridObj.siswa.id,
+				nama: muridObj.siswa.user.nama,
+				nisn: muridObj.siswa.nisn || "-",
+				detailKehadiran: { H, S, I, A },
+				persentase,
+			};
+		});
+
+		// Urutkan siswa berdasarkan abjad (nama)
+		siswaList.sort((a: any, b: any) => a.nama.localeCompare(b.nama));
 
 		riwayatJurnalData.push({
 			id: g.id,
@@ -169,8 +209,10 @@ export default async function JurnalPage() {
 			mapelNama: g.mapelNama,
 			kelasNama: g.kelasNama,
 			guruNama: g.guruNama,
+			guruNpp: g.guruNpp, // Dikirim ke Client
 			guruInitials: getInitials(g.guruNama),
 			totalSiswa: g.totalSiswa,
+			siswaList, // Dikirim ke Client
 			jadwalText: jadwalTextFinal,
 			terisi,
 			targetSesi,
