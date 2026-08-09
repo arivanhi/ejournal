@@ -204,6 +204,7 @@ model JurnalMengajar {
   tanggal    DateTime        @default(now())
   materiBab  String?         @db.Text
   catatan    String?         @db.Text
+  tugas      String?         @db.Text
   status     JurnalStatus    @default(DRAFT)
   waktuMulai   String?  // <-- TAMBAHKAN INI
   waktuSelesai String?  // <-- TAMBAHKAN INI
@@ -225,7 +226,8 @@ model PresensiSiswa {
   siswaId    String
   status     StatusHadir  @default(A)
   waktuScan  DateTime?    // Null jika dia absen manual oleh guru (bukan scan QR)
-  
+  nilaiTugas Int?         // <-- TAMBAHAN BARU
+  alasanIzin String?      // <-- Alasan izin jika status Izin
   jurnal     JurnalMengajar @relation(fields: [jurnalId], references: [id], onDelete: Cascade)
   siswa      Siswa          @relation(fields: [siswaId], references: [id], onDelete: Cascade)
 

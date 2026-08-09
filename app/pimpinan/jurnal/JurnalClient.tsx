@@ -50,6 +50,10 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 	const [isBulkExportModalOpen, setIsBulkExportModalOpen] = useState(false);
 	const [selectedExportItems, setSelectedExportItems] = useState<string[]>([]);
 
+	// State Modal Nilai
+	const [isNilaiModalOpen, setIsNilaiModalOpen] = useState(false);
+	const [selectedSesiModal, setSelectedSesiModal] = useState<any>(null);
+
 	const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 	const [pdfItemsData, setPdfItemsData] = useState<any[]>([]);
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -652,6 +656,78 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 									<p style={{ margin: 0, fontSize: "10pt" }}>NIP/NPP: {user.username || "-"}</p>
 								</div>
 
+								<div className="html2pdf__page-break"></div>
+
+								{/* HALAMAN TAMBAHAN: REKAPITULASI NILAI TUGAS */}
+								{pdfHeader}
+								<h3 className={styles.pdfSectionTitle} style={{ marginTop: "2rem" }}>
+									D. REKAPITULASI NILAI TUGAS
+								</h3>
+								{(() => {
+									const jurnalTugas = dataItem.detailSesi.filter((j: any) => j.tugas && j.tugas.trim() !== "");
+									if (jurnalTugas.length === 0) {
+										return <p style={{ fontSize: "10pt" }}>Tidak ada tugas yang diberikan pada periode ini.</p>;
+									}
+
+									const sortedSiswa = [...dataItem.siswaList].sort((a: any, b: any) =>
+										a.nama.localeCompare(b.nama),
+									);
+
+									return (
+										<>
+											<p style={{ fontSize: "10pt", marginBottom: "10px" }}>
+												<em>*Daftar Tugas:</em><br />
+												{jurnalTugas.map((t: any, i: number) => (
+													<span key={t.id}>
+														<strong>T{i + 1}:</strong> {t.tugas} ({t.tanggal})<br />
+													</span>
+												))}
+											</p>
+											<table className={styles.pdfTable} style={{ fontSize: "9pt", width: "100%", borderCollapse: "collapse" }}>
+												<thead>
+													<tr>
+														<th style={{ width: "5%", border: "1px solid #000", padding: "6px", backgroundColor: "#f1f5f9" }}>No.</th>
+														<th style={{ width: "25%", border: "1px solid #000", padding: "6px", backgroundColor: "#f1f5f9" }}>Nama Siswa</th>
+														<th style={{ width: "10%", border: "1px solid #000", padding: "6px", backgroundColor: "#f1f5f9" }}>NIS</th>
+														{jurnalTugas.map((t: any, i: number) => (
+															<th key={t.id} style={{ textAlign: "center", border: "1px solid #000", padding: "6px", backgroundColor: "#f1f5f9" }}>T{i + 1}</th>
+														))}
+														<th style={{ width: "10%", textAlign: "center", border: "1px solid #000", padding: "6px", backgroundColor: "#f1f5f9" }}>Rata-rata</th>
+													</tr>
+												</thead>
+												<tbody>
+													{sortedSiswa.map((siswa: any, idx: number) => {
+														let totalNilai = 0, countTugas = 0;
+														return (
+															<tr key={siswa.id}>
+																<td style={{ textAlign: "center", border: "1px solid #000", padding: "4px" }}>{idx + 1}</td>
+																<td style={{ border: "1px solid #000", padding: "4px" }}>{siswa.nama}</td>
+																<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{siswa.nis}</td>
+																{jurnalTugas.map((t: any) => {
+																	const absen = t.presensi?.find((p: any) => p.siswaId === siswa.id);
+																	const nilai = absen?.nilaiTugas;
+																	if (nilai !== null && nilai !== undefined) {
+																		totalNilai += nilai;
+																		countTugas++;
+																	}
+																	return (
+																		<td key={t.id} style={{ textAlign: "center", border: "1px solid #000", padding: "4px" }}>
+																			{nilai !== null && nilai !== undefined ? nilai : "-"}
+																		</td>
+																	);
+																})}
+																<td style={{ textAlign: "center", fontWeight: "bold", border: "1px solid #000", padding: "4px" }}>
+																	{countTugas > 0 ? Math.round(totalNilai / countTugas) : "-"}
+																</td>
+															</tr>
+														);
+													})}
+												</tbody>
+											</table>
+										</>
+									);
+								})()}
+
 								{index < pdfItemsData.length - 1 && <div className="html2pdf__page-break"></div>}
 							</div>
 						))}
@@ -1154,8 +1230,10 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 													>
 														Tanggal{renderSortIcon("tanggalRaw")}
 													</th>
-													<th style={{ width: "20%" }}>Materi / Topik</th>
-													<th style={{ width: "25%" }}>Catatan KBM</th>
+													<th style={{ width: "12%" }}>Materi / Topik</th>
+													<th style={{ width: "18%" }}>Catatan KBM</th>
+													<th style={{ width: "15%" }}>Topik Tugas</th>
+													<th style={{ textAlign: "center", width: "10%" }}>Rata Nilai Tugas</th>
 													<th style={{ textAlign: "center", width: "10%" }}>Hadir</th>
 													<th
 														style={{ textAlign: "center", cursor: "pointer", userSelect: "none", width: "15%" }}
@@ -1174,7 +1252,15 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 													</tr>
 												) : (
 													paginatedSesi.map((sesi: any) => (
-														<tr key={sesi.id}>
+														<tr
+															key={sesi.id}
+															onClick={() => {
+																setSelectedSesiModal(sesi);
+																setIsNilaiModalOpen(true);
+															}}
+															style={{ cursor: "pointer" }}
+															className={styles.clickableRow}
+														>
 															<td className={styles.tdBold}>{String(sesi.pertemuanKe).padStart(2, "0")}</td>
 															<td className={styles.tdGray}>{sesi.tanggal}</td>
 															<td>
@@ -1184,6 +1270,14 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 																<div style={{ color: "#475569", fontSize: "0.875rem", lineHeight: "1.4" }}>
 																	{sesi.catatan}
 																</div>
+															</td>
+															<td>
+																<div className={styles.topikTitle} style={{ color: "#0f172a" }}>
+																	{sesi.tugas || "-"}
+																</div>
+															</td>
+															<td className={styles.tdBoldCenter} style={{ color: "#334155" }}>
+																{sesi.rataNilaiTugas !== null && sesi.rataNilaiTugas !== undefined ? sesi.rataNilaiTugas : "-"}
 															</td>
 															<td className={styles.tdBoldCenter}>
 																{sesi.hadir} <span className={styles.tdGray}>/{selectedItem.totalSiswa}</span>
@@ -1365,6 +1459,66 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 					</div>
 				)}
 			</main>
+			{/* MODAL DETAIL NILAI SISWA */}
+			{isNilaiModalOpen && selectedSesiModal && (
+				<div className={styles.modalOverlay}>
+					<div className={styles.modalContainer} style={{ maxWidth: "600px", width: "95%" }}>
+						<div className={styles.modalHeader}>
+							<h3 className={styles.modalTitle}>Detail Nilai Tugas (Pertemuan {selectedSesiModal.pertemuanKe})</h3>
+							<button
+								className={styles.modalCloseBtn}
+								onClick={() => {
+									setIsNilaiModalOpen(false);
+									setSelectedSesiModal(null);
+								}}
+							>
+								<X size={20} />
+							</button>
+						</div>
+						<div className={styles.modalBody}>
+							<div style={{ marginBottom: "1rem", backgroundColor: "#f8fafc", padding: "1rem", borderRadius: "0.5rem" }}>
+								<div style={{ fontSize: "0.875rem", color: "#64748b", marginBottom: "0.25rem" }}>Topik Tugas:</div>
+								<div style={{ fontWeight: 600, color: "#0f172a" }}>{selectedSesiModal.tugas || "-"}</div>
+							</div>
+							
+							<div style={{ maxHeight: "60vh", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "0.5rem" }}>
+								<table className={styles.dataTable} style={{ margin: 0, width: "100%" }}>
+									<thead style={{ position: "sticky", top: 0, backgroundColor: "#f1f5f9", zIndex: 1 }}>
+										<tr>
+											<th style={{ width: "10%", padding: "0.75rem", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>No</th>
+											<th style={{ width: "50%", padding: "0.75rem", textAlign: "left", borderBottom: "1px solid #e2e8f0" }}>Nama Siswa</th>
+											<th style={{ width: "20%", padding: "0.75rem", textAlign: "left", borderBottom: "1px solid #e2e8f0" }}>NISN</th>
+											<th style={{ width: "20%", padding: "0.75rem", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>Nilai</th>
+										</tr>
+									</thead>
+									<tbody>
+										{(() => {
+											const sortedSiswa = [...selectedItem.siswaList].sort((a: any, b: any) =>
+												a.nama.localeCompare(b.nama),
+											);
+
+											return sortedSiswa.map((siswa: any, idx: number) => {
+												const absen = selectedSesiModal.presensi?.find((p: any) => p.siswaId === siswa.id);
+												const nilai = absen?.nilaiTugas;
+												return (
+													<tr key={siswa.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+														<td style={{ padding: "0.75rem", textAlign: "center" }}>{idx + 1}</td>
+														<td style={{ padding: "0.75rem", fontWeight: 500, color: "#1e293b" }}>{siswa.nama}</td>
+														<td style={{ padding: "0.75rem", color: "#64748b" }}>{siswa.nisn}</td>
+														<td style={{ padding: "0.75rem", textAlign: "center", fontWeight: "bold", color: "#0f172a" }}>
+															{nilai !== null && nilai !== undefined ? nilai : "-"}
+														</td>
+													</tr>
+												);
+											});
+										})()}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

@@ -38,19 +38,16 @@ export default async function ReportPage() {
 		const jadwalTaIni = semuaJadwal.filter((j) => j.tahunAjaranId === ta.id);
 
 		// --- 1. Kalkulasi Top Guru Jam Kosong ---
-		const guruStats: Record<string, { nama: string; mapel: string; totalSesi: number; terisi: number }> = {};
+		const guruStats: Record<string, { nama: string; mapel: string; kelas: string; totalSesi: number; terisi: number }> = {};
 		jadwalTaIni.forEach((j) => {
-			if (!guruStats[j.guruId]) {
-				guruStats[j.guruId] = { nama: j.guru.user.nama, mapel: j.mapel.nama, totalSesi: 16, terisi: 0 };
-			} else {
-				guruStats[j.guruId].totalSesi += 16;
+			if (!guruStats[j.id]) {
+				guruStats[j.id] = { nama: j.guru.user.nama, mapel: j.mapel.nama, kelas: j.kelas.nama, totalSesi: 16, terisi: 0 };
 			}
 		});
 
 		semuaJurnal.forEach((jur) => {
-			const jadwalRef = jadwalTaIni.find((j) => j.id === jur.jadwalId);
-			if (jadwalRef && guruStats[jadwalRef.guruId]) {
-				guruStats[jadwalRef.guruId].terisi += 1;
+			if (guruStats[jur.jadwalId]) {
+				guruStats[jur.jadwalId].terisi += 1;
 			}
 		});
 

@@ -13,6 +13,7 @@ export async function buatJurnalAction(data: {
 	materi: string;
 	tujuan: string;
 	catatan: string;
+	tugas: string;
 	isAutoHadir: boolean; // Parameter baru: Apakah jam 2-9?
 	siswaIds: string[]; // Parameter baru: Daftar ID siswa di kelas
 }) {
@@ -50,6 +51,7 @@ export async function buatJurnalAction(data: {
 				waktuSelesai: data.waktuSelesai,
 				materiBab: data.materi + (data.tujuan ? `\nTujuan: ${data.tujuan}` : ""),
 				catatan: data.catatan,
+				tugas: data.tugas,
 				status: "SUBMITTED",
 			},
 		});
@@ -112,7 +114,7 @@ export async function aktifkanPresensiQR(jurnalId: string) {
 
 export async function simpanPresensiManualAction(
 	jurnalId: string,
-	presensiData: { siswaId: string; status: string }[],
+	presensiData: { siswaId: string; status: string; nilaiTugas?: number; alasanIzin?: string }[],
 ) {
 	try {
 		for (const data of presensiData) {
@@ -123,15 +125,17 @@ export async function simpanPresensiManualAction(
 			if (existing) {
 				await prisma.presensiSiswa.update({
 					where: { id: existing.id },
-					data: { status: data.status },
+					data: { status: data.status, nilaiTugas: data.nilaiTugas, alasanIzin: data.alasanIzin },
 				});
 			} else {
 				await prisma.presensiSiswa.create({
 					data: {
 						jurnalId: jurnalId,
 						siswaId: data.siswaId,
-						status: data.status,
+						status: data.status as any,
 						waktuScan: new Date(),
+						nilaiTugas: data.nilaiTugas,
+						alasanIzin: data.alasanIzin,
 					},
 				});
 			}
@@ -147,7 +151,7 @@ export async function simpanPresensiManualAction(
 
 export async function updateJurnalAction(
 	jurnalId: string,
-	data: { tanggal: string; waktuMulai: string; waktuSelesai: string; materi: string },
+	data: { tanggal: string; waktuMulai: string; waktuSelesai: string; materi: string; tugas: string },
 ) {
 	try {
 		const inputDate = new Date(data.tanggal);
@@ -161,6 +165,7 @@ export async function updateJurnalAction(
 				waktuMulai: data.waktuMulai,
 				waktuSelesai: data.waktuSelesai,
 				materiBab: data.materi,
+				tugas: data.tugas,
 			},
 		});
 		revalidatePath("/teacher/jurnal");

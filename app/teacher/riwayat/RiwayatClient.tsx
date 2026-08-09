@@ -43,64 +43,49 @@ export default function RiwayatClient({
 
 	// Filter State
 	const [selectedTahunId, setSelectedTahunId] = useState<string>(tahunAjaranList.find((t) => t.isActive)?.id || "");
-	const [selectedSemester, setSelectedSemester] = useState<string>("Semester Genap");
 
 	// Detail State
 	const [activeJadwal, setActiveJadwal] = useState<any>(null);
-	const [activeTab, setActiveTab] = useState<"rekap" | "jurnal" | "analisa">("rekap");
+	const [activeTab, setActiveTab] = useState<"rekap" | "jurnal" | "analisa" | "tugas">("rekap");
 
 	// Modal PDF State
 	const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 	const [isDownloading, setIsDownloading] = useState(false);
-	const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+	const [startDate, setStartDate] = useState<string>("");
+	const [endDate, setEndDate] = useState<string>("");
 
 	const filteredJadwal = jadwalSemua.filter((j) => j.tahunAjaranId === selectedTahunId);
 
-	// Dapatkan daftar bulan unik dari jurnal yang ada di jadwal aktif
-	const uniqueMonths = useMemo(() => {
-		if (!activeJadwal || !activeJadwal.jurnal) return [];
-		const months = activeJadwal.jurnal.map((j: any) => {
-			const d = new Date(j.tanggal);
-			return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; // Format: YYYY-MM
-		});
-		return Array.from(new Set(months)).sort() as string[];
-	}, [activeJadwal]);
-
-	// Format string YYYY-MM ke nama bulan yang cantik (cth: "Juli 2026")
-	const formatMonthName = (ym: string) => {
-		const [y, m] = ym.split("-");
-		const date = new Date(parseInt(y), parseInt(m) - 1, 1);
-		return date.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
-	};
-
 	// Teks dinamis untuk Cover PDF (Bulan / Periode)
 	const periodeText = useMemo(() => {
-		if (selectedMonths.length === 0) return "Belum ada bulan dipilih";
-		const sorted = [...selectedMonths].sort();
-		if (sorted.length === 1) return `Bulan: ${formatMonthName(sorted[0])}`;
-		return `Periode: ${formatMonthName(sorted[0])} - ${formatMonthName(sorted[sorted.length - 1])}`;
-	}, [selectedMonths]);
+		if (!startDate || !endDate) return "Pilih tanggal mulai dan akhir";
+		const format = (dateStr: string) => new Date(dateStr).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+		return `Periode: ${format(startDate)} - ${format(endDate)}`;
+	}, [startDate, endDate]);
 
-	// Saat buka detail jadwal baru, otomatis pilih semua bulan
+	// Saat buka detail jadwal baru, otomatis pilih rentang tanggal dari jurnal
 	useEffect(() => {
-		setSelectedMonths(uniqueMonths);
-	}, [uniqueMonths]);
+		if (activeJadwal && activeJadwal.jurnal && activeJadwal.jurnal.length > 0) {
+			const sorted = [...activeJadwal.jurnal].sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
+			setStartDate(new Date(sorted[0].tanggal).toISOString().split("T")[0]);
+			setEndDate(new Date(sorted[sorted.length - 1].tanggal).toISOString().split("T")[0]);
+		}
+	}, [activeJadwal]);
 
-	const handleToggleMonth = (month: string) => {
-		setSelectedMonths((prev) => (prev.includes(month) ? prev.filter((m) => m !== month) : [...prev, month]));
-	};
-
-	// Filter Jurnal Khusus untuk Cetak PDF sesuai bulan yang dicentang
+	// Filter Jurnal Khusus untuk Cetak PDF sesuai rentang tanggal
 	const jurnalForPdf = useMemo(() => {
 		if (!activeJadwal) return [];
 		return [...activeJadwal.jurnal]
 			.filter((j: any) => {
-				const d = new Date(j.tanggal);
-				const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-				return selectedMonths.includes(ym);
+				if (!startDate || !endDate) return true;
+				const d = new Date(j.tanggal).getTime();
+				const s = new Date(startDate).getTime();
+				const e = new Date(endDate);
+				e.setHours(23, 59, 59, 999);
+				return d >= s && d <= e.getTime();
 			})
 			.sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
-	}, [activeJadwal, selectedMonths]);
+	}, [activeJadwal, startDate, endDate]);
 
 	// --- FUNGSI KALKULASI STATISTIK (DIBUAT DINAMIS MENERIMA JURNAL ARRAY) ---
 	const getKelasStats = (totalSiswa: number, jurnalList: any[]) => {
@@ -125,6 +110,9 @@ export default function RiwayatClient({
 			I = 0,
 			S = 0,
 			A = 0;
+			
+		let totalNilai = 0;
+		let countTugas = 0;
 
 		jurnalList.forEach((jurnal) => {
 			const absen = jurnal.presensi?.find((p: any) => p.siswaId === siswaId);
@@ -133,10 +121,16 @@ export default function RiwayatClient({
 				else if (absen.status === "I") I++;
 				else if (absen.status === "S") S++;
 				else if (absen.status === "A") A++;
+				
+				if (jurnal.tugas && absen.nilaiTugas !== null && absen.nilaiTugas !== undefined) {
+					totalNilai += absen.nilaiTugas;
+					countTugas++;
+				}
 			}
 		});
 
 		const persentase = totalPertemuan > 0 ? Math.round((H / totalPertemuan) * 100) : 0;
+		const rataNilai = countTugas > 0 ? Math.round(totalNilai / countTugas) : 0;
 		let statusText = "Kurang";
 		let statusClass = styles.badgeKurang;
 		if (persentase >= 90) {
@@ -147,12 +141,13 @@ export default function RiwayatClient({
 			statusClass = styles.badgeBaik;
 		}
 
-		return { H, I, S, A, totalHadir: H, totalPertemuan, persentase, statusText, statusClass };
+		return { H, I, S, A, totalHadir: H, totalPertemuan, persentase, statusText, statusClass, rataNilai, countTugas };
 	};
 
 	// --- FUNGSI EXPORT PDF ---
 	const handleDownloadPdf = async () => {
-		if (selectedMonths.length === 0) return alert("Pilih minimal 1 bulan untuk dicetak.");
+		if (!startDate || !endDate) return alert("Pilih tanggal mulai dan akhir untuk dicetak.");
+		if (new Date(startDate) > new Date(endDate)) return alert("Tanggal akhir tidak boleh mendahului tanggal mulai.");
 		setIsDownloading(true);
 		try {
 			const html2pdf = (await import("html2pdf.js")).default;
@@ -237,55 +232,31 @@ export default function RiwayatClient({
 
 						<div className={styles.modalBodyScroll} style={{ padding: "1.5rem 2rem", display: "block" }}>
 							<h4 style={{ fontSize: "1rem", fontWeight: "bold", marginBottom: "1rem", color: "#0f172a" }}>
-								Filter Bulan:
+								Filter Jangka Waktu Laporan:
 							</h4>
-
-							<div style={{ display: "flex", flexDirection: "column", gap: "0.8rem", marginBottom: "1.5rem" }}>
-								<label
-									style={{
-										display: "flex",
-										alignItems: "center",
-										gap: "0.5rem",
-										cursor: "pointer",
-										fontWeight: "bold",
-									}}
-								>
+							<div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
+								<div style={{ flex: 1 }}>
+									<label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "#64748b", marginBottom: "0.5rem" }}>
+										Tanggal Mulai
+									</label>
 									<input
-										type="checkbox"
-										checked={selectedMonths.length === uniqueMonths.length && uniqueMonths.length > 0}
-										onChange={(e) => {
-											if (e.target.checked) setSelectedMonths(uniqueMonths);
-											else setSelectedMonths([]);
-										}}
-										style={{ width: "16px", height: "16px", cursor: "pointer" }}
+										type="date"
+										style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
+										value={startDate}
+										onChange={(e) => setStartDate(e.target.value)}
 									/>
-									Pilih Semua Keseluruhan
-								</label>
-								<hr style={{ border: "0", borderTop: "1px solid #cbd5e1", margin: "0.5rem 0" }} />
-								{uniqueMonths.length === 0 ? (
-									<p style={{ color: "#ef4444", fontSize: "0.875rem" }}>Belum ada data jurnal tersimpan.</p>
-								) : (
-									uniqueMonths.map((m) => (
-										<label
-											key={m}
-											style={{
-												display: "flex",
-												alignItems: "center",
-												gap: "0.5rem",
-												cursor: "pointer",
-												color: "#334155",
-											}}
-										>
-											<input
-												type="checkbox"
-												checked={selectedMonths.includes(m)}
-												onChange={() => handleToggleMonth(m)}
-												style={{ width: "16px", height: "16px", cursor: "pointer" }}
-											/>
-											{formatMonthName(m)}
-										</label>
-									))
-								)}
+								</div>
+								<div style={{ flex: 1 }}>
+									<label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "#64748b", marginBottom: "0.5rem" }}>
+										Tanggal Selesai
+									</label>
+									<input
+										type="date"
+										style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
+										value={endDate}
+										onChange={(e) => setEndDate(e.target.value)}
+									/>
+								</div>
 							</div>
 
 							<div
@@ -614,6 +585,77 @@ export default function RiwayatClient({
 															<p>NPP: {user.username}</p>
 														</div>
 													</div>
+
+										<div className="html2pdf__page-break"></div>
+
+										{/* HALAMAN 5: REKAP NILAI TUGAS */}
+										{pdfHeader}
+										<h3 className={styles.pdfSectionTitle} style={{ marginTop: "2rem" }}>
+											D. REKAPITULASI NILAI TUGAS
+										</h3>
+										{(() => {
+											const jurnalTugas = jurnalForPdf.filter((j: any) => j.tugas && j.tugas.trim() !== "");
+											if (jurnalTugas.length === 0) {
+												return <p style={{ fontSize: "10pt" }}>Tidak ada tugas yang diberikan pada periode ini.</p>;
+											}
+											
+											const sortedSiswa = [...activeJadwal.kelas.riwayatSiswa].sort((a: any, b: any) => {
+												const nameA = a.siswa?.user?.nama || "";
+												const nameB = b.siswa?.user?.nama || "";
+												return nameA.localeCompare(nameB);
+											});
+
+											return (
+												<>
+													<p style={{ fontSize: "10pt", marginBottom: "10px" }}>
+														<em>*Daftar Tugas:</em><br />
+														{jurnalTugas.map((t: any, i: number) => (
+															<span key={t.id}>
+																<strong>T{i + 1}:</strong> {t.tugas} ({new Date(t.tanggal).toLocaleDateString("id-ID")})<br />
+															</span>
+														))}
+													</p>
+													<table className={styles.pdfTable} style={{ fontSize: "9pt" }}>
+														<thead>
+															<tr>
+																<th style={{ width: "5%" }}>No.</th>
+																<th style={{ width: "25%" }}>Nama Siswa</th>
+																<th style={{ width: "10%" }}>NIS</th>
+																{jurnalTugas.map((t: any, i: number) => (
+																	<th key={t.id} style={{ textAlign: "center" }}>T{i + 1}</th>
+																))}
+																<th style={{ width: "10%", textAlign: "center" }}>Rata-rata</th>
+															</tr>
+														</thead>
+														<tbody>
+															{sortedSiswa.map((rs: any, idx: number) => {
+																const rekap = getRekapSiswa(rs.siswa.id, jurnalForPdf);
+																return (
+																	<tr key={rs.siswa.id}>
+																		<td style={{ textAlign: "center" }}>{idx + 1}</td>
+																		<td>{rs.siswa.user?.nama}</td>
+																		<td>{rs.siswa.nis}</td>
+																		{jurnalTugas.map((t: any) => {
+																			const absen = t.presensi?.find((p: any) => p.siswaId === rs.siswa.id);
+																			const nilai = absen?.nilaiTugas;
+																			return (
+																				<td key={t.id} style={{ textAlign: "center" }}>
+																					{nilai !== null && nilai !== undefined ? nilai : "-"}
+																				</td>
+																			);
+																		})}
+																		<td style={{ textAlign: "center", fontWeight: "bold" }}>
+																			{rekap.countTugas > 0 ? rekap.rataNilai : "-"}
+																		</td>
+																	</tr>
+																);
+															})}
+														</tbody>
+													</table>
+												</>
+											);
+										})()}
+
 												</>
 											);
 										})()}
@@ -629,7 +671,7 @@ export default function RiwayatClient({
 							<button
 								className={styles.btnPrimary}
 								onClick={handleDownloadPdf}
-								disabled={isDownloading || selectedMonths.length === 0}
+								disabled={isDownloading || !startDate || !endDate}
 							>
 								{isDownloading ? (
 									"Memproses PDF..."
@@ -712,7 +754,7 @@ export default function RiwayatClient({
 
 							<div className={styles.filterBox}>
 								<div className={styles.filterGroup}>
-									<label className={styles.filterLabel}>Tahun Ajaran</label>
+									<label className={styles.filterLabel}>Tahun Ajaran / Semester</label>
 									<select
 										className={styles.filterSelect}
 										value={selectedTahunId}
@@ -725,18 +767,7 @@ export default function RiwayatClient({
 										))}
 									</select>
 								</div>
-								<div className={styles.filterGroup}>
-									<label className={styles.filterLabel}>Semester</label>
-									<select
-										className={styles.filterSelect}
-										value={selectedSemester}
-										onChange={(e) => setSelectedSemester(e.target.value)}
-									>
-										<option value="Semester Ganjil">Semester Ganjil</option>
-										<option value="Semester Genap">Semester Genap</option>
-									</select>
-								</div>
-								<button className={styles.btnPrimary} style={{ height: "42px" }}>
+								<button className={styles.btnPrimary} style={{ height: "42px", marginTop: "1.2rem" }}>
 									<Filter size={16} /> Terapkan Filter
 								</button>
 							</div>
@@ -769,7 +800,7 @@ export default function RiwayatClient({
 												</div>
 												<div className={styles.cardSubtitle}>{jadwal.kelas.nama}</div>
 												<div className={styles.cardMeta}>
-													<Calendar size={12} /> {ta} &bull; {selectedSemester}
+													<Calendar size={12} /> {ta}
 												</div>
 
 												<div className={styles.cardStats}>
@@ -820,7 +851,7 @@ export default function RiwayatClient({
 										{activeJadwal.mapel.nama}
 									</h1>
 									<p className={styles.pageSubtitle} style={{ marginBottom: 0 }}>
-										{activeJadwal.kelas.nama} &bull; {selectedSemester} {activeJadwal.tahunAjaran.nama}
+										{activeJadwal.kelas.nama} &bull; {activeJadwal.tahunAjaran.nama}
 									</p>
 								</div>
 								<div style={{ display: "flex", gap: "1rem" }}>
@@ -901,6 +932,12 @@ export default function RiwayatClient({
 										>
 											Analisa Hasil
 										</button>
+										<button
+											className={`${styles.tabBtn} ${activeTab === "tugas" ? styles.tabActive : ""}`}
+											onClick={() => setActiveTab("tugas")}
+										>
+											Tugas Harian
+										</button>
 									</div>
 								</div>
 
@@ -911,8 +948,9 @@ export default function RiwayatClient({
 											<tr>
 												<th style={{ width: "25%" }}>Nama Siswa</th>
 												<th style={{ width: "15%" }}>NIS</th>
-												<th style={{ width: "25%" }}>Detail Kehadiran (H/I/S/A)</th>
-												<th style={{ width: "20%" }}>Persentase</th>
+												<th style={{ width: "20%" }}>Detail Kehadiran (H/I/S/A)</th>
+												<th style={{ width: "15%" }}>Persentase</th>
+												<th style={{ width: "10%", textAlign: "center" }}>Nilai Tugas</th>
 												<th style={{ width: "15%" }}>Status</th>
 											</tr>
 										</thead>
@@ -952,6 +990,9 @@ export default function RiwayatClient({
 																	<span className={styles.progressText}>{rekap.persentase}%</span>
 																</div>
 															</td>
+															<td style={{ textAlign: "center", fontWeight: 600 }}>
+																{rekap.countTugas > 0 ? rekap.rataNilai : "-"}
+															</td>
 															<td>
 																<span className={`${styles.badgeStatus} ${rekap.statusClass}`}>{rekap.statusText}</span>
 															</td>
@@ -961,6 +1002,50 @@ export default function RiwayatClient({
 											})()}
 										</tbody>
 									</table>
+								)}
+
+								{/* --- TAB: TUGAS HARIAN --- */}
+								{activeTab === "tugas" && (
+									<div className={styles.jurnalListContainer}>
+										{(() => {
+											const jurnalTugas = activeJadwal.jurnal?.filter((j: any) => j.tugas && j.tugas.trim() !== "") || [];
+											if (jurnalTugas.length === 0) {
+												return (
+													<div style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
+														Belum ada tugas yang direkam untuk kelas ini.
+													</div>
+												);
+											}
+											return [...jurnalTugas]
+												.sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime())
+												.map((jurnalItem: any, index: number) => {
+													const tglFormatted = new Date(jurnalItem.tanggal).toLocaleDateString("id-ID", {
+														weekday: "long",
+														year: "numeric",
+														month: "long",
+														day: "numeric",
+													});
+
+													return (
+														<div key={jurnalItem.id} className={styles.jurnalLogCard}>
+															<div className={styles.jurnalLogHeader}>
+																<div className={styles.jurnalLogTitle}>Tugas {index + 1}: {jurnalItem.tugas}</div>
+																<div className={styles.jurnalLogDate}>
+																	<Calendar size={14} /> {tglFormatted}
+																</div>
+															</div>
+
+															<div className={styles.jurnalLogBody}>
+																<div style={{ display: "flex", gap: "0.5rem", alignItems: "baseline" }}>
+																	<strong style={{ color: "#0f172a" }}>Topik Pembelajaran:</strong>
+																	<span style={{ color: "#334155" }}>{jurnalItem.materiBab || "-"}</span>
+																</div>
+															</div>
+														</div>
+													);
+												});
+										})()}
+									</div>
 								)}
 
 								{/* --- TAB 2: JURNAL MENGAJAR --- */}

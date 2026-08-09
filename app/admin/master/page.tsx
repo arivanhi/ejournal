@@ -48,6 +48,11 @@ export default async function MasterPage() {
 		include: { mataPelajaran: true },
 	});
 
+	// 5. Ambil data Kelas
+	const dataKelasRaw = await prisma.kelas.findMany({
+		orderBy: { nama: "asc" },
+	});
+
 	// Format data untuk Client
 	const dataSiswa = siswaFromDb.map((s) => ({
 		id: s.id,
@@ -75,12 +80,18 @@ export default async function MasterPage() {
 		nama: m.nama,
 	}));
 
+	const dataKelas = dataKelasRaw.map((k) => ({
+		id: k.id,
+		nama: k.nama,
+	}));
+
 	return (
 		<MasterClient
 			initialSiswa={dataSiswa}
 			initialGuru={dataGuru}
 			initialMapel={dataMapel}
 			initialTahunAjar={dataTahunAjar}
+			initialKelas={dataKelas}
 		/>
 	);
 }

@@ -25,6 +25,10 @@ import {
 	AlertTriangle,
 	Edit,
 	PowerOff,
+	Printer,
+	Filter,
+	ArrowUp,
+	ArrowDown,
 } from "lucide-react";
 import styles from "./jurnal.module.css";
 import Link from "next/link";
@@ -109,6 +113,7 @@ export default function JurnalClient({
 	const [waktuMulai, setWaktuMulai] = useState("07:00");
 	const [waktuSelesai, setWaktuSelesai] = useState("08:30");
 	const [materi, setMateri] = useState("");
+	const [tugas, setTugas] = useState("");
 
 	// Form Edit Jurnal
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -117,8 +122,20 @@ export default function JurnalClient({
 	const [editWaktuMulai, setEditWaktuMulai] = useState("");
 	const [editWaktuSelesai, setEditWaktuSelesai] = useState("");
 	const [editMateri, setEditMateri] = useState("");
+	const [editTugas, setEditTugas] = useState("");
 
 	const [presensiEdits, setPresensiEdits] = useState<Record<string, string>>({});
+	const [nilaiTugasEdits, setNilaiTugasEdits] = useState<Record<string, number>>({});
+	const [alasanIzinEdits, setAlasanIzinEdits] = useState<Record<string, string>>({});
+	
+	const [sortColumn, setSortColumn] = useState<"nis" | "nama" | "jk" | "status" | "nilai">("nama");
+	const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+	const [isModalIzinOpen, setIsModalIzinOpen] = useState(false);
+	const [currentSiswaIzin, setCurrentSiswaIzin] = useState<{ id: string; nama: string } | null>(null);
+	const [inputAlasan, setInputAlasan] = useState("");
+
+	const [isDownloading, setIsDownloading] = useState(false);
 
 	// --- LOGIKA PENGGABUNGAN JADWAL (GROUPING) ---
 	const groupedJadwal = useMemo(() => {
@@ -210,6 +227,7 @@ export default function JurnalClient({
 		setActiveJadwal(jadwal);
 		setTanggal(new Date().toISOString().split("T")[0]);
 		setMateri("");
+		setTugas("");
 
 		// Inisiasi jam berdasarkan jadwal
 		if (jadwal.waktuRentang && jadwal.waktuRentang.includes("-")) {
@@ -247,6 +265,7 @@ export default function JurnalClient({
 			materi,
 			tujuan: "",
 			catatan: "",
+			tugas,
 			isAutoHadir, // Kirim status kelayakan auto-hadir
 			siswaIds, // Kirim daftar id siswa
 		});
@@ -260,6 +279,7 @@ export default function JurnalClient({
 				showToast("Jurnal berhasil dibuat! (Silakan isi presensi secara manual)", "success");
 			}
 			setMateri("");
+			setTugas("");
 		} else {
 			showToast(res.message, "error");
 		}
@@ -294,6 +314,7 @@ export default function JurnalClient({
 			waktuMulai: editWaktuMulai,
 			waktuSelesai: editWaktuSelesai,
 			materi: editMateri,
+			tugas: editTugas,
 		});
 		setLoading(false);
 		setIsEditModalOpen(false);
@@ -303,7 +324,12 @@ export default function JurnalClient({
 
 	const handleSimpanPresensiManual = async () => {
 		setLoading(true);
-		const presensiData = Object.entries(presensiEdits).map(([siswaId, status]) => ({ siswaId, status }));
+		const presensiData = Object.entries(presensiEdits).map(([siswaId, status]) => ({ 
+			siswaId, 
+			status,
+			nilaiTugas: nilaiTugasEdits[siswaId],
+			alasanIzin: alasanIzinEdits[siswaId]
+		}));
 		const res = await simpanPresensiManualAction(activeJurnal.id, presensiData);
 		setLoading(false);
 		setModal(null);
@@ -382,6 +408,7 @@ export default function JurnalClient({
 		setEditJurnalId(jurnalItem.id);
 		setEditTanggal(new Date(jurnalItem.tanggal).toISOString().split("T")[0]);
 		setEditMateri(jurnalItem.materiBab);
+		setEditTugas(jurnalItem.tugas || "");
 
 		// Panggil waktu spesifik di Jurnal, jika kosong gunakan default dari Jadwal
 		setEditWaktuMulai(jurnalItem.waktuMulai || activeJadwal.waktuRentang.split(" - ")[0].trim());
@@ -392,11 +419,45 @@ export default function JurnalClient({
 	const handleBukaDetailAbsen = (jurnal: any) => {
 		setActiveJurnal(jurnal);
 		const initialEdits: Record<string, string> = {};
+		const initialNilai: Record<string, number> = {};
+		const initialAlasan: Record<string, string> = {};
 		jurnal.presensi?.forEach((p: any) => {
 			initialEdits[p.siswaId] = p.status;
+			if (p.nilaiTugas !== null && p.nilaiTugas !== undefined) {
+				initialNilai[p.siswaId] = p.nilaiTugas;
+			}
+			if (p.alasanIzin) {
+				initialAlasan[p.siswaId] = p.alasanIzin;
+			}
 		});
 		setPresensiEdits(initialEdits);
+		setNilaiTugasEdits(initialNilai);
+		setAlasanIzinEdits(initialAlasan);
 		setViewMode("presensi");
+	};
+
+	// --- FUNGSI EXPORT PDF ---
+	const handleDownloadPdf = async () => {
+		setIsDownloading(true);
+		try {
+			const html2pdf = (await import("html2pdf.js")).default;
+			const element = document.getElementById("pdf-presensi-content");
+
+			const opt = {
+				margin: 0,
+				filename: `Detail_Presensi_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}_${new Date(activeJurnal.tanggal).toISOString().split("T")[0]}.pdf`,
+				image: { type: "jpeg", quality: 1 },
+				html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+			};
+
+			await html2pdf().set(opt).from(element).save();
+		} catch (error) {
+			console.error("Gagal men-generate PDF:", error);
+			alert("Terjadi kesalahan saat memproses PDF.");
+		} finally {
+			setIsDownloading(false);
+		}
 	};
 
 	return (
@@ -466,6 +527,51 @@ export default function JurnalClient({
 				</div>
 			)}
 
+			{/* === MODAL IZIN === */}
+			{isModalIzinOpen && currentSiswaIzin && (
+				<div className={styles.modalOverlay}>
+					<div className={styles.modalContent}>
+						<div className={styles.modalTitle} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+							<AlertTriangle size={24} color="#f59e0b" /> Alasan Izin
+						</div>
+						<div className={styles.modalMessage}>Masukkan alasan izin untuk siswa <strong>{currentSiswaIzin.nama}</strong>:</div>
+						<div style={{ marginBottom: "1.5rem" }}>
+							<textarea
+								className={styles.formTextarea}
+								style={{ minHeight: "80px", width: "100%" }}
+								placeholder="Sakit perut, keperluan keluarga, dll..."
+								value={inputAlasan}
+								onChange={(e) => setInputAlasan(e.target.value)}
+							/>
+						</div>
+						<div className={styles.modalActions}>
+							<button
+								className={styles.btnOutlineFull}
+								style={{ width: "auto", margin: 0, padding: "0.5rem 1.5rem" }}
+								onClick={() => {
+									setPresensiEdits({ ...presensiEdits, [currentSiswaIzin.id]: "A" });
+									setIsModalIzinOpen(false);
+									setCurrentSiswaIzin(null);
+								}}
+							>
+								Batal
+							</button>
+							<button
+								className={styles.btnPrimaryFull}
+								style={{ width: "auto", margin: 0, padding: "0.5rem 1.5rem" }}
+								onClick={() => {
+									setAlasanIzinEdits({ ...alasanIzinEdits, [currentSiswaIzin.id]: inputAlasan });
+									setIsModalIzinOpen(false);
+									setCurrentSiswaIzin(null);
+								}}
+							>
+								Simpan Alasan
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
 			{/* === MODAL EDIT JURNAL === */}
 			{isEditModalOpen && (
 				<div className={styles.modalOverlay}>
@@ -488,29 +594,19 @@ export default function JurnalClient({
 							<div>
 								<label className={styles.formLabel}>Waktu Aktual Mengajar</label>
 								<div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-									<select
+									<input
+										type="time"
 										className={styles.formInput}
 										value={editWaktuMulai}
 										onChange={(e) => setEditWaktuMulai(e.target.value)}
-									>
-										{TIME_OPTIONS.map((t) => (
-											<option key={t} value={t}>
-												{t}
-											</option>
-										))}
-									</select>
+									/>
 									<span style={{ color: "#64748b", fontWeight: "bold" }}>s.d</span>
-									<select
+									<input
+										type="time"
 										className={styles.formInput}
 										value={editWaktuSelesai}
 										onChange={(e) => setEditWaktuSelesai(e.target.value)}
-									>
-										{TIME_OPTIONS.map((t) => (
-											<option key={t} value={t}>
-												{t}
-											</option>
-										))}
-									</select>
+									/>
 								</div>
 							</div>
 
@@ -521,6 +617,16 @@ export default function JurnalClient({
 									style={{ minHeight: "80px" }}
 									value={editMateri}
 									onChange={(e) => setEditMateri(e.target.value)}
+								/>
+							</div>
+							
+							<div>
+								<label className={styles.formLabel}>Tugas Harian (Opsional)</label>
+								<textarea
+									className={styles.formTextarea}
+									style={{ minHeight: "80px" }}
+									value={editTugas}
+									onChange={(e) => setEditTugas(e.target.value)}
 								/>
 							</div>
 						</div>
@@ -732,31 +838,21 @@ export default function JurnalClient({
 										<div>
 											<label className={styles.formLabel}>Waktu Aktual Mengajar *</label>
 											<div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-												<select
+												<input
+													type="time"
 													className={styles.formInput}
 													value={waktuMulai}
 													onChange={(e) => setWaktuMulai(e.target.value)}
 													style={{ backgroundColor: "white", cursor: "pointer" }}
-												>
-													{TIME_OPTIONS.map((t) => (
-														<option key={t} value={t}>
-															{t}
-														</option>
-													))}
-												</select>
+												/>
 												<span style={{ color: "#64748b", fontWeight: "bold" }}>s.d</span>
-												<select
+												<input
+													type="time"
 													className={styles.formInput}
 													value={waktuSelesai}
 													onChange={(e) => setWaktuSelesai(e.target.value)}
 													style={{ backgroundColor: "white", cursor: "pointer" }}
-												>
-													{TIME_OPTIONS.map((t) => (
-														<option key={t} value={t}>
-															{t}
-														</option>
-													))}
-												</select>
+												/>
 											</div>
 										</div>
 									</div>
@@ -770,6 +866,17 @@ export default function JurnalClient({
 												value={materi}
 												onChange={(e) => setMateri(e.target.value)}
 												placeholder="Tuliskan materi yang diajarkan hari ini..."
+											/>
+										</div>
+
+										<div>
+											<label className={styles.formLabel}>Tugas Harian (Opsional)</label>
+											<textarea
+												className={styles.formTextarea}
+												style={{ minHeight: "80px" }}
+												value={tugas}
+												onChange={(e) => setTugas(e.target.value)}
+												placeholder="Tuliskan tugas harian jika ada..."
 											/>
 										</div>
 
@@ -1038,9 +1145,11 @@ export default function JurnalClient({
 								<button
 									className={styles.btnOutlineFull}
 									style={{ width: "auto", margin: 0, padding: "0.5rem 1rem", backgroundColor: "white" }}
+									onClick={handleDownloadPdf}
+									disabled={isDownloading}
 								>
 									<Download size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: "0.5rem" }} />{" "}
-									Export PDF
+									{isDownloading ? "Memproses PDF..." : "Export PDF"}
 								</button>
 							</div>
 
@@ -1119,47 +1228,167 @@ export default function JurnalClient({
 									style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
 								>
 									<div style={{ fontWeight: 700, color: "#0f172a" }}>Daftar Kehadiran</div>
-									<div style={{ position: "relative", width: "250px" }}>
-										<Search
-											size={16}
-											style={{
-												position: "absolute",
-												left: "0.75rem",
-												top: "50%",
-												transform: "translateY(-50%)",
-												color: "#94a3b8",
-											}}
-										/>
-										<input
-											type="text"
-											placeholder="Cari nama siswa..."
-											style={{
-												width: "100%",
-												padding: "0.5rem 1rem 0.5rem 2.25rem",
-												borderRadius: "0.5rem",
-												border: "1px solid #cbd5e1",
-												fontSize: "0.875rem",
-												outline: "none",
-											}}
-										/>
+									<div style={{ display: "flex", gap: "1rem" }}>
+										<div style={{ position: "relative", width: "250px" }}>
+											<Search
+												size={16}
+												style={{
+													position: "absolute",
+													left: "0.75rem",
+													top: "50%",
+													transform: "translateY(-50%)",
+													color: "#94a3b8",
+												}}
+											/>
+											<input
+												type="text"
+												placeholder="Cari nama siswa..."
+												style={{
+													width: "100%",
+													padding: "0.5rem 1rem 0.5rem 2.25rem",
+													borderRadius: "0.5rem",
+													border: "1px solid #cbd5e1",
+													fontSize: "0.875rem",
+													outline: "none",
+												}}
+											/>
+										</div>
 									</div>
 								</div>
 								<table className={styles.tableStyle}>
 									<thead>
 										<tr>
 											<th>No</th>
-											<th>NIS</th>
-											<th>Nama Siswa</th>
-											<th>L/P</th>
-											<th>Status Terakhir</th>
+											<th 
+												style={{ cursor: "pointer" }} 
+												onClick={() => {
+													if (sortColumn === "nis") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+													else { setSortColumn("nis"); setSortDirection("asc"); }
+												}}
+											>
+												<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+													NIS
+													{sortColumn === "nis" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
+														<div style={{ display: "flex", flexDirection: "column", opacity: 0.3 }}>
+															<ArrowUp size={10} style={{ marginBottom: "-4px" }} />
+															<ArrowDown size={10} />
+														</div>
+													)}
+												</div>
+											</th>
+											<th 
+												style={{ cursor: "pointer" }} 
+												onClick={() => {
+													if (sortColumn === "nama") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+													else { setSortColumn("nama"); setSortDirection("asc"); }
+												}}
+											>
+												<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+													Nama Siswa
+													{sortColumn === "nama" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
+														<div style={{ display: "flex", flexDirection: "column", opacity: 0.3 }}>
+															<ArrowUp size={10} style={{ marginBottom: "-4px" }} />
+															<ArrowDown size={10} />
+														</div>
+													)}
+												</div>
+											</th>
+											<th 
+												style={{ cursor: "pointer" }} 
+												onClick={() => {
+													if (sortColumn === "jk") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+													else { setSortColumn("jk"); setSortDirection("asc"); }
+												}}
+											>
+												<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+													L/P
+													{sortColumn === "jk" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
+														<div style={{ display: "flex", flexDirection: "column", opacity: 0.3 }}>
+															<ArrowUp size={10} style={{ marginBottom: "-4px" }} />
+															<ArrowDown size={10} />
+														</div>
+													)}
+												</div>
+											</th>
+											<th 
+												style={{ cursor: "pointer" }} 
+												onClick={() => {
+													if (sortColumn === "status") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+													else { setSortColumn("status"); setSortDirection("asc"); }
+												}}
+											>
+												<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+													Status Terakhir
+													{sortColumn === "status" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
+														<div style={{ display: "flex", flexDirection: "column", opacity: 0.3 }}>
+															<ArrowUp size={10} style={{ marginBottom: "-4px" }} />
+															<ArrowDown size={10} />
+														</div>
+													)}
+												</div>
+											</th>
+											{activeJurnal.tugas && (
+												<th 
+													style={{ cursor: "pointer", textAlign: "center", width: "120px" }} 
+													onClick={() => {
+														if (sortColumn === "nilai") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+														else { setSortColumn("nilai"); setSortDirection("asc"); }
+													}}
+												>
+													<div style={{ display: "flex", alignItems: "center", gap: "0.25rem", justifyContent: "center" }}>
+														Nilai Tugas
+														{sortColumn === "nilai" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
+															<div style={{ display: "flex", flexDirection: "column", opacity: 0.3 }}>
+																<ArrowUp size={10} style={{ marginBottom: "-4px" }} />
+																<ArrowDown size={10} />
+															</div>
+														)}
+													</div>
+												</th>
+											)}
 											<th style={{ textAlign: "center", width: "150px" }}>Aksi Manual</th>
 										</tr>
 									</thead>
 									<tbody>
-										{activeJadwal.kelas.riwayatSiswa.map((rs: any, index: number) => {
-											const siswa = rs.siswa;
-											const originalAbsensi = activeJurnal.presensi?.find((p: any) => p.siswaId === siswa.id);
-											const currentStatus = presensiEdits[siswa.id] || "";
+										{(() => {
+											let sortedData = [...activeJadwal.kelas.riwayatSiswa];
+											
+											sortedData.sort((a, b) => {
+												let valA: any = "";
+												let valB: any = "";
+												
+												switch (sortColumn) {
+													case "nis":
+														valA = a.siswa.nis;
+														valB = b.siswa.nis;
+														break;
+													case "nama":
+														valA = (a.siswa.user?.nama || "").toLowerCase();
+														valB = (b.siswa.user?.nama || "").toLowerCase();
+														break;
+													case "jk":
+														valA = a.siswa.jenisKelamin;
+														valB = b.siswa.jenisKelamin;
+														break;
+													case "status":
+														valA = presensiEdits[a.siswa.id] || "A";
+														valB = presensiEdits[b.siswa.id] || "A";
+														break;
+													case "nilai":
+														valA = nilaiTugasEdits[a.siswa.id] || -1;
+														valB = nilaiTugasEdits[b.siswa.id] || -1;
+														break;
+												}
+												
+												if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+												if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+												return 0;
+											});
+											
+											return sortedData.map((rs: any, index: number) => {
+												const siswa = rs.siswa;
+												const originalAbsensi = activeJurnal.presensi?.find((p: any) => p.siswaId === siswa.id);
+												const currentStatus = presensiEdits[siswa.id] || "";
 
 											let badgeStyle = { bg: "#f1f5f9", text: "#64748b", label: "Belum Absen" };
 											if (currentStatus === "H") badgeStyle = { bg: "#d1fae5", text: "#047857", label: "Hadir" };
@@ -1190,6 +1419,22 @@ export default function JurnalClient({
 																: ""}
 														</span>
 													</td>
+													{activeJurnal.tugas && (
+														<td style={{ textAlign: "center" }}>
+															<input
+																type="number"
+																className={styles.formInput}
+																style={{ width: "80px", padding: "0.25rem 0.5rem", textAlign: "center", margin: "0 auto" }}
+																placeholder="0-100"
+																value={nilaiTugasEdits[siswa.id] === undefined ? "" : nilaiTugasEdits[siswa.id]}
+																onChange={(e) => {
+																	const val = e.target.value === "" ? undefined : parseInt(e.target.value);
+																	if (val !== undefined && (val < 0 || val > 100)) return;
+																	setNilaiTugasEdits({ ...nilaiTugasEdits, [siswa.id]: val as any });
+																}}
+															/>
+														</td>
+													)}
 													<td style={{ textAlign: "center" }}>
 														<select
 															className={styles.filterSelect}
@@ -1202,7 +1447,15 @@ export default function JurnalClient({
 																borderColor: badgeStyle.text,
 															}}
 															value={currentStatus}
-															onChange={(e) => setPresensiEdits({ ...presensiEdits, [siswa.id]: e.target.value })}
+															onChange={(e) => {
+																const newStatus = e.target.value;
+																setPresensiEdits({ ...presensiEdits, [siswa.id]: newStatus });
+																if (newStatus === "I") {
+																	setCurrentSiswaIzin({ id: siswa.id, nama: siswa.user?.nama || "Siswa" });
+																	setInputAlasan(alasanIzinEdits[siswa.id] || "");
+																	setIsModalIzinOpen(true);
+																}
+															}}
 														>
 															<option value="" disabled>
 																Pilih Aksi
@@ -1215,7 +1468,8 @@ export default function JurnalClient({
 													</td>
 												</tr>
 											);
-										})}
+										});
+										})()}
 									</tbody>
 								</table>
 							</div>
@@ -1235,6 +1489,172 @@ export default function JurnalClient({
 								>
 									<Save size={16} /> Simpan Perubahan Presensi
 								</button>
+							</div>
+							<div style={{ display: "none" }}>
+								<div id="pdf-presensi-content" className={styles.pdfA4Container} style={{ padding: "20mm", color: "#000" }}>
+									<div
+										style={{
+											position: "relative",
+											textAlign: "center",
+											borderBottom: "3px solid #000",
+											paddingBottom: "15px",
+											marginBottom: "15px",
+											paddingTop: "10px",
+										}}
+									>
+										<img
+											src="/logo.jpg"
+											alt="Logo SMAN 2 Brebes"
+											style={{
+												position: "absolute",
+												left: "10px",
+												top: "50%",
+												transform: "translateY(-50%)",
+												width: "80px",
+												height: "80px",
+												objectFit: "contain",
+											}}
+										/>
+										<h1
+											style={{
+												margin: "0 0 5px 0",
+												fontSize: "18pt",
+												fontWeight: "bold",
+												color: "#000",
+												fontFamily: '"Times New Roman", Times, serif',
+											}}
+										>
+											SMA NEGERI 2 BREBES
+										</h1>
+										<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+										<p style={{ margin: 0, fontSize: "11pt" }}>Website: www.sman2-brebes.sch.id - Email: smadabes@ymail.com</p>
+									</div>
+
+									<table style={{ width: "100%", marginBottom: "20px", fontSize: "11pt", borderCollapse: "collapse" }}>
+										<tbody>
+											<tr>
+												<td style={{ width: "20%", padding: "4px 0", fontWeight: "bold" }}>Mata Pelajaran</td>
+												<td style={{ width: "5%", padding: "4px 0" }}>:</td>
+												<td style={{ width: "75%", padding: "4px 0" }}>{activeJadwal.mapel.nama}</td>
+											</tr>
+											<tr>
+												<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kelas</td>
+												<td style={{ padding: "4px 0" }}>:</td>
+												<td style={{ padding: "4px 0" }}>{activeJadwal.kelas.nama}</td>
+											</tr>
+											<tr>
+												<td style={{ padding: "4px 0", fontWeight: "bold" }}>Topik Jurnal</td>
+												<td style={{ padding: "4px 0" }}>:</td>
+												<td style={{ padding: "4px 0" }}>{activeJurnal.materiBab || "-"}</td>
+											</tr>
+											<tr>
+												<td style={{ padding: "4px 0", fontWeight: "bold" }}>Tugas</td>
+												<td style={{ padding: "4px 0" }}>:</td>
+												<td style={{ padding: "4px 0" }}>{activeJurnal.tugas || "-"}</td>
+											</tr>
+											<tr>
+												<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kendala KBM</td>
+												<td style={{ padding: "4px 0" }}>:</td>
+												<td style={{ padding: "4px 0" }}>{activeJurnal.catatan || "-"}</td>
+											</tr>
+											<tr>
+												<td style={{ padding: "4px 0", fontWeight: "bold" }}>Tanggal & Waktu</td>
+												<td style={{ padding: "4px 0" }}>:</td>
+												<td style={{ padding: "4px 0" }}>
+													{new Date(activeJurnal.tanggal).toLocaleDateString("id-ID", {
+														weekday: "long",
+														day: "numeric",
+														month: "long",
+														year: "numeric",
+													})}{" "}
+													/ {activeJadwal.waktuRentang} WIB
+												</td>
+											</tr>
+											<tr>
+												<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kehadiran</td>
+												<td style={{ padding: "4px 0" }}>:</td>
+												<td style={{ padding: "4px 0" }}>
+													Hadir:{" "}
+													{activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H")
+														.length || 0}{" "}
+													| Izin/Sakit:{" "}
+													{activeJadwal.kelas?.riwayatSiswa?.filter(
+														(rs: any) =>
+															presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
+													).length || 0}{" "}
+													| Alpha:{" "}
+													{(activeJadwal.kelas?.riwayatSiswa?.length || 0) -
+														(activeJadwal.kelas?.riwayatSiswa?.filter(
+															(rs: any) => presensiEdits[rs.siswa.id] === "H",
+														).length || 0) -
+														(activeJadwal.kelas?.riwayatSiswa?.filter(
+															(rs: any) =>
+																presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
+														).length || 0)}
+												</td>
+											</tr>
+										</tbody>
+									</table>
+
+									<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt" }}>
+										<thead>
+											<tr>
+												<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9" }}>No</th>
+												<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9" }}>NIS</th>
+												<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9" }}>
+													Nama Siswa
+												</th>
+												<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9" }}>
+													Status
+												</th>
+												{activeJurnal.tugas && (
+													<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9" }}>
+														Nilai Tugas
+													</th>
+												)}
+											</tr>
+										</thead>
+										<tbody>
+											{(() => {
+												let sortedData = [...activeJadwal.kelas.riwayatSiswa];
+												sortedData.sort((a, b) => (a.siswa.user?.nama || "").localeCompare(b.siswa.user?.nama || ""));
+												
+												return sortedData.map((rs: any, index: number) => {
+													const siswa = rs.siswa;
+													const currentStatus = presensiEdits[siswa.id] || "A";
+													
+													let statusLabel = "Alpha";
+													if (currentStatus === "H") statusLabel = "Hadir";
+													else if (currentStatus === "I") {
+														statusLabel = "Izin";
+														if (alasanIzinEdits[siswa.id]) statusLabel += ` (${alasanIzinEdits[siswa.id]})`;
+													}
+													else if (currentStatus === "S") statusLabel = "Sakit";
+
+													return (
+														<tr key={siswa.id}>
+															<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+																{index + 1}
+															</td>
+															<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+																{siswa.nis}
+															</td>
+															<td style={{ border: "1px solid #000", padding: "6px" }}>{siswa.user?.nama}</td>
+															<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+																{statusLabel}
+															</td>
+															{activeJurnal.tugas && (
+																<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+																	{nilaiTugasEdits[siswa.id] !== undefined ? nilaiTugasEdits[siswa.id] : "-"}
+																</td>
+															)}
+														</tr>
+													);
+												});
+											})()}
+										</tbody>
+									</table>
+								</div>
 							</div>
 						</div>
 					)}

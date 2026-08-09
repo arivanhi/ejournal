@@ -595,3 +595,53 @@ export async function simpanPemetaanMapelAction(tahunAjarId: string, mapelIds: s
 		return { success: false, message: "Gagal menyimpan pemetaan. Pastikan relasi database sesuai." };
 	}
 }
+
+// ==========================================
+// ACTIONS UNTUK KELAS
+// ==========================================
+export async function tambahKelasAction(nama: string) {
+	try {
+		const existing = await prisma.kelas.findUnique({ where: { nama } });
+		if (existing) {
+			return { success: false, message: `Kelas dengan nama "${nama}" sudah ada.` };
+		}
+		await prisma.kelas.create({ data: { nama } });
+		revalidatePath("/admin/master");
+		return { success: true, message: "Kelas berhasil ditambahkan!" };
+	} catch (error) {
+		console.error("Error tambah kelas:", error);
+		return { success: false, message: "Terjadi kesalahan saat menambahkan kelas." };
+	}
+}
+
+export async function editKelasAction(id: string, nama: string) {
+	try {
+		const existing = await prisma.kelas.findUnique({ where: { nama } });
+		if (existing && existing.id !== id) {
+			return { success: false, message: `Kelas dengan nama "${nama}" sudah ada.` };
+		}
+		await prisma.kelas.update({
+			where: { id },
+			data: { nama },
+		});
+		revalidatePath("/admin/master");
+		return { success: true, message: "Kelas berhasil diperbarui!" };
+	} catch (error) {
+		console.error("Error edit kelas:", error);
+		return { success: false, message: "Terjadi kesalahan saat memperbarui kelas." };
+	}
+}
+
+export async function hapusKelasAction(ids: string[]) {
+	try {
+		await prisma.kelas.deleteMany({
+			where: { id: { in: ids } },
+		});
+		revalidatePath("/admin/master");
+		return { success: true, message: `${ids.length} Kelas berhasil dihapus!` };
+	} catch (error) {
+		console.error("Error hapus kelas:", error);
+		return { success: false, message: "Terjadi kesalahan saat menghapus kelas. Mungkin sedang digunakan di tabel lain." };
+	}
+}
+

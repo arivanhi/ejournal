@@ -171,6 +171,7 @@ export default async function MonitoringPage() {
 				jamStr: jamStr,
 				waktuMengajar: waktuMengajarStr,
 				topik: jur.materiBab || "-",
+				topikTugas: jur.tugas || "-",
 				status: "Terisi",
 			});
 		});
@@ -196,6 +197,7 @@ export default async function MonitoringPage() {
 						jamStr: jamStr,
 						waktuMengajar: "-",
 						topik: "-",
+						topikTugas: "-",
 						status: "Jam Kosong",
 					});
 				});

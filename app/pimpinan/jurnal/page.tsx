@@ -159,16 +159,35 @@ export default async function JurnalPage() {
 
 		const detailSesi = g.jurnals
 			.sort((a: any, b: any) => a.tanggal.getTime() - b.tanggal.getTime())
-			.map((j: any, idx: number) => ({
-				id: j.id,
-				pertemuanKe: idx + 1,
-				tanggal: j.tanggal.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
-				tanggalRaw: j.tanggal.getTime(),
-				topik: j.materiBab || "-",
-				catatan: j.catatan || "-",
-				hadir: j.hadirSiswa,
-				status: j.status === "SUBMITTED" ? "TERKIRIM" : "DRAFT",
-			}));
+			.map((j: any, idx: number) => {
+				let countTugas = 0, totalNilai = 0;
+				const presensiData = j.presensi.map((p: any) => {
+					if (j.tugas && p.nilaiTugas !== null && p.nilaiTugas !== undefined) {
+						totalNilai += p.nilaiTugas;
+						countTugas++;
+					}
+					return {
+						siswaId: p.siswaId,
+						status: p.status,
+						nilaiTugas: p.nilaiTugas,
+					};
+				});
+				const rataNilaiTugas = countTugas > 0 ? Math.round(totalNilai / countTugas) : null;
+
+				return {
+					id: j.id,
+					pertemuanKe: idx + 1,
+					tanggal: j.tanggal.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
+					tanggalRaw: j.tanggal.getTime(),
+					topik: j.materiBab || "-",
+					catatan: j.catatan || "-",
+					tugas: j.tugas || "-",
+					rataNilaiTugas,
+					presensi: presensiData,
+					hadir: j.hadirSiswa,
+					status: j.status === "SUBMITTED" ? "TERKIRIM" : "DRAFT",
+				};
+			});
 
 		// PERBAIKAN: Membangun Data Rekapitulasi Kehadiran Siswa
 		const siswaList = g.muridAktif.map((muridObj: any) => {
@@ -194,6 +213,7 @@ export default async function JurnalPage() {
 			return {
 				id: muridObj.siswa.id,
 				nama: muridObj.siswa.user.nama,
+				nis: muridObj.siswa.nis || "-",
 				nisn: muridObj.siswa.nisn || "-",
 				detailKehadiran: { H, S, I, A },
 				persentase,

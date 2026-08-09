@@ -396,8 +396,11 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 									<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "20%" }}>
 										Waktu Mengajar
 									</th>
-									<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "33%" }}>
+									<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "20%" }}>
 										Topik Pembelajaran
+									</th>
+									<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "20%" }}>
+										Topik Tugas
 									</th>
 									<th
 										style={{
@@ -437,6 +440,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 												{row.waktuMengajar}
 											</td>
 											<td style={{ border: "1px solid #000", padding: "4px" }}>{row.topik || "-"}</td>
+											<td style={{ border: "1px solid #000", padding: "4px" }}>{row.topikTugas || "-"}</td>
 											<td
 												style={{
 													border: "1px solid #000",
@@ -616,10 +620,20 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 															border: "1px solid #000",
 															backgroundColor: "#f1f5f9",
 															padding: "6px",
-															width: "33%",
+															width: "20%",
 														}}
 													>
 														Topik
+													</th>
+													<th
+														style={{
+															border: "1px solid #000",
+															backgroundColor: "#f1f5f9",
+															padding: "6px",
+															width: "20%",
+														}}
+													>
+														Topik Tugas
 													</th>
 													<th
 														style={{
@@ -664,6 +678,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 															</td>
 															<td style={{ border: "1px solid #000", padding: "4px" }}>{row.waktuMengajar}</td>
 															<td style={{ border: "1px solid #000", padding: "4px" }}>{row.topik || "-"}</td>
+															<td style={{ border: "1px solid #000", padding: "4px" }}>{row.topikTugas || "-"}</td>
 															<td
 																style={{
 																	border: "1px solid #000",
@@ -1100,13 +1115,16 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 												>
 													WAKTU MENGAJAR{renderSortIcon("waktuMengajar")}
 												</th>
-												<th className={styles.sortableTh} onClick={() => handleSort("topik")}>
+												<th className={styles.sortableTh} onClick={() => handleSort("topik")} style={{ width: "200px" }}>
 													TOPIK PEMBELAJARAN{renderSortIcon("topik")}
+												</th>
+												<th className={styles.sortableTh} onClick={() => handleSort("topikTugas")} style={{ width: "150px" }}>
+													TOPIK TUGAS{renderSortIcon("topikTugas")}
 												</th>
 												<th
 													className={styles.sortableTh}
 													onClick={() => handleSort("status")}
-													style={{ width: "150px", textAlign: "center" }}
+													style={{ width: "130px", textAlign: "center" }}
 												>
 													STATUS{renderSortIcon("status")}
 												</th>
@@ -1129,6 +1147,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 														<td style={{ color: "#475569" }}>{row.jamStr}</td>
 														<td style={{ color: "#1e3a8a", fontWeight: 600 }}>{row.waktuMengajar}</td>
 														<td style={{ color: "#334155" }}>{row.topik}</td>
+														<td style={{ color: "#0f172a", fontWeight: 500 }}>{row.topikTugas}</td>
 														<td style={{ textAlign: "center" }}>
 															{row.status === "Terisi" ? (
 																<span className={styles.badgeSolidBlue}>

@@ -44,6 +44,10 @@ export default function ReportClient({ user, dataRekap }: any) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
+	const [startDate, setStartDate] = useState<string>("");
+	const [endDate, setEndDate] = useState<string>("");
+	const [periodicGuruKosong, setPeriodicGuruKosong] = useState<any[]>([]);
+
 	// Form State
 	const [recomText, setRecomText] = useState("");
 	const [aksiForm, setAksiForm] = useState({ aspek: "Guru", temuan: "", aksi: "", status: "Planning" });
@@ -123,26 +127,55 @@ export default function ReportClient({ user, dataRekap }: any) {
 
 	// --- FUNGSI EXPORT PDF A4 LANDSCAPE ---
 	const handleDownloadPdf = async () => {
+		if (!activeData) return;
+		if (!startDate || !endDate) {
+			showToast("Harap pilih rentang tanggal periodik untuk ekspor.", "error");
+			return;
+		}
+
 		setIsDownloadingPdf(true);
 		try {
-			const html2pdf = (await import("html2pdf.js")).default;
-			const element = document.getElementById("pdf-report-container");
+			// Fetch data periodik
+			const res = await fetch("/api/report/periodic", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					tahunAjaranId: activeData.tahunAjaranId,
+					startDate,
+					endDate,
+				}),
+			});
+			const result = await res.json();
+			if (result.success) {
+				setPeriodicGuruKosong(result.guruKosong);
+			}
 
-			const opt = {
-				margin: 0,
-				filename: `Laporan_Rekapitulasi_PDCA_${selectedSemester}_${selectedTahun}.pdf`,
-				image: { type: "jpeg", quality: 1 },
-				html2canvas: { scale: 2, useCORS: true },
-				jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-			};
+			// Beri waktu React merender tabel baru
+			setTimeout(async () => {
+				try {
+					const html2pdf = (await import("html2pdf.js")).default;
+					const element = document.getElementById("pdf-report-container");
 
-			await html2pdf().set(opt).from(element).save();
+					const opt = {
+						margin: 0,
+						filename: `Laporan_Rekapitulasi_PDCA_${selectedSemester}_${selectedTahun}.pdf`,
+						image: { type: "jpeg", quality: 1 },
+						html2canvas: { scale: 2, useCORS: true },
+						jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+					};
+
+					await html2pdf().set(opt).from(element).save();
+				} catch (err) {
+					console.error("Gagal html2pdf:", err);
+				} finally {
+					setIsDownloadingPdf(false);
+					setIsPdfModalOpen(false);
+				}
+			}, 500);
 		} catch (error) {
 			console.error("Gagal men-generate PDF:", error);
 			showToast("Terjadi kesalahan saat memproses laporan PDF.", "error");
-		} finally {
 			setIsDownloadingPdf(false);
-			setIsPdfModalOpen(false);
 		}
 	};
 
@@ -224,6 +257,11 @@ export default function ReportClient({ user, dataRekap }: any) {
 							<p style={{ margin: "5px 0", fontSize: "11pt" }}>
 								Semester {selectedSemester} Tahun Ajaran {selectedTahun}
 							</p>
+							{startDate && endDate && (
+								<p style={{ margin: "5px 0", fontSize: "10pt", fontWeight: "bold" }}>
+									Periode: {new Date(startDate).toLocaleDateString("id-ID")} s.d. {new Date(endDate).toLocaleDateString("id-ID")}
+								</p>
+							)}
 						</div>
 
 						<div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
@@ -349,6 +387,54 @@ export default function ReportClient({ user, dataRekap }: any) {
 							</tbody>
 						</table>
 
+						{/* TABEL GURU JAM KOSONG (PERIODIK) */}
+						{periodicGuruKosong.length > 0 && (
+							<>
+								<h3
+									style={{
+										fontSize: "12pt",
+										fontWeight: "bold",
+										borderBottom: "1px solid #000",
+										paddingBottom: "5px",
+										marginBottom: "10px",
+										marginTop: "20px",
+									}}
+								>
+									Daftar Guru dengan Jam Kosong (Tidak Mengisi Jurnal)
+								</h3>
+								<table
+									style={{
+										width: "100%",
+										borderCollapse: "collapse",
+										fontSize: "10pt",
+										border: "1px solid #000",
+										marginBottom: "20px",
+									}}
+								>
+									<thead>
+										<tr style={{ backgroundColor: "#f1f5f9" }}>
+											<th style={{ border: "1px solid #000", padding: "6px", width: "5%" }}>No</th>
+											<th style={{ border: "1px solid #000", padding: "6px", width: "25%" }}>Nama Guru</th>
+											<th style={{ border: "1px solid #000", padding: "6px", width: "20%" }}>Mata Pelajaran</th>
+											<th style={{ border: "1px solid #000", padding: "6px", width: "20%" }}>Kelas</th>
+											<th style={{ border: "1px solid #000", padding: "6px", width: "30%" }}>Tanggal Kosong</th>
+										</tr>
+									</thead>
+									<tbody>
+										{periodicGuruKosong.map((guru: any, i: number) => (
+											<tr key={i}>
+												<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{i + 1}</td>
+												<td style={{ border: "1px solid #000", padding: "6px" }}>{guru.nama}</td>
+												<td style={{ border: "1px solid #000", padding: "6px" }}>{guru.mapel}</td>
+												<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{guru.kelas}</td>
+												<td style={{ border: "1px solid #000", padding: "6px" }}>{guru.tanggal.join(", ")}</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</>
+						)}
+
 						<div style={{ textAlign: "right", marginTop: "20px" }}>
 							<p style={{ margin: 0, fontSize: "11pt" }}>Kepala Sekolah SMAN 2 Brebes</p>
 							<p style={{ margin: "50px 0 0 0", fontSize: "11pt", fontWeight: "bold" }}>{user.nama}</p>
@@ -383,9 +469,19 @@ export default function ReportClient({ user, dataRekap }: any) {
 						</div>
 						<div className={styles.modalBody} style={{ textAlign: "center", padding: "2rem" }}>
 							<Printer size={48} color="#3b82f6" style={{ margin: "0 auto 1rem auto" }} />
-							<p style={{ fontSize: "1rem", color: "#334155" }}>
-								Anda akan mengunduh dokumen Laporan Rekapitulasi PDCA.
+							<p style={{ fontSize: "1rem", color: "#334155", marginBottom: "1.5rem" }}>
+								Silakan pilih rentang tanggal untuk data Laporan Periodik:
 							</p>
+							<div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginBottom: "1rem" }}>
+								<div style={{ textAlign: "left" }}>
+									<label className={styles.formLabel}>Dari Tanggal</label>
+									<input type="date" className={styles.inputField} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+								</div>
+								<div style={{ textAlign: "left" }}>
+									<label className={styles.formLabel}>Sampai Tanggal</label>
+									<input type="date" className={styles.inputField} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+								</div>
+							</div>
 						</div>
 						<div className={styles.modalFooter}>
 							<button className={styles.btnOutline} onClick={() => setIsPdfModalOpen(false)}>
@@ -675,7 +771,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 													<div className={styles.listNumBlue}>{idx + 1}</div>
 													<div className={styles.listTextGroup}>
 														<div className={styles.listName}>{guru.nama}</div>
-														<div className={styles.listSub}>{guru.mapel}</div>
+														<div className={styles.listSub}>{guru.mapel} - {guru.kelas}</div>
 													</div>
 													<div className={styles.listValueRed}>{guru.jamKosong} Jam Kosong</div>
 												</div>
@@ -760,14 +856,18 @@ export default function ReportClient({ user, dataRekap }: any) {
 												<div className={styles.bars}>
 													<div
 														className={styles.barNavy}
-														style={{ height: `${data.pctKehadiran}%` }}
+														style={{ height: `${data.pctKehadiran}%`, position: "relative" }}
 														title={`Kehadiran: ${data.pctKehadiran}%`}
-													></div>
+													>
+														<span style={{ position: "absolute", top: "-18px", left: "50%", transform: "translateX(-50%)", fontSize: "10px", color: "#1e3a8a", fontWeight: "bold" }}>{data.pctKehadiran}%</span>
+													</div>
 													<div
 														className={styles.barOlive}
-														style={{ height: `${data.pctJurnal}%` }}
+														style={{ height: `${data.pctJurnal}%`, position: "relative" }}
 														title={`Jurnal: ${data.pctJurnal}%`}
-													></div>
+													>
+														<span style={{ position: "absolute", top: "-18px", left: "50%", transform: "translateX(-50%)", fontSize: "10px", color: "#65a30d", fontWeight: "bold" }}>{data.pctJurnal}%</span>
+													</div>
 												</div>
 												<div className={styles.barLabel}>{data.bulan}</div>
 											</div>
