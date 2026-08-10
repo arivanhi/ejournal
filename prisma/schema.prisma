@@ -15,6 +15,7 @@ enum Role {
   ADMIN_TU
   WAKA
   KEPSEK        // <-- TAMBAHAN BARU
+  KOORDINATOR   // <-- KOORDINATOR LINO
   WALI_KELAS
   GURU
   SISWA
