@@ -67,8 +67,8 @@ export default function RiwayatClient({
 	useEffect(() => {
 		if (activeJadwal && activeJadwal.jurnal && activeJadwal.jurnal.length > 0) {
 			const sorted = [...activeJadwal.jurnal].sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
-			setStartDate(new Date(sorted[0].tanggal).toISOString().split("T")[0]);
-			setEndDate(new Date(sorted[sorted.length - 1].tanggal).toISOString().split("T")[0]);
+			setStartDate(new Date(sorted[0].tanggal).toLocaleDateString("en-CA"));
+			setEndDate(new Date(sorted[sorted.length - 1].tanggal).toLocaleDateString("en-CA"));
 		}
 	}, [activeJadwal]);
 

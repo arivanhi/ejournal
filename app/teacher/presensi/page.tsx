@@ -29,11 +29,11 @@ export default async function PresensiQRPage() {
 	endOfDay.setHours(23, 59, 59, 999);
 
 	// ==============================================================
-	// FITUR AUTO-CLOSE JAM 4 SORE (16:00)
-	// Jika waktu di server sudah jam 16:00 atau lebih,
+	// FITUR AUTO-CLOSE JAM 8 MALAM (20:00)
+	// Jika waktu di server sudah jam 20:00 atau lebih,
 	// tutup semua akses pemindaian QR hari ini.
 	// ==============================================================
-	if (today.getHours() >= 16) {
+	if (today.getHours() >= 20) {
 		await prisma.jurnalMengajar.updateMany({
 			where: {
 				tanggal: { gte: startOfDay, lte: endOfDay },

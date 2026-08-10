@@ -109,7 +109,7 @@ export default function JurnalClient({
 	const [activeJurnal, setActiveJurnal] = useState<any>(null);
 
 	// Form Pembuatan Jurnal
-	const [tanggal, setTanggal] = useState(new Date().toISOString().split("T")[0]);
+	const [tanggal, setTanggal] = useState(new Date().toLocaleDateString("en-CA"));
 	const [waktuMulai, setWaktuMulai] = useState("07:00");
 	const [waktuSelesai, setWaktuSelesai] = useState("08:30");
 	const [materi, setMateri] = useState("");
@@ -225,7 +225,7 @@ export default function JurnalClient({
 
 	const handleBukaKelas = (jadwal: any) => {
 		setActiveJadwal(jadwal);
-		setTanggal(new Date().toISOString().split("T")[0]);
+		setTanggal(new Date().toLocaleDateString("en-CA"));
 		setMateri("");
 		setTugas("");
 
@@ -365,8 +365,8 @@ export default function JurnalClient({
 	};
 
 	const triggerModalBukaQR = (jurnalId: string, jurnalTanggal: string | Date) => {
-		const hariIniStr = new Date().toISOString().split("T")[0];
-		const tanggalJurnalStr = new Date(jurnalTanggal).toISOString().split("T")[0];
+		const hariIniStr = new Date().toLocaleDateString("en-CA");
+		const tanggalJurnalStr = new Date(jurnalTanggal).toLocaleDateString("en-CA");
 		if (hariIniStr !== tanggalJurnalStr) {
 			showToast("QR Presensi HANYA BISA diaktifkan pada jadwal HARI INI.", "error");
 			return;
@@ -406,7 +406,7 @@ export default function JurnalClient({
 
 	const openEditModal = (jurnalItem: any) => {
 		setEditJurnalId(jurnalItem.id);
-		setEditTanggal(new Date(jurnalItem.tanggal).toISOString().split("T")[0]);
+		setEditTanggal(new Date(jurnalItem.tanggal).toLocaleDateString("en-CA"));
 		setEditMateri(jurnalItem.materiBab);
 		setEditTugas(jurnalItem.tugas || "");
 
@@ -445,7 +445,7 @@ export default function JurnalClient({
 
 			const opt = {
 				margin: 0,
-				filename: `Detail_Presensi_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}_${new Date(activeJurnal.tanggal).toISOString().split("T")[0]}.pdf`,
+				filename: `Detail_Presensi_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}_${new Date(activeJurnal.tanggal).toLocaleDateString("en-CA")}.pdf`,
 				image: { type: "jpeg", quality: 1 },
 				html2canvas: { scale: 2, useCORS: true, letterRendering: true },
 				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
@@ -677,9 +677,9 @@ export default function JurnalClient({
 							) : (
 								<div className={styles.cardGrid}>
 									{groupedJadwal.map((jadwal: any) => {
-										const hariIniStr = new Date().toISOString().split("T")[0];
+										const hariIniStr = new Date().toLocaleDateString("en-CA");
 										const jurnalHariIni = jadwal.jurnal?.find(
-											(j: any) => new Date(j.tanggal).toISOString().split("T")[0] === hariIniStr,
+											(j: any) => new Date(j.tanggal).toLocaleDateString("en-CA") === hariIniStr,
 										);
 										const isSubmitted = !!jurnalHariIni;
 
@@ -874,8 +874,8 @@ export default function JurnalClient({
 													});
 													const isQRAktif = !!jurnalItem.qrToken;
 
-													const hariIniStr = new Date().toISOString().split("T")[0];
-													const tanggalJurnalStr = new Date(jurnalItem.tanggal).toISOString().split("T")[0];
+													const hariIniStr = new Date().toLocaleDateString("en-CA");
+													const tanggalJurnalStr = new Date(jurnalItem.tanggal).toLocaleDateString("en-CA");
 													const isHariIni = hariIniStr === tanggalJurnalStr;
 
 													const totalKls = activeJadwal.kelas.riwayatSiswa.length;
