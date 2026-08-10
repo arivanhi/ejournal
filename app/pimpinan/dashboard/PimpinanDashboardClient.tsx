@@ -1,4 +1,3 @@
-// app/pimpinan/dashboard/PimpinanDashboardClient.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -23,6 +22,81 @@ import styles from "./pimpinan.module.css";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 
+function chunkArray<T>(arr: T[], size: number): T[][] {
+	const chunks = [];
+	for (let i = 0; i < arr.length; i += size) {
+		chunks.push(arr.slice(i, i + size));
+	}
+	return chunks;
+}
+
+// ============================================================================
+// KOMPONEN PEMBANTU PDF (PAGINATION MANUAL)
+// ============================================================================
+const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
+	<div
+		style={{
+			width: "210mm",
+			height: "296mm",
+			padding: "15mm 20mm",
+			boxSizing: "border-box",
+			display: "flex",
+			flexDirection: "column",
+			pageBreakAfter: isLast ? "auto" : "always",
+			backgroundColor: "white",
+			color: "black",
+			position: "relative",
+			overflow: "hidden"
+		}}
+	>
+		{children}
+	</div>
+);
+
+const PageFooter = ({ current, total }: { current: number; total: number }) => (
+	<div style={{ textAlign: "right", fontSize: "10pt", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid #e2e8f0" }}>
+		Halaman {current} dari {total}
+	</div>
+);
+
+const KopSurat = () => (
+	<div style={{ paddingBottom: "5px", backgroundColor: "white", marginBottom: "15px", flexShrink: 0 }}>
+		<div
+			style={{
+				display: "flex",
+				alignItems: "center",
+				borderBottom: "3px solid black",
+				paddingBottom: "10px",
+				marginBottom: "2px",
+			}}
+		>
+			<img
+				src="/logo.jpg"
+				alt="Logo SMAN 2 Brebes"
+				style={{ width: "80px", height: "80px", objectFit: "contain", margin: "0 20px" }}
+			/>
+			<div style={{ flex: 1, textAlign: "center" }}>
+				<h1
+					style={{
+						margin: "0 0 4px 0",
+						fontSize: "20pt",
+						fontWeight: "bold",
+						color: "#000",
+						fontFamily: '"Times New Roman", Times, serif',
+					}}
+				>
+					SMA NEGERI 2 BREBES
+				</h1>
+				<p style={{ margin: "2px 0", fontSize: "10pt", color: "#000" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
+			</div>
+			<div style={{ width: "120px" }}></div>
+		</div>
+		<div style={{ borderBottom: "1px solid black" }}></div>
+	</div>
+);
+
+
 export default function PimpinanDashboardClient({
 	user,
 	tahunAjaran,
@@ -46,7 +120,7 @@ export default function PimpinanDashboardClient({
 		return namaGuru.includes(keyword) || namaKelas.includes(keyword);
 	});
 
-	const totalPages = Math.max(1, Math.ceil(filteredJurnal.length / itemsPerPage));
+	const totalPagesWeb = Math.max(1, Math.ceil(filteredJurnal.length / itemsPerPage));
 	const startIndex = (currentPage - 1) * itemsPerPage;
 	const currentItems = filteredJurnal.slice(startIndex, startIndex + itemsPerPage);
 
@@ -95,6 +169,20 @@ export default function PimpinanDashboardClient({
 		return "-";
 	};
 
+	// --- LOGIKA PERHITUNGAN HALAMAN MANUAL (CHUNKING) ---
+	const MAX_ROWS = 25;
+
+	const peringatanChunks = chunkArray(peringatanJamKosong, MAX_ROWS);
+	if (peringatanChunks.length === 0) peringatanChunks.push([]);
+
+	const kehadiranChunks = chunkArray(dataKehadiranSiswa, MAX_ROWS);
+	if (kehadiranChunks.length === 0) kehadiranChunks.push([]);
+
+	const jurnalChunks = chunkArray(riwayatJurnal, MAX_ROWS);
+	if (jurnalChunks.length === 0) jurnalChunks.push([]);
+
+	const totalPdfPages = 1 + peringatanChunks.length + kehadiranChunks.length + jurnalChunks.length;
+
 	const handleDownloadPdf = async () => {
 		setIsDownloading(true);
 		try {
@@ -102,12 +190,12 @@ export default function PimpinanDashboardClient({
 			const element = document.getElementById("pdf-harian-container");
 
 			const opt = {
-				margin: 10,
+				margin: 0, // KUNCI: Diset 0 agar mengikuti padding <PageContainer>
 				filename: pdfFilename,
 				image: { type: "jpeg", quality: 1 },
 				html2canvas: { scale: 2, useCORS: true },
 				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-				pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
+				pagebreak: { mode: ['css'] } // Mematuhi instruksi PageBreak manual
 			};
 
 			await html2pdf().set(opt).from(element).save();
@@ -120,271 +208,204 @@ export default function PimpinanDashboardClient({
 		}
 	};
 
-	const pdfHeader = (
-		<div
-			style={{
-				position: "relative",
-				textAlign: "center",
-				borderBottom: "3px solid #000",
-				paddingBottom: "15px",
-				marginBottom: "15px",
-				paddingTop: "10px",
-			}}
-		>
-			<img
-				src="/logo.jpg"
-				alt="Logo"
-				style={{
-					position: "absolute",
-					left: "10px",
-					top: "50%",
-					transform: "translateY(-50%)",
-					width: "80px",
-					height: "80px",
-					objectFit: "contain",
-				}}
-			/>
-			<h1
-				style={{
-					margin: "0 0 5px 0",
-					fontSize: "18pt",
-					fontWeight: "bold",
-					color: "#000",
-					fontFamily: '"Times New Roman", Times, serif',
-				}}
-			>
-				SMA NEGERI 2 BREBES
-			</h1>
-			<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-			<p style={{ margin: 0, fontSize: "11pt" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
-		</div>
-	);
-
 	return (
 		<>
+			{/* ================================================================= */}
+			{/* AREA TERSEMBUNYI UNTUK CETAK PDF (SISTEM PAGINATION MANUAL)       */}
+			{/* ================================================================= */}
 			<div style={{ display: "none" }}>
-				<div
-					id="pdf-harian-container"
-					style={{
-						width: "195mm",
-						minHeight: "297mm",
-						padding: "15mm",
-						boxSizing: "border-box",
-						backgroundColor: "#fff",
-						color: "#000",
-						fontFamily: "Arial, sans-serif",
-					}}
-				>
-					{pdfHeader}
-					<div style={{ textAlign: "center", marginBottom: "20px" }}>
-						<h2 style={{ margin: 0, fontSize: "14pt", fontWeight: "bold", textTransform: "uppercase" }}>
-							REKAP LAPORAN HARI INI
-						</h2>
-						<p style={{ margin: "5px 0", fontSize: "11pt" }}>
-							Tanggal: {todayFormatted} | Tahun Ajaran: {tahunAjaran?.nama}
-						</p>
-					</div>
+				<div id="pdf-harian-container" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 
-					<div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-						<div style={{ flex: 1, border: "1px solid #000", padding: "10px", textAlign: "center" }}>
-							<p style={{ margin: 0, fontSize: "10pt", fontWeight: "bold" }}>TOTAL SISWA ABSEN</p>
-							<h3 style={{ margin: "5px 0 0 0", fontSize: "16pt" }}>{stats.totalSiswaAbsen} Siswa</h3>
+					{/* PAGE 1: SUMMARY */}
+					<PageContainer isLast={false}>
+						<KopSurat />
+						<div style={{ textAlign: "center", marginBottom: "20px" }}>
+							<h2 style={{ margin: 0, fontSize: "14pt", fontWeight: "bold", textTransform: "uppercase" }}>
+								REKAP LAPORAN HARI INI
+							</h2>
+							<p style={{ margin: "5px 0", fontSize: "11pt" }}>
+								Tanggal: {todayFormatted} | Tahun Ajaran: {tahunAjaran?.nama}
+							</p>
 						</div>
-						<div style={{ flex: 1, border: "1px solid #000", padding: "10px", textAlign: "center" }}>
-							<p style={{ margin: 0, fontSize: "10pt", fontWeight: "bold" }}>JAM KOSONG</p>
-							<h3 style={{ margin: "5px 0 0 0", fontSize: "16pt" }}>{stats.jamKosongCount} Sesi</h3>
-						</div>
-						<div style={{ flex: 1, border: "1px solid #000", padding: "10px", textAlign: "center" }}>
-							<p style={{ margin: 0, fontSize: "10pt", fontWeight: "bold" }}>JURNAL TERKUMPUL</p>
-							<h3 style={{ margin: "5px 0 0 0", fontSize: "16pt" }}>
-								{stats.jurnalTerkumpul} / {stats.totalJadwalTarget}
-							</h3>
-						</div>
-					</div>
 
-					<h3
-						style={{
-							fontSize: "12pt",
-							fontWeight: "bold",
-							borderBottom: "1px solid #000",
-							paddingBottom: "5px",
-							marginBottom: "10px",
-							marginTop: "20px",
-						}}
-					>
-						A. Daftar Kelas Jam Kosong (Tidak Terisi Jurnal)
-					</h3>
-					<table
-						style={{
-							width: "100%",
-							borderCollapse: "collapse",
-							fontSize: "10pt",
-							border: "1px solid #000",
-							marginBottom: "20px",
-						}}
-					>
-						<thead>
-							<tr style={{ backgroundColor: "#f1f5f9" }}>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "5%", textAlign: "center" }}>No</th>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "30%" }}>Nama Guru Pengampu</th>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "35%" }}>Mata Pelajaran</th>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "15%", textAlign: "center" }}>Kelas</th>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "15%", textAlign: "center" }}>Jam Ke-</th>
-							</tr>
-						</thead>
-						<tbody>
-							{peringatanJamKosong.length === 0 ? (
-								<tr>
-									<td colSpan={5} style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-										Tidak ada jam kosong hari ini.
-									</td>
-								</tr>
-							) : (
-								peringatanJamKosong.map((alert: any, i: number) => (
-									<tr key={i}>
-										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{i + 1}</td>
-										<td style={{ border: "1px solid #000", padding: "6px" }}>{alert.guru}</td>
-										<td style={{ border: "1px solid #000", padding: "6px" }}>{alert.mapel}</td>
-										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{alert.kelas}</td>
-										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{alert.jam}</td>
-									</tr>
-								))
-							)}
-						</tbody>
-					</table>
-
+						<div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+							<div style={{ flex: 1, border: "1px solid #000", padding: "10px", textAlign: "center" }}>
+								<p style={{ margin: 0, fontSize: "10pt", fontWeight: "bold" }}>TOTAL SISWA ABSEN</p>
+								<h3 style={{ margin: "5px 0 0 0", fontSize: "16pt" }}>{stats.totalSiswaAbsen} Siswa</h3>
+							</div>
+							<div style={{ flex: 1, border: "1px solid #000", padding: "10px", textAlign: "center" }}>
+								<p style={{ margin: 0, fontSize: "10pt", fontWeight: "bold" }}>JAM KOSONG</p>
+								<h3 style={{ margin: "5px 0 0 0", fontSize: "16pt" }}>{stats.jamKosongCount} Sesi</h3>
+							</div>
+							<div style={{ flex: 1, border: "1px solid #000", padding: "10px", textAlign: "center" }}>
+								<p style={{ margin: 0, fontSize: "10pt", fontWeight: "bold" }}>JURNAL TERKUMPUL</p>
+								<h3 style={{ margin: "5px 0 0 0", fontSize: "16pt" }}>
+									{stats.jurnalTerkumpul} / {stats.totalJadwalTarget}
+								</h3>
+							</div>
+						</div>
+						<PageFooter current={1} total={totalPdfPages} />
+					</PageContainer>
 					<div className="html2pdf__page-break"></div>
-					{pdfHeader}
-					<h3
-						style={{
-							fontSize: "12pt",
-							fontWeight: "bold",
-							borderBottom: "1px solid #000",
-							paddingBottom: "5px",
-							marginBottom: "10px",
-							marginTop: "10px",
-						}}
-					>
-						B. Daftar Kehadiran Siswa (Semua Status)
-					</h3>
-					<table
-						style={{
-							width: "100%",
-							borderCollapse: "collapse",
-							fontSize: "10pt",
-							border: "1px solid #000",
-							marginBottom: "20px",
-						}}
-					>
-						<thead>
-							<tr style={{ backgroundColor: "#f1f5f9" }}>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "5%", textAlign: "center" }}>No</th>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "40%" }}>Nama Siswa</th>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "20%", textAlign: "center" }}>Kelas</th>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "20%", textAlign: "center" }}>Status</th>
-							</tr>
-						</thead>
-						<tbody>
-							{!dataKehadiranSiswa || dataKehadiranSiswa.length === 0 ? (
-								<tr>
-									<td colSpan={4} style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-										Belum ada data kehadiran siswa hari ini.
-									</td>
-								</tr>
-							) : (
-								dataKehadiranSiswa.map((siswa: any, i: number) => (
-									<tr key={i}>
-										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{i + 1}</td>
-										<td style={{ border: "1px solid #000", padding: "6px" }}>{siswa.nama}</td>
-										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{siswa.kelas}</td>
-										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-											{siswa.status === "H"
-												? "Hadir"
-												: siswa.status === "S"
-													? "Sakit"
-													: siswa.status === "I"
-														? "Izin"
-														: "Alpa"}
-										</td>
-									</tr>
-								))
-							)}
-						</tbody>
-					</table>
 
-					<div className="html2pdf__page-break"></div>
-					{pdfHeader}
-					<h3
-						style={{
-							fontSize: "12pt",
-							fontWeight: "bold",
-							borderBottom: "1px solid #000",
-							paddingBottom: "5px",
-							marginBottom: "10px",
-							marginTop: "10px",
-						}}
-					>
-						C. Riwayat Jurnal Guru Masuk
-					</h3>
-					<table
-						style={{
-							width: "100%",
-							borderCollapse: "collapse",
-							fontSize: "10pt",
-							border: "1px solid #000",
-							marginBottom: "20px",
-						}}
-					>
-						<thead>
-							<tr style={{ backgroundColor: "#f1f5f9" }}>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "5%", textAlign: "center" }}>No</th>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "30%" }}>Nama Guru</th>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "25%" }}>Mata Pelajaran</th>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "20%", textAlign: "center" }}>
-									Kelas (Jam Ke)
-								</th>
-								<th style={{ border: "1px solid #000", padding: "6px", width: "20%", textAlign: "center" }}>
-									Waktu Submit
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							{riwayatJurnal.length === 0 ? (
-								<tr>
-									<td colSpan={5} style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-										Belum ada jurnal yang masuk hari ini.
-									</td>
-								</tr>
-							) : (
-								riwayatJurnal.map((jurnal: any, i: number) => (
-									<tr key={i}>
-										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{i + 1}</td>
-										<td style={{ border: "1px solid #000", padding: "6px" }}>{jurnal.jadwal.guru.user.nama}</td>
-										<td style={{ border: "1px solid #000", padding: "6px" }}>{jurnal.jadwal.mapel.nama}</td>
+					{/* A. Daftar Kelas Jam Kosong */}
+					{peringatanChunks.map((chunk: any[], chunkIdx: number) => {
+						const pageNum = 1 + (chunkIdx + 1);
+						return (
+							<div key={`peringatan-${chunkIdx}`}>
+								<PageContainer isLast={false}>
+									<KopSurat />
+									<h3 style={{ fontSize: "12pt", fontWeight: "bold", borderBottom: "1px solid #000", paddingBottom: "5px", marginBottom: "10px", marginTop: "10px" }}>
+										A. Daftar Kelas Jam Kosong (Tidak Terisi Jurnal) {chunkIdx > 0 ? "(Lanjutan)" : ""}
+									</h3>
+									<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt", border: "1px solid #000" }}>
+										<thead style={{ display: "table-header-group" }}>
+											<tr style={{ backgroundColor: "#f1f5f9" }}>
+												<th style={{ border: "1px solid #000", padding: "6px", width: "5%", textAlign: "center" }}>No</th>
+												<th style={{ border: "1px solid #000", padding: "6px", width: "30%" }}>Nama Guru Pengampu</th>
+												<th style={{ border: "1px solid #000", padding: "6px", width: "35%" }}>Mata Pelajaran</th>
+												<th style={{ border: "1px solid #000", padding: "6px", width: "15%", textAlign: "center" }}>Kelas</th>
+												<th style={{ border: "1px solid #000", padding: "6px", width: "15%", textAlign: "center" }}>Jam Ke-</th>
+											</tr>
+										</thead>
+										<tbody>
+											{chunk.length === 0 ? (
+												<tr>
+													<td colSpan={5} style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+														Tidak ada jam kosong hari ini.
+													</td>
+												</tr>
+											) : (
+												chunk.map((alert: any, i: number) => (
+													<tr key={i}>
+														<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{chunkIdx * MAX_ROWS + i + 1}</td>
+														<td style={{ border: "1px solid #000", padding: "6px" }}>{alert.guru}</td>
+														<td style={{ border: "1px solid #000", padding: "6px" }}>{alert.mapel}</td>
+														<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{alert.kelas}</td>
+														<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{alert.jam}</td>
+													</tr>
+												))
+											)}
+										</tbody>
+									</table>
+									<PageFooter current={pageNum} total={totalPdfPages} />
+								</PageContainer>
+								<div className="html2pdf__page-break"></div>
+							</div>
+						);
+					})}
 
-										{/* PERUBAHAN DI PDF: Memanggil helper formatJamSesi() */}
-										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-											{jurnal.jadwal.kelas.nama} ({formatJamSesi(jurnal.jadwal)})
-										</td>
+					{/* B. Daftar Kehadiran Siswa */}
+					{kehadiranChunks.map((chunk: any[], chunkIdx: number) => {
+						const pageNum = 1 + peringatanChunks.length + (chunkIdx + 1);
+						return (
+							<div key={`kehadiran-${chunkIdx}`}>
+								<PageContainer isLast={false}>
+									<KopSurat />
+									<h3 style={{ fontSize: "12pt", fontWeight: "bold", borderBottom: "1px solid #000", paddingBottom: "5px", marginBottom: "10px", marginTop: "10px" }}>
+										B. Daftar Kehadiran Siswa (Semua Status) {chunkIdx > 0 ? "(Lanjutan)" : ""}
+									</h3>
+									<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt", border: "1px solid #000" }}>
+										<thead style={{ display: "table-header-group" }}>
+											<tr style={{ backgroundColor: "#f1f5f9" }}>
+												<th style={{ border: "1px solid #000", padding: "6px", width: "5%", textAlign: "center" }}>No</th>
+												<th style={{ border: "1px solid #000", padding: "6px", width: "40%" }}>Nama Siswa</th>
+												<th style={{ border: "1px solid #000", padding: "6px", width: "20%", textAlign: "center" }}>Kelas</th>
+												<th style={{ border: "1px solid #000", padding: "6px", width: "20%", textAlign: "center" }}>Status</th>
+											</tr>
+										</thead>
+										<tbody>
+											{chunk.length === 0 ? (
+												<tr>
+													<td colSpan={4} style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+														Belum ada data kehadiran siswa hari ini.
+													</td>
+												</tr>
+											) : (
+												chunk.map((siswa: any, i: number) => (
+													<tr key={i}>
+														<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{chunkIdx * MAX_ROWS + i + 1}</td>
+														<td style={{ border: "1px solid #000", padding: "6px" }}>{siswa.nama}</td>
+														<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{siswa.kelas}</td>
+														<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+															{siswa.status === "H" ? "Hadir" : siswa.status === "S" ? "Sakit" : siswa.status === "I" ? "Izin" : "Alpa"}
+														</td>
+													</tr>
+												))
+											)}
+										</tbody>
+									</table>
+									<PageFooter current={pageNum} total={totalPdfPages} />
+								</PageContainer>
+								<div className="html2pdf__page-break"></div>
+							</div>
+						);
+					})}
 
-										<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-											{new Date(jurnal.tanggal).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB
-										</td>
-									</tr>
-								))
-							)}
-						</tbody>
-					</table>
+					{/* C. Riwayat Jurnal Guru Masuk */}
+					{jurnalChunks.map((chunk: any[], chunkIdx: number) => {
+						const pageNum = 1 + peringatanChunks.length + kehadiranChunks.length + (chunkIdx + 1);
+						const isLastPage = chunkIdx === jurnalChunks.length - 1;
+						return (
+							<div key={`jurnal-${chunkIdx}`}>
+								<PageContainer isLast={isLastPage}>
+									<KopSurat />
+									<h3 style={{ fontSize: "12pt", fontWeight: "bold", borderBottom: "1px solid #000", paddingBottom: "5px", marginBottom: "10px", marginTop: "10px" }}>
+										C. Riwayat Jurnal Guru Masuk {chunkIdx > 0 ? "(Lanjutan)" : ""}
+									</h3>
+									<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt", border: "1px solid #000" }}>
+										<thead style={{ display: "table-header-group" }}>
+											<tr style={{ backgroundColor: "#f1f5f9" }}>
+												<th style={{ border: "1px solid #000", padding: "6px", width: "5%", textAlign: "center" }}>No</th>
+												<th style={{ border: "1px solid #000", padding: "6px", width: "30%" }}>Nama Guru</th>
+												<th style={{ border: "1px solid #000", padding: "6px", width: "25%" }}>Mata Pelajaran</th>
+												<th style={{ border: "1px solid #000", padding: "6px", width: "20%", textAlign: "center" }}>Kelas (Jam Ke)</th>
+												<th style={{ border: "1px solid #000", padding: "6px", width: "20%", textAlign: "center" }}>Waktu Submit</th>
+											</tr>
+										</thead>
+										<tbody>
+											{chunk.length === 0 ? (
+												<tr>
+													<td colSpan={5} style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+														Belum ada jurnal yang masuk hari ini.
+													</td>
+												</tr>
+											) : (
+												chunk.map((jurnal: any, i: number) => (
+													<tr key={i}>
+														<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{chunkIdx * MAX_ROWS + i + 1}</td>
+														<td style={{ border: "1px solid #000", padding: "6px" }}>{jurnal.jadwal.guru.user.nama}</td>
+														<td style={{ border: "1px solid #000", padding: "6px" }}>{jurnal.jadwal.mapel.nama}</td>
+														<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+															{jurnal.jadwal.kelas.nama} ({formatJamSesi(jurnal.jadwal)})
+														</td>
+														<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+															{new Date(jurnal.tanggal).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB
+														</td>
+													</tr>
+												))
+											)}
+										</tbody>
+									</table>
 
-					<div style={{ textAlign: "right", marginTop: "40px" }}>
-						<p style={{ margin: 0, fontSize: "11pt" }}>Brebes, {todayFormatted}</p>
-						<p style={{ margin: "5px 0 50px 0", fontSize: "11pt" }}>Kepala Sekolah SMAN 2 Brebes</p>
-						<p style={{ margin: 0, fontSize: "11pt", fontWeight: "bold" }}>{user.nama}</p>
-						<p style={{ margin: 0, fontSize: "11pt" }}>NIP: {user.username}</p>
-					</div>
+									{isLastPage && (
+										<div style={{ textAlign: "right", marginTop: "40px" }}>
+											<p style={{ margin: 0, fontSize: "11pt" }}>Brebes, {todayFormatted}</p>
+											<p style={{ margin: "5px 0 50px 0", fontSize: "11pt" }}>Kepala Sekolah SMAN 2 Brebes</p>
+											<p style={{ margin: 0, fontSize: "11pt", fontWeight: "bold" }}>{user.nama}</p>
+											<p style={{ margin: 0, fontSize: "11pt" }}>NIP: {user.username}</p>
+										</div>
+									)}
+									<PageFooter current={pageNum} total={totalPdfPages} />
+								</PageContainer>
+								{!isLastPage && <div className="html2pdf__page-break"></div>}
+							</div>
+						);
+					})}
 				</div>
 			</div>
 
+			{/* === MODAL PREVIEW & PDF === */}
 			{isPdfModalOpen && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContainerLarge} style={{ maxWidth: "600px", height: "auto" }}>
@@ -423,209 +444,205 @@ export default function PimpinanDashboardClient({
 				</div>
 			)}
 
-			
+			{/* === MAIN CONTENT (WEB UI) === */}
+			<div className={styles.dashboardContainer}>
+				<div className={styles.sectionHeader}>
+					<div>
+						<h2 className={styles.sectionTitle}>Ringkasan Hari Ini</h2>
+						<p className={styles.sectionDate}>{todayFormatted}</p>
+					</div>
+					<div className={styles.headerButtons}>
+						<button className={styles.btnPrimary} onClick={() => setIsPdfModalOpen(true)}>
+							<Download size={16} /> Ekspor Laporan Harian
+						</button>
+					</div>
+				</div>
 
-			<>
-				
-
-				<div className={styles.dashboardContainer}>
-					<div className={styles.sectionHeader}>
-						<div>
-							<h2 className={styles.sectionTitle}>Ringkasan Hari Ini</h2>
-							<p className={styles.sectionDate}>{todayFormatted}</p>
+				<div className={styles.summaryGrid}>
+					<div className={styles.summaryCard}>
+						<div className={styles.cardTop}>
+							<div className={styles.iconWrapperRed}>
+								<UserX size={20} />
+							</div>
+							<span className={styles.badgeRed}>Terpantau</span>
 						</div>
-						<div className={styles.headerButtons}>
-							<button className={styles.btnPrimary} onClick={() => setIsPdfModalOpen(true)}>
-								<Download size={16} /> Ekspor Laporan Harian
-							</button>
+						<div className={styles.cardLabel}>TOTAL SISWA ABSEN</div>
+						<div className={styles.cardValueBox}>
+							<span className={styles.cardValue}>{stats.totalSiswaAbsen}</span>
+							<span className={styles.cardUnit}>Siswa</span>
+						</div>
+						<div className={styles.cardDesc}>
+							Terbanyak di kelas {tingkatAbsensi[0]?.kelas || "-"} ({tingkatAbsensi[0]?.jumlah || 0} siswa)
 						</div>
 					</div>
 
-					<div className={styles.summaryGrid}>
-						<div className={styles.summaryCard}>
-							<div className={styles.cardTop}>
-								<div className={styles.iconWrapperRed}>
-									<UserX size={20} />
-								</div>
-								<span className={styles.badgeRed}>Terpantau</span>
+					<div className={styles.summaryCard}>
+						<div className={styles.cardTop}>
+							<div className={styles.iconWrapperYellow}>
+								<Clock size={20} />
 							</div>
-							<div className={styles.cardLabel}>TOTAL SISWA ABSEN</div>
-							<div className={styles.cardValueBox}>
-								<span className={styles.cardValue}>{stats.totalSiswaAbsen}</span>
-								<span className={styles.cardUnit}>Siswa</span>
-							</div>
-							<div className={styles.cardDesc}>
-								Terbanyak di kelas {tingkatAbsensi[0]?.kelas || "-"} ({tingkatAbsensi[0]?.jumlah || 0} siswa)
-							</div>
+							<span className={styles.badgeBlue}>Sedang Berlangsung</span>
 						</div>
-
-						<div className={styles.summaryCard}>
-							<div className={styles.cardTop}>
-								<div className={styles.iconWrapperYellow}>
-									<Clock size={20} />
-								</div>
-								<span className={styles.badgeBlue}>Sedang Berlangsung</span>
-							</div>
-							<div className={styles.cardLabel}>JAM KOSONG (BELUM DIISI)</div>
-							<div className={styles.cardValueBox}>
-								<span className={styles.cardValue}>{stats.jamKosongCount}</span>
-								<span className={styles.cardUnit}>Sesi KBM</span>
-							</div>
-							<div className={styles.cardDesc}>Membutuhkan perhatian segera</div>
+						<div className={styles.cardLabel}>JAM KOSONG (BELUM DIISI)</div>
+						<div className={styles.cardValueBox}>
+							<span className={styles.cardValue}>{stats.jamKosongCount}</span>
+							<span className={styles.cardUnit}>Sesi KBM</span>
 						</div>
-
-						<div className={styles.summaryCard}>
-							<div className={styles.cardTop}>
-								<div className={styles.iconWrapperBlue}>
-									<BookOpen size={20} />
-								</div>
-								<span className={styles.badgeBlue}>
-									Progress{" "}
-									{stats.totalJadwalTarget > 0
-										? Math.round((stats.jurnalTerkumpul / stats.totalJadwalTarget) * 100)
-										: 0}
-									%
-								</span>
-							</div>
-							<div className={styles.cardLabel}>JURNAL GURU TERKUMPUL</div>
-							<div className={styles.cardValueBox}>
-								<span className={styles.cardValue}>{stats.jurnalTerkumpul}</span>
-								<span className={styles.cardUnit}>/ {stats.totalJadwalTarget} Total</span>
-							</div>
-							<div className={styles.progressTrack}>
-								<div
-									className={styles.progressBar}
-									style={{
-										width: `${stats.totalJadwalTarget > 0 ? (stats.jurnalTerkumpul / stats.totalJadwalTarget) * 100 : 0}%`,
-									}}
-								></div>
-							</div>
-						</div>
+						<div className={styles.cardDesc}>Membutuhkan perhatian segera</div>
 					</div>
 
-					<div className={styles.twoColGrid}>
-						<div className={styles.boxCard}>
-							<div className={styles.boxHeader}>
-								<div className={styles.boxTitle}>
-									<AlertTriangle size={20} color="#f59e0b" /> Peringatan Jam Kosong
-								</div>
-								<Link href="/pimpinan/monitoring" className={styles.linkA}>
-									Lihat Semua
-								</Link>
+					<div className={styles.summaryCard}>
+						<div className={styles.cardTop}>
+							<div className={styles.iconWrapperBlue}>
+								<BookOpen size={20} />
 							</div>
-							<div className={styles.alertList}>
-								{peringatanJamKosong.length === 0 ? (
-									<div className={styles.emptyText}>Semua kelas terpantau aman.</div>
-								) : (
-									peringatanJamKosong.map((alert: any, i: number) => (
-										<div key={i} className={styles.alertItem}>
-											<div className={styles.alertJamBox}>
-												Jam
-												<br />
-												<strong>{alert.jam}</strong>
-											</div>
-											<div className={styles.alertInfo}>
-												<div className={styles.alertClass}>
-													{alert.kelas} - {alert.mapel}
-												</div>
-												<div className={styles.alertTeacher}>Guru: {alert.guru}</div>
-											</div>
-											<div
-												className={`${styles.statusBadge} ${alert.status.includes("Tugas") ? styles.badgeYellowOutline : styles.badgeRedOutline}`}
-											>
-												{alert.status}
-											</div>
-										</div>
-									))
-								)}
-							</div>
+							<span className={styles.badgeBlue}>
+								Progress{" "}
+								{stats.totalJadwalTarget > 0
+									? Math.round((stats.jurnalTerkumpul / stats.totalJadwalTarget) * 100)
+									: 0}
+								%
+							</span>
 						</div>
-
-						<div className={styles.boxCard}>
-							<div className={styles.boxHeader}>
-								<div className={styles.boxTitle} style={{ color: "#0f172a" }}>
-									📈 Tingkat Absensi Tertinggi
-								</div>
-								<Link href="/pimpinan/kehadiran" className={styles.linkA}>
-									Lihat Semua
-								</Link>
-							</div>
-							<div className={styles.barChartContainer}>
-								{tingkatAbsensi.length === 0 ? (
-									<div className={styles.emptyText}>Belum ada data absensi hari ini.</div>
-								) : (
-									tingkatAbsensi.map((absen: any, i: number) => (
-										<div key={i} className={styles.barItem}>
-											<div className={styles.barLabels}>
-												<span className={styles.barClassName}>{absen.kelas}</span>
-												<span className={styles.barValueRed}>
-													{absen.jumlah} Siswa ({absen.persentase}%)
-												</span>
-											</div>
-											<div className={styles.barTrack}>
-												<div className={styles.barFillRed} style={{ width: `${absen.persentase}%` }}></div>
-											</div>
-										</div>
-									))
-								)}
-							</div>
-							<p className={styles.chartFootnote}>Berdasarkan data presensi jurnal terkirim hari ini.</p>
+						<div className={styles.cardLabel}>JURNAL GURU TERKUMPUL</div>
+						<div className={styles.cardValueBox}>
+							<span className={styles.cardValue}>{stats.jurnalTerkumpul}</span>
+							<span className={styles.cardUnit}>/ {stats.totalJadwalTarget} Total</span>
+						</div>
+						<div className={styles.progressTrack}>
+							<div
+								className={styles.progressBar}
+								style={{
+									width: `${stats.totalJadwalTarget > 0 ? (stats.jurnalTerkumpul / stats.totalJadwalTarget) * 100 : 0}%`,
+								}}
+							></div>
 						</div>
 					</div>
+				</div>
 
-					<div className={styles.boxCard} style={{ marginTop: "1.5rem" }}>
+				<div className={styles.twoColGrid}>
+					<div className={styles.boxCard}>
 						<div className={styles.boxHeader}>
-							<div className={styles.boxTitle} style={{ color: "#0f172a", fontSize: "1.1rem" }}>
-								<Users
-									size={20}
-									color="#3b82f6"
-									style={{ marginRight: "0.5rem", display: "inline-block", verticalAlign: "text-bottom" }}
-								/>
-								Tabel Kehadiran Siswa Hari Ini
+							<div className={styles.boxTitle}>
+								<AlertTriangle size={20} color="#f59e0b" /> Peringatan Jam Kosong
 							</div>
+							<Link href="/pimpinan/monitoring" className={styles.linkA}>
+								Lihat Semua
+							</Link>
 						</div>
-
-						{classNames.length === 0 ? (
-							<div className={styles.emptyText} style={{ padding: "2rem", textAlign: "center" }}>
-								Belum ada data kehadiran siswa yang dilaporkan hari ini.
-							</div>
-						) : (
-							<>
-								<div
-									style={{
-										display: "flex",
-										gap: "0.5rem",
-										borderBottom: "1px solid #e2e8f0",
-										paddingBottom: "1rem",
-										marginBottom: "1rem",
-										overflowX: "auto",
-										scrollbarWidth: "none",
-									}}
-								>
-									{classNames.map((cls) => (
-										<button
-											key={cls}
-											onClick={() => setActiveClassTab(cls)}
-											style={{
-												padding: "0.5rem 1rem",
-												borderRadius: "0.5rem",
-												backgroundColor: activeClassTab === cls ? "#0b1c36" : "#f8fafc",
-												color: activeClassTab === cls ? "#ffffff" : "#475569",
-												fontWeight: activeClassTab === cls ? "600" : "500",
-												border: activeClassTab === cls ? "1px solid #0b1c36" : "1px solid #e2e8f0",
-												cursor: "pointer",
-												whiteSpace: "nowrap",
-												transition: "all 0.2s ease",
-											}}
+						<div className={styles.alertList}>
+							{peringatanJamKosong.length === 0 ? (
+								<div className={styles.emptyText}>Semua kelas terpantau aman.</div>
+							) : (
+								peringatanJamKosong.map((alert: any, i: number) => (
+									<div key={i} className={styles.alertItem}>
+										<div className={styles.alertJamBox}>
+											Jam
+											<br />
+											<strong>{alert.jam}</strong>
+										</div>
+										<div className={styles.alertInfo}>
+											<div className={styles.alertClass}>
+												{alert.kelas} - {alert.mapel}
+											</div>
+											<div className={styles.alertTeacher}>Guru: {alert.guru}</div>
+										</div>
+										<div
+											className={`${styles.statusBadge} ${alert.status.includes("Tugas") ? styles.badgeYellowOutline : styles.badgeRedOutline}`}
 										>
-											{cls}
-										</button>
-									))}
-								</div>
+											{alert.status}
+										</div>
+									</div>
+								))
+							)}
+						</div>
+					</div>
 
-								<div className={styles.tableWrapper}>
-									<div style={{ overflowX: "auto", width: "100%" }}>
-<table className={styles.dataTable}>
+					<div className={styles.boxCard}>
+						<div className={styles.boxHeader}>
+							<div className={styles.boxTitle} style={{ color: "#0f172a" }}>
+								📈 Tingkat Absensi Tertinggi
+							</div>
+							<Link href="/pimpinan/kehadiran" className={styles.linkA}>
+								Lihat Semua
+							</Link>
+						</div>
+						<div className={styles.barChartContainer}>
+							{tingkatAbsensi.length === 0 ? (
+								<div className={styles.emptyText}>Belum ada data absensi hari ini.</div>
+							) : (
+								tingkatAbsensi.map((absen: any, i: number) => (
+									<div key={i} className={styles.barItem}>
+										<div className={styles.barLabels}>
+											<span className={styles.barClassName}>{absen.kelas}</span>
+											<span className={styles.barValueRed}>
+												{absen.jumlah} Siswa ({absen.persentase}%)
+											</span>
+										</div>
+										<div className={styles.barTrack}>
+											<div className={styles.barFillRed} style={{ width: `${absen.persentase}%` }}></div>
+										</div>
+									</div>
+								))
+							)}
+						</div>
+						<p className={styles.chartFootnote}>Berdasarkan data presensi jurnal terkirim hari ini.</p>
+					</div>
+				</div>
+
+				<div className={styles.boxCard} style={{ marginTop: "1.5rem" }}>
+					<div className={styles.boxHeader}>
+						<div className={styles.boxTitle} style={{ color: "#0f172a", fontSize: "1.1rem" }}>
+							<Users
+								size={20}
+								color="#3b82f6"
+								style={{ marginRight: "0.5rem", display: "inline-block", verticalAlign: "text-bottom" }}
+							/>
+							Tabel Kehadiran Siswa Hari Ini
+						</div>
+					</div>
+
+					{classNames.length === 0 ? (
+						<div className={styles.emptyText} style={{ padding: "2rem", textAlign: "center" }}>
+							Belum ada data kehadiran siswa yang dilaporkan hari ini.
+						</div>
+					) : (
+						<>
+							<div
+								style={{
+									display: "flex",
+									gap: "0.5rem",
+									borderBottom: "1px solid #e2e8f0",
+									paddingBottom: "1rem",
+									marginBottom: "1rem",
+									overflowX: "auto",
+									scrollbarWidth: "none",
+								}}
+							>
+								{classNames.map((cls) => (
+									<button
+										key={cls}
+										onClick={() => setActiveClassTab(cls)}
+										style={{
+											padding: "0.5rem 1rem",
+											borderRadius: "0.5rem",
+											backgroundColor: activeClassTab === cls ? "#0b1c36" : "#f8fafc",
+											color: activeClassTab === cls ? "#ffffff" : "#475569",
+											fontWeight: activeClassTab === cls ? "600" : "500",
+											border: activeClassTab === cls ? "1px solid #0b1c36" : "1px solid #e2e8f0",
+											cursor: "pointer",
+											whiteSpace: "nowrap",
+											transition: "all 0.2s ease",
+										}}
+									>
+										{cls}
+									</button>
+								))}
+							</div>
+
+							<div className={styles.tableWrapper}>
+								<div style={{ overflowX: "auto", width: "100%" }}>
+									<table className={styles.dataTable}>
 										<thead>
 											<tr>
 												<th style={{ width: "5%" }}>NO</th>
@@ -680,37 +697,37 @@ export default function PimpinanDashboardClient({
 											))}
 										</tbody>
 									</table>
-</div>
 								</div>
-							</>
-						)}
-					</div>
-
-					<div className={styles.boxCard} style={{ marginTop: "1.5rem" }}>
-						<div className={styles.boxHeader}>
-							<div className={styles.boxTitle} style={{ color: "#0f172a", fontSize: "1.25rem" }}>
-								Riwayat Jurnal Guru Masuk Hari Ini
 							</div>
-							<div className={styles.tableToolbar}>
-								<div className={styles.searchBox}>
-									<Search size={16} className={styles.searchIcon} />
-									<input
-										type="text"
-										placeholder="Cari nama guru atau kelas..."
-										className={styles.searchInput}
-										value={searchTerm}
-										onChange={(e) => {
-											setSearchTerm(e.target.value);
-											setCurrentPage(1);
-										}}
-									/>
-								</div>
+						</>
+					)}
+				</div>
+
+				<div className={styles.boxCard} style={{ marginTop: "1.5rem" }}>
+					<div className={styles.boxHeader}>
+						<div className={styles.boxTitle} style={{ color: "#0f172a", fontSize: "1.25rem" }}>
+							Riwayat Jurnal Guru Masuk Hari Ini
+						</div>
+						<div className={styles.tableToolbar}>
+							<div className={styles.searchBox}>
+								<Search size={16} className={styles.searchIcon} />
+								<input
+									type="text"
+									placeholder="Cari nama guru atau kelas..."
+									className={styles.searchInput}
+									value={searchTerm}
+									onChange={(e) => {
+										setSearchTerm(e.target.value);
+										setCurrentPage(1);
+									}}
+								/>
 							</div>
 						</div>
+					</div>
 
-						<div className={styles.tableWrapper}>
-							<div style={{ overflowX: "auto", width: "100%" }}>
-<table className={styles.dataTable}>
+					<div className={styles.tableWrapper}>
+						<div style={{ overflowX: "auto", width: "100%" }}>
+							<table className={styles.dataTable}>
 								<thead>
 									<tr>
 										<th>NAMA GURU</th>
@@ -739,13 +756,10 @@ export default function PimpinanDashboardClient({
 													</div>
 												</td>
 												<td style={{ color: "#64748b" }}>{jurnal.jadwal.mapel.nama}</td>
-
-												{/* PERUBAHAN DI UI WEB: Memanggil helper formatJamSesi() */}
 												<td>
 													{jurnal.jadwal.kelas.nama}{" "}
 													<span className={styles.badgeSesi}>{formatJamSesi(jurnal.jadwal)}</span>
 												</td>
-
 												<td>
 													<span className={styles.badgeGreen}>
 														<CheckCircle2 size={12} /> Lengkap
@@ -760,43 +774,42 @@ export default function PimpinanDashboardClient({
 									)}
 								</tbody>
 							</table>
-</div>
 						</div>
+					</div>
 
-						<div className={styles.pagination}>
-							<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
-								Menampilkan {filteredJurnal.length === 0 ? 0 : startIndex + 1}-
-								{Math.min(startIndex + itemsPerPage, filteredJurnal.length)} dari {filteredJurnal.length} data
-							</span>
-							<div className={styles.pageButtons}>
+					<div className={styles.pagination}>
+						<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
+							Menampilkan {filteredJurnal.length === 0 ? 0 : startIndex + 1}-
+							{Math.min(startIndex + itemsPerPage, filteredJurnal.length)} dari {filteredJurnal.length} data
+						</span>
+						<div className={styles.pageButtons}>
+							<button
+								className={styles.pageBtn}
+								disabled={currentPage === 1}
+								onClick={() => handlePageChange(currentPage - 1)}
+							>
+								Prev
+							</button>
+							{Array.from({ length: totalPagesWeb }, (_, i) => i + 1).map((page) => (
 								<button
-									className={styles.pageBtn}
-									disabled={currentPage === 1}
-									onClick={() => handlePageChange(currentPage - 1)}
+									key={page}
+									className={`${styles.pageBtn} ${currentPage === page ? styles.pageActive : ""}`}
+									onClick={() => handlePageChange(page)}
 								>
-									Prev
+									{page}
 								</button>
-								{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-									<button
-										key={page}
-										className={`${styles.pageBtn} ${currentPage === page ? styles.pageActive : ""}`}
-										onClick={() => handlePageChange(page)}
-									>
-										{page}
-									</button>
-								))}
-								<button
-									className={styles.pageBtn}
-									disabled={currentPage === totalPages || filteredJurnal.length === 0}
-									onClick={() => handlePageChange(currentPage + 1)}
-								>
-									Next
-								</button>
-							</div>
+							))}
+							<button
+								className={styles.pageBtn}
+								disabled={currentPage === totalPagesWeb || filteredJurnal.length === 0}
+								onClick={() => handlePageChange(currentPage + 1)}
+							>
+								Next
+							</button>
 						</div>
 					</div>
 				</div>
-			</>
+			</div>
 		</>
 	);
 }

@@ -1,4 +1,3 @@
-// app/pimpinan/kehadiran/KehadiranClient.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -30,6 +29,80 @@ import Link from "next/link";
 import { signOut } from "next-auth/react";
 import * as XLSX from "xlsx";
 
+function chunkArray<T>(arr: T[], size: number): T[][] {
+	const chunks = [];
+	for (let i = 0; i < arr.length; i += size) {
+		chunks.push(arr.slice(i, i + size));
+	}
+	return chunks;
+}
+
+// ============================================================================
+// KOMPONEN PEMBANTU PDF (PAGINATION MANUAL)
+// ============================================================================
+const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
+	<div
+		style={{
+			width: "210mm",
+			height: "296mm",
+			padding: "15mm 20mm",
+			boxSizing: "border-box",
+			display: "flex",
+			flexDirection: "column",
+			pageBreakAfter: isLast ? "auto" : "always",
+			backgroundColor: "white",
+			color: "black",
+			position: "relative",
+			overflow: "hidden"
+		}}
+	>
+		{children}
+	</div>
+);
+
+const PageFooter = ({ current, total }: { current: number; total: number }) => (
+	<div style={{ textAlign: "right", fontSize: "10pt", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid #e2e8f0" }}>
+		Halaman {current} dari {total}
+	</div>
+);
+
+const KopSurat = () => (
+	<div style={{ paddingBottom: "5px", backgroundColor: "white", marginBottom: "15px", flexShrink: 0 }}>
+		<div
+			style={{
+				display: "flex",
+				alignItems: "center",
+				borderBottom: "3px solid black",
+				paddingBottom: "10px",
+				marginBottom: "2px",
+			}}
+		>
+			<img
+				src="/logo.jpg"
+				alt="Logo SMAN 2 Brebes"
+				style={{ width: "80px", height: "80px", objectFit: "contain", margin: "0 20px" }}
+			/>
+			<div style={{ flex: 1, textAlign: "center" }}>
+				<h1
+					style={{
+						margin: "0 0 4px 0",
+						fontSize: "20pt",
+						fontWeight: "bold",
+						color: "#000",
+						fontFamily: '"Times New Roman", Times, serif',
+					}}
+				>
+					SMA NEGERI 2 BREBES
+				</h1>
+				<p style={{ margin: "2px 0", fontSize: "11pt", color: "#000" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+				<p style={{ margin: 0, fontSize: "11pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
+			</div>
+			<div style={{ width: "120px" }}></div>
+		</div>
+		<div style={{ borderBottom: "1px solid black" }}></div>
+	</div>
+);
+
 export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 	const [viewMode, setViewMode] = useState<"list" | "detail">("list");
 	const [selectedKelas, setSelectedKelas] = useState<any>(null);
@@ -49,7 +122,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 
 	// State PDF
 	const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
-	const [pdfClasses, setPdfClasses] = useState<any[]>([]); // Data kelas yang sedang di-render ke PDF
+	const [pdfClasses, setPdfClasses] = useState<any[]>([]);
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
 
 	const HARI_MAP = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -146,21 +219,20 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 		}
 
 		setIsDownloadingPdf(true);
-		setPdfClasses(classesToExport); // Memasukkan data ke Hidden DIV
+		setPdfClasses(classesToExport);
 
-		// Beri waktu bagi React untuk me-render hidden div dengan data kelas yang baru
 		setTimeout(async () => {
 			try {
 				const html2pdf = (await import("html2pdf.js")).default;
 				const element = document.getElementById("pdf-kehadiran-content");
 
 				const opt = {
-					margin: 10,
+					margin: 0,
 					filename: filename,
 					image: { type: "jpeg", quality: 1 },
 					html2canvas: { scale: 2, useCORS: true },
 					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-					pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
+					pagebreak: { mode: ['css'] }
 				};
 
 				await html2pdf().set(opt).from(element).save();
@@ -172,238 +244,189 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 				setIsDownloadingPdf(false);
 				setIsDownloadModalOpen(false);
 				setIsBulkExportModalOpen(false);
-				setPdfClasses([]); // Bersihkan DOM setelah selesai
+				setPdfClasses([]);
 			}
-		}, 800); // Jeda 800ms agar aman merender halaman yang panjang
+		}, 800);
 	};
 
 	return (
 		<>
-			{/* --- CONTAINER TERSEMBUNYI UNTUK CETAK PDF MULTI-KELAS --- */}
+			{/* --- CONTAINER TERSEMBUNYI UNTUK CETAK PDF MULTI-KELAS & SINGLE KELAS --- */}
 			{pdfClasses.length > 0 && (
 				<div style={{ display: "none" }}>
-					<div id="pdf-kehadiran-content" className={styles.pdfA4Container}>
-						{pdfClasses.map((kelasData, index) => (
-							<div key={kelasData.id}>
-								{/* HALAMAN COVER */}
-								<div
-									className={styles.pdfCover}
-									style={{
-										height: "240mm",
-										display: "flex",
-										flexDirection: "column",
-										justifyContent: "center",
-										alignItems: "center",
-									}}
-								>
-									<h2 style={{ fontSize: "18pt", fontWeight: 800, marginBottom: "0.5rem" }}>REKAP KEHADIRAN SISWA</h2>
-									<h1
-										style={{
-											fontSize: "24pt",
-											fontWeight: 900,
-											color: "#0a2540",
-											marginBottom: "0.5rem",
-											textTransform: "uppercase",
-										}}
-									>
-										KELAS {kelasData.nama}
-									</h1>
-									<p style={{ fontSize: "12pt", fontWeight: 600 }}>Tahun Ajaran {tahunAjaran?.nama || "Aktif"}</p>
+					<div id="pdf-kehadiran-content" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
+						{(() => {
+							const MAX_ROWS = 25;
 
-									<div style={{ margin: "4rem 0", display: "flex", justifyContent: "center" }}>
-										<img
-											src="/logo.jpg"
-											alt="Logo SMAN 2 Brebes"
-											style={{ width: "160px", height: "160px", objectFit: "contain" }}
-										/>
-									</div>
+							const classChunksInfo = pdfClasses.map((kelasData) => {
+								const chunks = chunkArray(kelasData.siswaList || [], MAX_ROWS);
+								if (chunks.length === 0) chunks.push([]); // minimal 1 page
+								return chunks;
+							});
 
-									<div style={{ textAlign: "center" }}>
-										<p style={{ fontSize: "11pt", marginBottom: "0.5rem" }}>
-											<strong>WALI KELAS:</strong>
-										</p>
-										<p style={{ fontSize: "14pt", fontWeight: 700, color: "#0a2540" }}>{kelasData.waliKelas}</p>
-										<p style={{ fontSize: "11pt", marginTop: "0.5rem" }}>NPP: {kelasData.waliKelasNpp}</p>
-									</div>
+							const globalTotalPages = classChunksInfo.reduce((total, chunks) => total + 1 + chunks.length, 0);
+							let pageCounter = 1;
 
-									<div
-										style={{
-											marginTop: "4rem",
-											textAlign: "center",
-											borderTop: "2px solid #0a2540",
-											paddingTop: "1.5rem",
-											width: "70%",
-											margin: "4rem auto 0 auto",
-										}}
-									>
-										<p style={{ fontSize: "12pt", fontWeight: "bold" }}>SMA NEGERI 2 BREBES</p>
-									</div>
-								</div>
+							return (
+								<>
+									{pdfClasses.map((kelasData, index) => {
+										const chunks = classChunksInfo[index];
+										const isLastClass = index === pdfClasses.length - 1;
 
-								<div className="html2pdf__page-break"></div>
-
-								{/* HALAMAN KONTEN DATA */}
-								<div
-									style={{
-										position: "relative",
-										textAlign: "center",
-										borderBottom: "3px solid #000",
-										paddingBottom: "15px",
-										marginBottom: "15px",
-										paddingTop: "10px",
-									}}
-								>
-									<img
-										src="/logo.jpg"
-										alt="Logo SMAN 2 Brebes"
-										style={{
-											position: "absolute",
-											left: "10px",
-											top: "50%",
-											transform: "translateY(-50%)",
-											width: "80px",
-											height: "80px",
-											objectFit: "contain",
-										}}
-									/>
-									<h1
-										style={{
-											margin: "0 0 5px 0",
-											fontSize: "18pt",
-											fontWeight: "bold",
-											color: "#000",
-											fontFamily: '"Times New Roman", Times, serif',
-										}}
-									>
-										SMA NEGERI 2 BREBES
-									</h1>
-									<p style={{ margin: "2px 0", fontSize: "11pt" }}>
-										Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060
-									</p>
-									<p style={{ margin: 0, fontSize: "11pt" }}>
-										Website: sman2brebes.sch.id - Email: smandabes@gmail.com
-									</p>
-								</div>
-
-								<div className={styles.pdfContent}>
-									<h3 className={styles.pdfSectionTitle}>A. JADWAL PELAJARAN MINGGUAN ({kelasData.nama})</h3>
-									<div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "2rem" }}>
-										{[1, 2, 3, 4, 5].map((hariIdx) => {
-											const jadwalHariIni = kelasData.jadwalMingguan.filter((j: any) => j.hari === hariIdx);
-											return (
-												<div
-													key={hariIdx}
-													style={{ flex: 1, minWidth: "0", border: "1px solid #000", padding: "10px" }}
-												>
-													<h4
+										return (
+											<div key={kelasData.id}>
+												{/* HALAMAN COVER */}
+												<PageContainer isLast={false}>
+													<div
 														style={{
-															textAlign: "center",
-															borderBottom: "1px solid #000",
-															margin: "0 0 10px 0",
-															paddingBottom: "5px",
-															fontSize: "10pt",
+															height: "240mm",
+															display: "flex",
+															flexDirection: "column",
+															justifyContent: "center",
+															alignItems: "center",
 														}}
 													>
-														{HARI_MAP[hariIdx]}
-													</h4>
-													{jadwalHariIni.length === 0 ? (
-														<div style={{ textAlign: "center", color: "#64748b", fontSize: "8pt" }}>Kosong</div>
-													) : (
-														jadwalHariIni.map((jadwal: any) => (
-															<div
-																key={jadwal.id}
-																style={{
-																	marginBottom: "10px",
-																	fontSize: "8pt",
-																	backgroundColor: "#f1f5f9",
-																	padding: "5px",
-																	borderRadius: "4px",
-																	border: "1px solid #e2e8f0",
-																}}
-															>
-																<div style={{ fontWeight: "bold" }}>Jam ke {jadwal.jamStr}</div>
-																<div style={{ margin: "2px 0" }}>{jadwal.mapel}</div>
-																<div style={{ color: "#475569" }}>{jadwal.guruNama}</div>
-															</div>
-														))
-													)}
-												</div>
-											);
-										})}
-									</div>
+														<h2 style={{ fontSize: "18pt", fontWeight: 800, marginBottom: "0.5rem" }}>REKAP KEHADIRAN SISWA</h2>
+														<h1
+															style={{
+																fontSize: "24pt",
+																fontWeight: 900,
+																color: "#0a2540",
+																marginBottom: "0.5rem",
+																textTransform: "uppercase",
+																fontFamily: '"Times New Roman", Times, serif',
+															}}
+														>
+															KELAS {kelasData.nama}
+														</h1>
+														<p style={{ fontSize: "12pt", fontWeight: 600 }}>Tahun Ajaran {tahunAjaran?.nama || "Aktif"}</p>
 
-									<h3 className={styles.pdfSectionTitle}>B. REKAPITULASI PRESENSI SISWA ({kelasData.nama})</h3>
-									<table className={styles.pdfTable}>
-										<thead>
-											<tr>
-												<th rowSpan={2} style={{ width: "5%" }}>
-													No
-												</th>
-												<th rowSpan={2} style={{ width: "35%" }}>
-													Nama Siswa
-												</th>
-												<th rowSpan={2} style={{ width: "15%" }}>
-													NIS
-												</th>
-												<th colSpan={4} style={{ textAlign: "center" }}>
-													Rekap Presensi
-												</th>
-												<th rowSpan={2} style={{ width: "10%", textAlign: "center" }}>
-													% Hadir
-												</th>
-											</tr>
-											<tr>
-												<th style={{ width: "7%", textAlign: "center", color: "#10b981" }}>H</th>
-												<th style={{ width: "7%", textAlign: "center", color: "#d97706" }}>S</th>
-												<th style={{ width: "7%", textAlign: "center", color: "#d97706" }}>I</th>
-												<th style={{ width: "7%", textAlign: "center", color: "#ef4444" }}>A</th>
-											</tr>
-										</thead>
-										<tbody>
-											{kelasData.siswaList?.length === 0 ? (
-												<tr>
-													<td colSpan={8} style={{ textAlign: "center", padding: "1rem" }}>
-														Tidak ada data siswa.
-													</td>
-												</tr>
-											) : (
-												kelasData.siswaList?.map((siswa: any, sIndex: number) => (
-													<tr key={siswa.id}>
-														<td style={{ textAlign: "center" }}>{sIndex + 1}</td>
-														<td>{siswa.nama}</td>
-														<td style={{ textAlign: "center" }}>{siswa.nisn || "-"}</td>
-														<td style={{ textAlign: "center" }}>{siswa.detailKehadiran.H}</td>
-														<td style={{ textAlign: "center" }}>{siswa.detailKehadiran.S}</td>
-														<td style={{ textAlign: "center" }}>{siswa.detailKehadiran.I}</td>
-														<td style={{ textAlign: "center" }}>{siswa.detailKehadiran.A}</td>
-														<td style={{ textAlign: "center", fontWeight: "bold" }}>{siswa.persentase}%</td>
-													</tr>
-												))
-											)}
-										</tbody>
-									</table>
+														<div style={{ margin: "4rem 0", display: "flex", justifyContent: "center" }}>
+															<img
+																src="/logo.jpg"
+																alt="Logo SMAN 2 Brebes"
+																style={{ width: "160px", height: "160px", objectFit: "contain" }}
+															/>
+														</div>
 
-									<div style={{ textAlign: "right", marginTop: "3rem", paddingBottom: "2rem" }}>
-										<p>
-											Brebes,{" "}
-											{new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-										</p>
-										<p style={{ marginBottom: "4rem" }}>
-											Mengetahui,
-											<br />
-											{user.role === "KEPSEK" ? "Kepala Sekolah" : "Wakil Kepala Sekolah"} SMAN 2 Brebes
-										</p>
-										<p>
-											<strong>{user.nama}</strong>
-										</p>
-										<p>NIP/NPP: {user.username || "-"}</p>
-									</div>
-								</div>
+														<div style={{ textAlign: "center" }}>
+															<p style={{ fontSize: "11pt", marginBottom: "0.5rem" }}>
+																<strong>WALI KELAS:</strong>
+															</p>
+															<p style={{ fontSize: "14pt", fontWeight: 700, color: "#0a2540" }}>{kelasData.waliKelas}</p>
+															<p style={{ fontSize: "11pt", marginTop: "0.5rem" }}>NPP: {kelasData.waliKelasNpp}</p>
+														</div>
 
-								{/* Tambahkan Page Break JIKA BUKAN KELAS TERAKHIR */}
-								{index < pdfClasses.length - 1 && <div className="html2pdf__page-break"></div>}
-							</div>
-						))}
+														<div
+															style={{
+																marginTop: "4rem",
+																textAlign: "center",
+																borderTop: "2px solid #0a2540",
+																paddingTop: "1.5rem",
+																width: "70%",
+																margin: "4rem auto 0 auto",
+															}}
+														>
+															<p style={{ fontSize: "12pt", fontWeight: "bold", fontFamily: '"Times New Roman", Times, serif' }}>SMA NEGERI 2 BREBES</p>
+														</div>
+													</div>
+													<PageFooter current={pageCounter++} total={globalTotalPages} />
+												</PageContainer>
+												<div className="html2pdf__page-break"></div>
+
+												{/* HALAMAN KONTEN DATA */}
+												{chunks.map((chunk: any[], chunkIdx: number) => {
+													const isVeryLastPage = isLastClass && chunkIdx === chunks.length - 1;
+
+													return (
+														<div key={`kelas-${index}-chunk-${chunkIdx}`}>
+															<PageContainer isLast={isVeryLastPage}>
+																<KopSurat />
+
+																{chunkIdx === 0 && (
+																	<>
+																		<h3 style={{ fontSize: "12pt", fontWeight: "bold", textTransform: "uppercase", marginBottom: "10px", marginTop: "1rem" }}>
+																			A. Rekapitulasi Kehadiran Siswa
+																		</h3>
+																		<div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", fontSize: "10pt" }}>
+																			<p><strong>Kelas:</strong> {kelasData.nama}</p>
+																			<p><strong>Wali Kelas:</strong> {kelasData.waliKelas}</p>
+																		</div>
+																	</>
+																)}
+																{chunkIdx > 0 && (
+																	<h3 style={{ fontSize: "12pt", fontWeight: "bold", textTransform: "uppercase", marginBottom: "10px", marginTop: "1rem" }}>
+																		A. Rekapitulasi Kehadiran Siswa (Lanjutan)
+																	</h3>
+																)}
+
+																<table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", marginBottom: "2rem", fontSize: "9pt" }}>
+																	<thead style={{ display: "table-header-group" }}>
+																		<tr>
+																			<th rowSpan={2} style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "5%", textAlign: "center" }}>No</th>
+																			<th rowSpan={2} style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "45%" }}>Nama Siswa</th>
+																			<th colSpan={4} style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", textAlign: "center" }}>Status Presensi</th>
+																			<th rowSpan={2} style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "10%", textAlign: "center" }}>% Hadir</th>
+																		</tr>
+																		<tr>
+																			<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "4px", width: "10%", textAlign: "center", color: "#10b981" }}>H</th>
+																			<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "4px", width: "10%", textAlign: "center", color: "#d97706" }}>S</th>
+																			<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "4px", width: "10%", textAlign: "center", color: "#d97706" }}>I</th>
+																			<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "4px", width: "10%", textAlign: "center", color: "#ef4444" }}>A</th>
+																		</tr>
+																	</thead>
+																	<tbody>
+																		{chunk.length === 0 ? (
+																			<tr>
+																				<td colSpan={8} style={{ border: "1px solid #000", textAlign: "center", padding: "1rem" }}>
+																					Tidak ada data siswa.
+																				</td>
+																			</tr>
+																		) : (
+																			chunk.map((siswa: any, sIndex: number) => (
+																				<tr key={siswa.id} style={{ pageBreakInside: "avoid" }}>
+																					<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{chunkIdx * MAX_ROWS + sIndex + 1}</td>
+																					<td style={{ border: "1px solid #000", padding: "4px" }}>{siswa.nama}</td>
+																					<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{siswa.detailKehadiran?.H || 0}</td>
+																					<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{siswa.detailKehadiran?.S || 0}</td>
+																					<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{siswa.detailKehadiran?.I || 0}</td>
+																					<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{siswa.detailKehadiran?.A || 0}</td>
+																					<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center", fontWeight: "bold" }}>{siswa.persentase || 0}%</td>
+																				</tr>
+																			))
+																		)}
+																	</tbody>
+																</table>
+
+																{chunkIdx === chunks.length - 1 && (
+																	<div style={{ textAlign: "right", marginTop: "3rem", paddingBottom: "2rem" }}>
+																		<p>
+																			Brebes,{" "}
+																			{new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+																		</p>
+																		<p style={{ marginBottom: "4rem" }}>
+																			Mengetahui,
+																			<br />
+																			Kepala Sekolah SMAN 2 Brebes
+																		</p>
+																		<p>
+																			<strong>{user.nama}</strong>
+																		</p>
+																		<p>NIP/NPP: {user.username || "-"}</p>
+																	</div>
+																)}
+																<PageFooter current={pageCounter++} total={globalTotalPages} />
+															</PageContainer>
+															{!isVeryLastPage && <div className="html2pdf__page-break"></div>}
+														</div>
+													);
+												})}
+											</div>
+										);
+									})}
+								</>
+							);
+						})()}
 					</div>
 				</div>
 			)}
@@ -432,7 +455,6 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 								Pilih kelas yang ingin disertakan dalam satu file PDF:
 							</p>
 
-							{/* Checkbox Pilihan Kelas */}
 							<div
 								style={{
 									border: "1px solid #e2e8f0",
@@ -454,7 +476,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 								>
 									<input
 										type="checkbox"
-										checked={selectedExportClasses.length === dataKelas.length}
+										checked={selectedExportClasses.length === dataKelas.length && dataKelas.length > 0}
 										onChange={handleToggleAllExport}
 										style={{ marginRight: "0.75rem", width: "16px", height: "16px" }}
 									/>
@@ -531,244 +553,236 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 				</div>
 			)}
 
-			{/* === SIDEBAR === */}
-			
-
 			{/* === MAIN CONTENT === */}
-			<>
-				
+			<div className={styles.dashboardContainer} style={{ maxWidth: "1200px", margin: "0 auto" }}>
 
-				<div className={styles.dashboardContainer}>
-					{/* HALAMAN LIST KELAS */}
-					{viewMode === "list" && (
-						<div>
-							<div className={styles.sectionHeader}>
-								<div>
-									<h2 className={styles.sectionTitle}>Kehadiran Siswa - Ringkasan Kelas</h2>
-									<p className={styles.sectionDate}>
-										{tahunAjaran ? `Tahun Ajaran ${tahunAjaran.nama}` : "Tahun Ajaran Aktif"}
-									</p>
-								</div>
-								<div className={styles.headerButtons}>
-									<div className={styles.searchBoxCard}>
-										<Search size={16} className={styles.searchIcon} />
-										<input
-											type="text"
-											placeholder="Cari Kelas..."
-											className={styles.searchInput}
-											value={searchTermCard}
-											onChange={(e) => {
-												setSearchTermCard(e.target.value);
-												setCurrentPage(1);
-											}}
-										/>
-									</div>
-									<button className={styles.btnOutline}>Semua Tingkat</button>
-
-									{/* TOMBOL BARU EXPORT MULTI KELAS */}
-									<button
-										className={styles.btnPrimaryDark}
-										onClick={() => {
-											setIsBulkExportModalOpen(true);
-											setSelectedExportClasses(dataKelas.map((k: any) => k.id)); // Default Pilih Semua
+				{/* HALAMAN LIST KELAS */}
+				{viewMode === "list" && (
+					<div style={{ width: "100%" }}>
+						<div className={styles.sectionHeader}>
+							<div>
+								<h2 className={styles.sectionTitle}>Kehadiran Siswa - Ringkasan Kelas</h2>
+								<p className={styles.sectionDate}>
+									{tahunAjaran ? `Tahun Ajaran ${tahunAjaran.nama}` : "Tahun Ajaran Aktif"}
+								</p>
+							</div>
+							<div className={styles.headerButtons}>
+								<div className={styles.searchBoxCard}>
+									<Search size={16} className={styles.searchIcon} />
+									<input
+										type="text"
+										placeholder="Cari Kelas..."
+										className={styles.searchInput}
+										value={searchTermCard}
+										onChange={(e) => {
+											setSearchTermCard(e.target.value);
+											setCurrentPage(1);
 										}}
-									>
-										<Download size={16} /> Ekspor PDF (Semua Kelas)
-									</button>
+									/>
 								</div>
+
+								<button
+									className={styles.btnPrimaryDark}
+									onClick={() => {
+										setIsBulkExportModalOpen(true);
+										setSelectedExportClasses(dataKelas.map((k: any) => k.id));
+									}}
+								>
+									<Download size={16} /> Ekspor PDF (Semua Kelas)
+								</button>
 							</div>
-
-							<div className={styles.gridCards}>
-								{paginatedKelas.map((kelas: any) => (
-									<div key={kelas.id} className={styles.classCard}>
-										<div className={styles.cardTopRow}>
-											<h3 className={styles.cardTitle}>{kelas.nama}</h3>
-											{kelas.statusCard === "Terekap" && (
-												<span className={styles.badgeSuccess}>
-													<CheckCircle2 size={12} /> Terekap
-												</span>
-											)}
-											{kelas.statusCard === "Proses" && (
-												<span className={styles.badgeWarning}>
-													<AlertCircle size={12} /> Proses
-												</span>
-											)}
-											{kelas.statusCard === "Belum" && (
-												<span className={styles.badgeDanger}>
-													<AlertTriangle size={12} /> Belum
-												</span>
-											)}
-											{kelas.statusCard === "Libur/Kosong" && (
-												<span className={styles.badgeNeutral}>Tidak Ada Jadwal</span>
-											)}
-										</div>
-										<p className={styles.waliText}>Wali: {kelas.waliKelas}</p>
-
-										<div className={styles.progressSection}>
-											<div className={styles.progressHeader}>
-												<span>Kehadiran Hari Ini</span>
-												<span style={{ fontWeight: 800, color: "#0f172a" }}>{kelas.kehadiranHariIni.persentase}%</span>
-											</div>
-											<div className={styles.progressTrack}>
-												<div
-													className={styles.progressBarYellow}
-													style={{
-														width: `${kelas.kehadiranHariIni.persentase}%`,
-														backgroundColor: kelas.kehadiranHariIni.persentase >= 90 ? "#10b981" : "#f59e0b",
-													}}
-												></div>
-											</div>
-										</div>
-
-										<div className={styles.statBoxes}>
-											<div className={styles.statBox}>
-												<span className={styles.statLabel}>Total</span>
-												<span className={styles.statValDark}>{kelas.totalSiswa}</span>
-											</div>
-											<div className={styles.statBox}>
-												<span className={styles.statLabel}>Hadir</span>
-												<span className={styles.statValGreen}>{kelas.kehadiranHariIni.H}</span>
-											</div>
-											<div className={styles.statBox}>
-												<span className={styles.statLabel}>Alfa</span>
-												<span className={styles.statValRed}>{kelas.kehadiranHariIni.A}</span>
-											</div>
-											<div className={styles.statBox}>
-												<span className={styles.statLabel}>I/S</span>
-												<span className={styles.statValYellow}>{kelas.kehadiranHariIni.IS}</span>
-											</div>
-										</div>
-
-										<button className={styles.btnPrimaryFull} onClick={() => handleLihatDetail(kelas)}>
-											Lihat Detail <ArrowRight size={16} />
-										</button>
-									</div>
-								))}
-							</div>
-
-							{totalPages > 1 && (
-								<div className={styles.paginationCenter}>
-									<div className={styles.pageButtons}>
-										<button
-											className={styles.pageBtn}
-											disabled={currentPage === 1}
-											onClick={() => setCurrentPage((p) => p - 1)}
-										>
-											&lt; Prev
-										</button>
-										<span className={styles.pageIndicator}>
-											Halaman {currentPage} dari {totalPages}
-										</span>
-										<button
-											className={styles.pageBtn}
-											disabled={currentPage === totalPages}
-											onClick={() => setCurrentPage((p) => p + 1)}
-										>
-											Next &gt;
-										</button>
-									</div>
-								</div>
-							)}
 						</div>
-					)}
 
-					{/* HALAMAN DETAIL KELAS */}
-					{viewMode === "detail" && selectedKelas && (
-						<div>
-							<button className={styles.btnBack} onClick={() => setViewMode("list")}>
-								<ArrowLeft size={16} /> Kembali ke Ringkasan Kelas
-							</button>
+						<div className={styles.gridCards}>
+							{paginatedKelas.map((kelas: any) => (
+								<div key={kelas.id} className={styles.classCard}>
+									<div className={styles.cardTopRow}>
+										<h3 className={styles.cardTitle}>{kelas.nama}</h3>
+										{kelas.statusCard === "Terekap" && (
+											<span className={styles.badgeSuccess}>
+												<CheckCircle2 size={12} /> Terekap
+											</span>
+										)}
+										{kelas.statusCard === "Proses" && (
+											<span className={styles.badgeWarning}>
+												<AlertCircle size={12} /> Proses
+											</span>
+										)}
+										{kelas.statusCard === "Belum" && (
+											<span className={styles.badgeDanger}>
+												<AlertTriangle size={12} /> Belum
+											</span>
+										)}
+										{kelas.statusCard === "Libur/Kosong" && (
+											<span className={styles.badgeNeutral}>Tidak Ada Jadwal</span>
+										)}
+									</div>
+									<p className={styles.waliText}>Wali: {kelas.waliKelas}</p>
 
-							<div className={styles.sectionHeader} style={{ marginTop: "1rem" }}>
+									<div className={styles.progressSection}>
+										<div className={styles.progressHeader}>
+											<span>Kehadiran Hari Ini</span>
+											<span style={{ fontWeight: 800, color: "#0f172a" }}>{kelas.kehadiranHariIni.persentase}%</span>
+										</div>
+										<div className={styles.progressTrack}>
+											<div
+												className={styles.progressBarYellow}
+												style={{
+													width: `${kelas.kehadiranHariIni.persentase}%`,
+													backgroundColor: kelas.kehadiranHariIni.persentase >= 90 ? "#10b981" : "#f59e0b",
+												}}
+											></div>
+										</div>
+									</div>
+
+									<div className={styles.statBoxes}>
+										<div className={styles.statBox}>
+											<span className={styles.statLabel}>Total</span>
+											<span className={styles.statValDark}>{kelas.totalSiswa}</span>
+										</div>
+										<div className={styles.statBox}>
+											<span className={styles.statLabel}>Hadir</span>
+											<span className={styles.statValGreen}>{kelas.kehadiranHariIni.H}</span>
+										</div>
+										<div className={styles.statBox}>
+											<span className={styles.statLabel}>Alfa</span>
+											<span className={styles.statValRed}>{kelas.kehadiranHariIni.A}</span>
+										</div>
+										<div className={styles.statBox}>
+											<span className={styles.statLabel}>I/S</span>
+											<span className={styles.statValYellow}>{kelas.kehadiranHariIni.IS}</span>
+										</div>
+									</div>
+
+									<button className={styles.btnPrimaryFull} onClick={() => handleLihatDetail(kelas)}>
+										Lihat Detail <ArrowRight size={16} />
+									</button>
+								</div>
+							))}
+						</div>
+
+						{totalPages > 1 && (
+							<div className={styles.paginationCenter}>
+								<div className={styles.pageButtons}>
+									<button
+										className={styles.pageBtn}
+										disabled={currentPage === 1}
+										onClick={() => setCurrentPage((p) => p - 1)}
+									>
+										&lt; Prev
+									</button>
+									<span className={styles.pageIndicator}>
+										Halaman {currentPage} dari {totalPages}
+									</span>
+									<button
+										className={styles.pageBtn}
+										disabled={currentPage === totalPages}
+										onClick={() => setCurrentPage((p) => p + 1)}
+									>
+										Next &gt;
+									</button>
+								</div>
+							</div>
+						)}
+					</div>
+				)}
+
+				{/* HALAMAN DETAIL KELAS */}
+				{viewMode === "detail" && selectedKelas && (
+					<div style={{ width: "100%" }}>
+						<button className={styles.btnBack} onClick={() => setViewMode("list")}>
+							<ArrowLeft size={16} /> Kembali ke Ringkasan Kelas
+						</button>
+
+						<div className={styles.sectionHeader} style={{ marginTop: "1rem" }}>
+							<div>
+								<h2 className={styles.detailTitleBig}>Detail Kehadiran Kelas {selectedKelas.nama}</h2>
+								<p className={styles.sectionDate}>
+									Kelola daftar kehadiran dan jadwal pelajaran kelas secara detail.
+								</p>
+							</div>
+						</div>
+
+						<div className={styles.detailInfoGrid}>
+							<div className={styles.infoCard}>
+								<div className={styles.infoAvatarInitials}>{selectedKelas.waliKelasInitials}</div>
 								<div>
-									<h2 className={styles.detailTitleBig}>Detail Kehadiran Kelas {selectedKelas.nama}</h2>
-									<p className={styles.sectionDate}>
-										Kelola daftar kehadiran dan jadwal pelajaran kelas secara detail.
-									</p>
+									<div className={styles.infoLabel}>Wali Kelas</div>
+									<div className={styles.infoName}>{selectedKelas.waliKelas}</div>
+									<div className={styles.infoSub}>NPP: {selectedKelas.waliKelasNpp}</div>
 								</div>
 							</div>
-
-							<div className={styles.detailInfoGrid}>
-								<div className={styles.infoCard}>
-									<div className={styles.infoAvatarInitials}>{selectedKelas.waliKelasInitials}</div>
-									<div>
-										<div className={styles.infoLabel}>Wali Kelas</div>
-										<div className={styles.infoName}>{selectedKelas.waliKelas}</div>
-										<div className={styles.infoSub}>NPP: {selectedKelas.waliKelasNpp}</div>
+							<div className={styles.infoCardRow}>
+								<div>
+									<div className={styles.infoLabel}>Total Siswa</div>
+									<div className={styles.infoValBox}>
+										<span className={styles.infoValLarge}>{selectedKelas.totalSiswa}</span>
+										<span className={styles.infoValUnit}>Siswa</span>
 									</div>
 								</div>
-								<div className={styles.infoCardRow}>
-									<div>
-										<div className={styles.infoLabel}>Total Siswa</div>
-										<div className={styles.infoValBox}>
-											<span className={styles.infoValLarge}>{selectedKelas.totalSiswa}</span>
-											<span className={styles.infoValUnit}>Siswa</span>
-										</div>
-									</div>
-									<div className={styles.iconBoxGray}>
-										<UsersRound size={24} color="#64748b" />
-									</div>
-								</div>
-								<div className={styles.infoCardRow}>
-									<div>
-										<div className={styles.infoLabel}>Rata-rata Kehadiran</div>
-										<div className={styles.infoValBox}>
-											<span className={styles.infoValLargeYellow}>{selectedKelas.rataRataKelas}%</span>
-											<span className={styles.infoValUnit}>Semester Ini</span>
-										</div>
-									</div>
-									<div className={styles.iconBoxYellow}>
-										<BarChart3 size={24} color="#ca8a04" />
-									</div>
+								<div className={styles.iconBoxGray}>
+									<UsersRound size={24} color="#64748b" />
 								</div>
 							</div>
-
-							<div className={styles.tabsWrapper}>
-								<div className={styles.tabHeader}>
-									<button
-										className={`${styles.tabBtn} ${activeTab === "presensi" ? styles.tabActive : ""}`}
-										onClick={() => setActiveTab("presensi")}
-									>
-										Daftar Presensi Siswa
-									</button>
-									<button
-										className={`${styles.tabBtn} ${activeTab === "jadwal" ? styles.tabActive : ""}`}
-										onClick={() => setActiveTab("jadwal")}
-									>
-										Jadwal & Guru
-									</button>
+							<div className={styles.infoCardRow}>
+								<div>
+									<div className={styles.infoLabel}>Rata-rata Kehadiran</div>
+									<div className={styles.infoValBox}>
+										<span className={styles.infoValLargeYellow}>{selectedKelas.rataRataKelas}%</span>
+										<span className={styles.infoValUnit}>Semester Ini</span>
+									</div>
 								</div>
+								<div className={styles.iconBoxYellow}>
+									<BarChart3 size={24} color="#ca8a04" />
+								</div>
+							</div>
+						</div>
 
-								<div className={styles.tabContent}>
-									{activeTab === "presensi" && (
-										<div>
-											<div className={styles.tableToolbar}>
-												<div className={styles.searchBoxCard} style={{ flex: 1, maxWidth: "400px" }}>
-													<Search size={16} className={styles.searchIcon} />
-													<input
-														type="text"
-														placeholder="Cari nama atau NIS..."
-														className={styles.searchInput}
-														value={searchSiswa}
-														onChange={(e) => setSearchSiswa(e.target.value)}
-													/>
-												</div>
-												<div style={{ display: "flex", gap: "1rem" }}>
-													<button className={styles.btnOutline}>Semua Status</button>
-													<button className={styles.btnPrimaryDark} onClick={() => setIsDownloadModalOpen(true)}>
-														<Download size={16} /> Export
-													</button>
-												</div>
+						<div className={styles.tabsWrapper}>
+							<div className={styles.tabHeader}>
+								<button
+									className={`${styles.tabBtn} ${activeTab === "presensi" ? styles.tabActive : ""}`}
+									onClick={() => setActiveTab("presensi")}
+								>
+									Daftar Presensi Siswa
+								</button>
+								<button
+									className={`${styles.tabBtn} ${activeTab === "jadwal" ? styles.tabActive : ""}`}
+									onClick={() => setActiveTab("jadwal")}
+								>
+									Jadwal & Guru
+								</button>
+							</div>
+
+							<div className={styles.tabContent}>
+								{activeTab === "presensi" && (
+									<div>
+										<div className={styles.tableToolbar}>
+											<div className={styles.searchBoxCard} style={{ flex: 1, maxWidth: "400px" }}>
+												<Search size={16} className={styles.searchIcon} />
+												<input
+													type="text"
+													placeholder="Cari nama atau NIS..."
+													className={styles.searchInput}
+													value={searchSiswa}
+													onChange={(e) => setSearchSiswa(e.target.value)}
+												/>
 											</div>
+											<div style={{ display: "flex", gap: "1rem" }}>
+												<button className={styles.btnPrimaryDark} onClick={() => setIsDownloadModalOpen(true)}>
+													<Download size={16} /> Export
+												</button>
+											</div>
+										</div>
 
-											<div className={styles.tableWrapper}>
-												<div style={{ overflowX: "auto", width: "100%" }}>
-<table className={styles.dataTable}>
+										<div className={styles.tableWrapper}>
+											<div style={{ overflowX: "auto", width: "100%" }}>
+												<table className={styles.dataTable}>
 													<thead>
 														<tr>
-															<th>NO</th>
-															<th>NAMA SISWA</th>
-															<th>NIS</th>
+															<th style={{ width: "5%" }}>NO</th>
+															<th style={{ width: "40%" }}>NAMA SISWA</th>
+															<th style={{ width: "20%" }}>NIS</th>
 															<th
 																colSpan={4}
 																style={{
@@ -817,48 +831,19 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 
 																return (
 																	<tr key={siswa.id}>
-																		<td>{index + 1}</td>
+																		<td style={{ textAlign: "center" }}>{index + 1}</td>
 																		<td style={{ fontWeight: 600, color: "#0f172a" }}>{siswa.nama}</td>
 																		<td style={{ color: "#64748b" }}>{siswa.nisn || "-"}</td>
-																		<td
-																			style={{
-																				textAlign: "center",
-																				fontWeight: 700,
-																				color: "#10b981",
-																				backgroundColor: "#f8fafc",
-																			}}
-																		>
+																		<td style={{ textAlign: "center", fontWeight: 700, color: "#10b981", backgroundColor: "#f8fafc" }}>
 																			{siswa.detailKehadiran.H}
 																		</td>
-																		<td
-																			style={{
-																				textAlign: "center",
-																				fontWeight: 700,
-																				color: "#d97706",
-																				backgroundColor: "#f8fafc",
-																			}}
-																		>
+																		<td style={{ textAlign: "center", fontWeight: 700, color: "#d97706", backgroundColor: "#f8fafc" }}>
 																			{siswa.detailKehadiran.S}
 																		</td>
-																		<td
-																			style={{
-																				textAlign: "center",
-																				fontWeight: 700,
-																				color: "#d97706",
-																				backgroundColor: "#f8fafc",
-																			}}
-																		>
+																		<td style={{ textAlign: "center", fontWeight: 700, color: "#d97706", backgroundColor: "#f8fafc" }}>
 																			{siswa.detailKehadiran.I}
 																		</td>
-																		<td
-																			style={{
-																				textAlign: "center",
-																				fontWeight: 700,
-																				color: "#ef4444",
-																				backgroundColor: "#f8fafc",
-																				borderRight: "1px solid #f1f5f9",
-																			}}
-																		>
+																		<td style={{ textAlign: "center", fontWeight: 700, color: "#ef4444", backgroundColor: "#f8fafc", borderRight: "1px solid #f1f5f9" }}>
 																			{siswa.detailKehadiran.A}
 																		</td>
 																		<td style={{ textAlign: "center", fontWeight: 600 }}>{siswa.persentase}%</td>
@@ -869,53 +854,52 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 														)}
 													</tbody>
 												</table>
-</div>
 											</div>
 										</div>
-									)}
+									</div>
+								)}
 
-									{activeTab === "jadwal" && (
-										<div>
-											<div className={styles.jadwalHeaderRow}>
-												<h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#0f172a" }}>
-													Jadwal Pelajaran Mingguan
-												</h3>
-												<span className={styles.badgeGrayRounded}>Tahun Ajaran {tahunAjaran?.nama}</span>
-											</div>
-											<div className={styles.weeklyGrid}>
-												{[1, 2, 3, 4, 5].map((hariIdx) => {
-													const jadwalHariIni = selectedKelas.jadwalMingguan.filter((j: any) => j.hari === hariIdx);
-													return (
-														<div key={hariIdx} className={styles.dayColumn}>
-															<div className={styles.dayHeader}>{HARI_MAP[hariIdx]}</div>
-															<div className={styles.dayCards}>
-																{jadwalHariIni.length === 0 ? (
-																	<div className={styles.emptyJadwal}>Kosong</div>
-																) : (
-																	jadwalHariIni.map((jadwal: any) => (
-																		<div key={jadwal.id} className={styles.scheduleCard}>
-																			<div className={styles.scheduleTime}>Jam ke {jadwal.jamStr}</div>
-																			<div className={styles.scheduleMapel}>{jadwal.mapel}</div>
-																			<div className={styles.scheduleGuru}>
-																				<div className={styles.guruInitialsSmall}>{jadwal.guruInitials}</div>
-																				<span className={styles.guruNameText}>{jadwal.guruNama}</span>
-																			</div>
-																		</div>
-																	))
-																)}
-															</div>
-														</div>
-													);
-												})}
-											</div>
+								{activeTab === "jadwal" && (
+									<div>
+										<div className={styles.jadwalHeaderRow}>
+											<h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#0f172a" }}>
+												Jadwal Pelajaran Mingguan
+											</h3>
+											<span className={styles.badgeGrayRounded}>Tahun Ajaran {tahunAjaran?.nama}</span>
 										</div>
-									)}
-								</div>
+										<div className={styles.weeklyGrid}>
+											{[1, 2, 3, 4, 5].map((hariIdx) => {
+												const jadwalHariIni = selectedKelas.jadwalMingguan.filter((j: any) => j.hari === hariIdx);
+												return (
+													<div key={hariIdx} className={styles.dayColumn}>
+														<div className={styles.dayHeader}>{HARI_MAP[hariIdx]}</div>
+														<div className={styles.dayCards}>
+															{jadwalHariIni.length === 0 ? (
+																<div className={styles.emptyJadwal}>Kosong</div>
+															) : (
+																jadwalHariIni.map((jadwal: any) => (
+																	<div key={jadwal.id} className={styles.scheduleCard}>
+																		<div className={styles.scheduleTime}>Jam ke {jadwal.jamStr}</div>
+																		<div className={styles.scheduleMapel}>{jadwal.mapel}</div>
+																		<div className={styles.scheduleGuru}>
+																			<div className={styles.guruInitialsSmall}>{jadwal.guruInitials}</div>
+																			<span className={styles.guruNameText}>{jadwal.guruNama}</span>
+																		</div>
+																	</div>
+																))
+															)}
+														</div>
+													</div>
+												);
+											})}
+										</div>
+									</div>
+								)}
 							</div>
 						</div>
-					)}
-				</div>
-			</>
+					</div>
+				)}
+			</div>
 		</>
 	);
 }

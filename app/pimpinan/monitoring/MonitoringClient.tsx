@@ -1,4 +1,3 @@
-// app/pimpinan/monitoring/MonitoringClient.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -32,6 +31,80 @@ import styles from "./monitoring.module.css";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 
+function chunkArray<T>(arr: T[], size: number): T[][] {
+	const chunks = [];
+	for (let i = 0; i < arr.length; i += size) {
+		chunks.push(arr.slice(i, i + size));
+	}
+	return chunks;
+}
+
+// ============================================================================
+// KOMPONEN PEMBANTU PDF (PAGINATION MANUAL)
+// ============================================================================
+const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
+	<div
+		style={{
+			width: "210mm",
+			height: "296mm",
+			padding: "15mm 20mm",
+			boxSizing: "border-box",
+			display: "flex",
+			flexDirection: "column",
+			pageBreakAfter: isLast ? "auto" : "always",
+			backgroundColor: "white",
+			color: "black",
+			position: "relative",
+			overflow: "hidden"
+		}}
+	>
+		{children}
+	</div>
+);
+
+const PageFooter = ({ current, total }: { current: number; total: number }) => (
+	<div style={{ textAlign: "right", fontSize: "10pt", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid #e2e8f0" }}>
+		Halaman {current} dari {total}
+	</div>
+);
+
+const KopSurat = () => (
+	<div style={{ paddingBottom: "5px", backgroundColor: "white", marginBottom: "15px", flexShrink: 0 }}>
+		<div
+			style={{
+				display: "flex",
+				alignItems: "center",
+				borderBottom: "3px solid black",
+				paddingBottom: "10px",
+				marginBottom: "2px",
+			}}
+		>
+			<img
+				src="/logo.jpg"
+				alt="Logo SMAN 2 Brebes"
+				style={{ width: "80px", height: "80px", objectFit: "contain", margin: "0 20px" }}
+			/>
+			<div style={{ flex: 1, textAlign: "center" }}>
+				<h1
+					style={{
+						margin: "0 0 4px 0",
+						fontSize: "20pt",
+						fontWeight: "bold",
+						color: "#000",
+						fontFamily: '"Times New Roman", Times, serif',
+					}}
+				>
+					SMA NEGERI 2 BREBES
+				</h1>
+				<p style={{ margin: "2px 0", fontSize: "11pt", color: "#000" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+				<p style={{ margin: 0, fontSize: "11pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
+			</div>
+			<div style={{ width: "120px" }}></div>
+		</div>
+		<div style={{ borderBottom: "1px solid black" }}></div>
+	</div>
+);
+
 export default function MonitoringClient({ user, dataMonitoring }: any) {
 	const [viewMode, setViewMode] = useState<"list" | "detail">("list");
 	const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -53,7 +126,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 	const [selectedExportGurus, setSelectedExportGurus] = useState<string[]>([]);
 
 	const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
-	const [pdfGurusData, setPdfGurusData] = useState<any[]>([]); // Data pengelompokan per guru untuk PDF
+	const [pdfGurusData, setPdfGurusData] = useState<any[]>([]);
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
 
 	useEffect(() => {
@@ -115,7 +188,6 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 	};
 
 	// --- LOGIKA BULK EXPORT PER GURU ---
-	// Ekstrak daftar nama guru yang unik
 	const uniqueGurus = Array.from(new Set(dataMonitoring.map((item: any) => item.guruNama))).sort() as string[];
 
 	const handleToggleGuruExport = (guruName: string) => {
@@ -140,11 +212,12 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 			const element = document.getElementById("pdf-monitoring-single");
 
 			const opt = {
-				margin: 10,
+				margin: 0,
 				filename: `Rekap_KBM_${selectedItem.mapelNama.replace(/\s+/g, "_")}_${selectedItem.kelasNama.replace(/\s+/g, "_")}.pdf`,
 				image: { type: "jpeg", quality: 1 },
 				html2canvas: { scale: 2, useCORS: true },
-				jsPDF: { unit: "mm", format: [215, 330], orientation: "portrait" },
+				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+				pagebreak: { mode: ['css'] }
 			};
 
 			await html2pdf().set(opt).from(element).save();
@@ -167,14 +240,13 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 
 		setIsDownloadingPdf(true);
 
-		// Kelompokkan data KBM berdasarkan Guru yang dipilih
 		const groupedData = selectedExportGurus.map((guruName) => {
 			const itemsGuru = dataMonitoring.filter((item: any) => item.guruNama === guruName);
 			return {
 				guruNama: guruName,
 				guruNpp: itemsGuru[0]?.guruNpp || "-",
 				tahunAjaranNama: itemsGuru[0]?.tahunAjaranNama || "-",
-				items: itemsGuru, // Daftar kelas dan mapel yang diajar
+				items: itemsGuru,
 			};
 		});
 
@@ -186,12 +258,12 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 				const element = document.getElementById("pdf-monitoring-bulk");
 
 				const opt = {
-					margin: 10,
+					margin: 0,
 					filename: `Rekap_KBM_Multi_Guru.pdf`,
 					image: { type: "jpeg", quality: 1 },
 					html2canvas: { scale: 2, useCORS: true },
 					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-					pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
+					pagebreak: { mode: ['css'] }
 				};
 
 				await html2pdf().set(opt).from(element).save();
@@ -207,257 +279,165 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 		}, 800);
 	};
 
-	// KOMPONEN KOP SURAT
-	const pdfHeader = (
-		<div
-			style={{
-				position: "relative",
-				textAlign: "center",
-				borderBottom: "3px solid #000",
-				paddingBottom: "15px",
-				marginBottom: "20px",
-				paddingTop: "10px",
-			}}
-		>
-			<img
-				src="/logo.jpg"
-				alt="Logo SMAN 2 Brebes"
-				style={{
-					position: "absolute",
-					left: "10px",
-					top: "50%",
-					transform: "translateY(-50%)",
-					width: "80px",
-					height: "80px",
-					objectFit: "contain",
-				}}
-			/>
-			<h1
-				style={{
-					margin: "0 0 5px 0",
-					fontSize: "16pt",
-					fontWeight: "bold",
-					color: "#000",
-					fontFamily: '"Times New Roman", Times, serif',
-				}}
-			>
-				SMA NEGERI 2 BREBES
-			</h1>
-			<p style={{ margin: "2px 0", fontSize: "10pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-			<p style={{ margin: 0, fontSize: "10pt" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
-		</div>
-	);
-
 	return (
 		<>
 			{/* --- CONTAINER PDF: SINGLE ITEM (Dari Halaman Detail) --- */}
 			{selectedItem && (
 				<div style={{ display: "none" }}>
-					<div
-						id="pdf-monitoring-single"
-						style={{
-							width: "195mm",
-							minHeight: "297mm",
-							padding: "15mm",
-							boxSizing: "border-box",
-							backgroundColor: "#fff",
-							color: "#000",
-							fontFamily: "Arial, sans-serif",
-						}}
-					>
-						{/* HALAMAN 1: COVER PAGE */}
-						<div
-							style={{
-								height: "240mm",
-								display: "flex",
-								flexDirection: "column",
-								justifyContent: "center",
-								alignItems: "center",
-							}}
-						>
-							<h2
-								style={{
-									fontSize: "16pt",
-									fontWeight: 800,
-									marginBottom: "0.5rem",
-									fontFamily: '"Times New Roman", Times, serif',
-								}}
-							>
-								REKAP KEHADIRAN KEGIATAN KBM
-							</h2>
-							<h1
-								style={{
-									fontSize: "24pt",
-									fontWeight: 900,
-									color: "#0a2540",
-									marginBottom: "0.5rem",
-									textTransform: "uppercase",
-									fontFamily: '"Times New Roman", Times, serif',
-									textAlign: "center",
-								}}
-							>
-								{selectedItem.mapelNama}
-							</h1>
-							<p style={{ fontSize: "14pt", fontWeight: 600 }}>Tahun Ajaran {selectedItem.tahunAjaranNama}</p>
-							<div style={{ margin: "4rem 0", display: "flex", justifyContent: "center" }}>
-								<img src="/logo.jpg" alt="Logo" style={{ width: "160px", height: "160px", objectFit: "contain" }} />
-							</div>
-							<div style={{ textAlign: "center" }}>
-								<p style={{ fontSize: "12pt", marginBottom: "0.5rem" }}>
-									<strong>GURU PENGAMPU:</strong>
-								</p>
-								<p style={{ fontSize: "16pt", fontWeight: 700, color: "#0a2540" }}>{selectedItem.guruNama}</p>
-								<p style={{ fontSize: "12pt", marginTop: "0.5rem" }}>NPP: {selectedItem.guruNpp || "-"}</p>
-							</div>
-							<div
-								style={{
-									marginTop: "4rem",
-									textAlign: "center",
-									borderTop: "2px solid #0a2540",
-									paddingTop: "1.5rem",
-									width: "60%",
-									margin: "4rem auto 0 auto",
-								}}
-							>
-								<p style={{ fontSize: "14pt", fontWeight: "bold" }}>KELAS {selectedItem.kelasNama}</p>
-								<p
-									style={{
-										fontSize: "12pt",
-										fontWeight: "bold",
-										fontFamily: '"Times New Roman", Times, serif',
-										marginTop: "0.5rem",
-									}}
-								>
-									SMA NEGERI 2 BREBES
-								</p>
-							</div>
-						</div>
+					<div id="pdf-monitoring-single">
+						{(() => {
+							const sortedRiwayat = [...(selectedItem.riwayat || [])].sort((a, b) => a.pertemuanKe - b.pertemuanKe);
+							const MAX_ROWS = 25;
+							const chunks = chunkArray(sortedRiwayat, MAX_ROWS);
+							if (chunks.length === 0) chunks.push([]);
 
-						<div className="html2pdf__page-break"></div>
+							const totalPagesSingle = 1 + chunks.length;
+							let pageCounter = 1;
 
-						{/* HALAMAN 2: KOP SURAT & TABEL RIWAYAT */}
-						{pdfHeader}
-						<h3
-							style={{
-								fontSize: "11pt",
-								fontWeight: "bold",
-								borderBottom: "2px solid #000",
-								paddingBottom: "0.5rem",
-								marginBottom: "1rem",
-								textTransform: "uppercase",
-							}}
-						>
-							RIWAYAT KEGIATAN BELAJAR MENGAJAR (KBM) - {selectedItem.kelasNama}
-						</h3>
-
-						<table
-							style={{
-								width: "100%",
-								borderCollapse: "collapse",
-								border: "1px solid #000",
-								marginBottom: "2rem",
-								fontSize: "9pt",
-							}}
-						>
-							<thead>
-								<tr>
-									<th
-										style={{
-											border: "1px solid #000",
-											backgroundColor: "#f1f5f9",
-											padding: "6px",
-											width: "5%",
-											textAlign: "center",
-										}}
-									>
-										Pert.
-									</th>
-									<th
-										style={{
-											border: "1px solid #000",
-											backgroundColor: "#f1f5f9",
-											padding: "6px",
-											width: "15%",
-											textAlign: "center",
-										}}
-									>
-										Tanggal
-									</th>
-									<th
-										style={{
-											border: "1px solid #000",
-											backgroundColor: "#f1f5f9",
-											padding: "6px",
-											width: "12%",
-											textAlign: "center",
-										}}
-									>
-										Jam Ke-
-									</th>
-									<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "20%" }}>
-										Waktu Mengajar
-									</th>
-									<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "20%" }}>
-										Topik Pembelajaran
-									</th>
-									<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "20%" }}>
-										Topik Tugas
-									</th>
-									<th
-										style={{
-											border: "1px solid #000",
-											backgroundColor: "#f1f5f9",
-											padding: "6px",
-											width: "15%",
-											textAlign: "center",
-										}}
-									>
-										Status
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{(() => {
-									const sortedRiwayat = [...(selectedItem.riwayat || [])].sort((a, b) => a.pertemuanKe - b.pertemuanKe);
-									if (sortedRiwayat.length === 0) {
-										return (
-											<tr>
-												<td colSpan={6} style={{ textAlign: "center", padding: "1rem", border: "1px solid #000" }}>
-													Belum ada riwayat.
-												</td>
-											</tr>
-										);
-									}
-									return sortedRiwayat.map((row: any, idx: number) => (
-										<tr key={idx}>
-											<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center", fontWeight: "bold" }}>
-												{row.pertemuanKe}
-											</td>
-											<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>
-												{row.tanggalStr}
-											</td>
-											<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{row.jamStr}</td>
-											<td style={{ border: "1px solid #000", padding: "4px", color: "#1e3a8a", fontWeight: "bold" }}>
-												{row.waktuMengajar}
-											</td>
-											<td style={{ border: "1px solid #000", padding: "4px" }}>{row.topik || "-"}</td>
-											<td style={{ border: "1px solid #000", padding: "4px" }}>{row.topikTugas || "-"}</td>
-											<td
+							return (
+								<>
+									{/* HALAMAN 1: COVER PAGE */}
+									<PageContainer isLast={false}>
+										<div
+											style={{
+												height: "240mm",
+												display: "flex",
+												flexDirection: "column",
+												justifyContent: "center",
+												alignItems: "center",
+											}}
+										>
+											<h2
 												style={{
-													border: "1px solid #000",
-													padding: "4px",
-													textAlign: "center",
-													fontWeight: "bold",
-													color: row.status === "Terisi" ? "#10b981" : "#ef4444",
+													fontSize: "16pt",
+													fontWeight: 800,
+													marginBottom: "0.5rem",
+													fontFamily: '"Times New Roman", Times, serif',
 												}}
 											>
-												{row.status}
-											</td>
-										</tr>
-									));
-								})()}
-							</tbody>
-						</table>
+												REKAP KEHADIRAN KEGIATAN KBM
+											</h2>
+											<h1
+												style={{
+													fontSize: "24pt",
+													fontWeight: 900,
+													color: "#0a2540",
+													marginBottom: "0.5rem",
+													textTransform: "uppercase",
+													fontFamily: '"Times New Roman", Times, serif',
+													textAlign: "center",
+												}}
+											>
+												{selectedItem.mapelNama}
+											</h1>
+											<p style={{ fontSize: "14pt", fontWeight: 600 }}>Tahun Ajaran {selectedItem.tahunAjaranNama}</p>
+											<div style={{ margin: "4rem 0", display: "flex", justifyContent: "center" }}>
+												<img src="/logo.jpg" alt="Logo" style={{ width: "160px", height: "160px", objectFit: "contain" }} />
+											</div>
+											<div style={{ textAlign: "center" }}>
+												<p style={{ fontSize: "12pt", marginBottom: "0.5rem" }}>
+													<strong>GURU PENGAMPU:</strong>
+												</p>
+												<p style={{ fontSize: "16pt", fontWeight: 700, color: "#0a2540" }}>{selectedItem.guruNama}</p>
+												<p style={{ fontSize: "12pt", marginTop: "0.5rem" }}>NPP: {selectedItem.guruNpp || "-"}</p>
+											</div>
+											<div
+												style={{
+													marginTop: "4rem",
+													textAlign: "center",
+													borderTop: "2px solid #0a2540",
+													paddingTop: "1.5rem",
+													width: "60%",
+													margin: "4rem auto 0 auto",
+												}}
+											>
+												<p style={{ fontSize: "14pt", fontWeight: "bold" }}>KELAS {selectedItem.kelasNama}</p>
+												<p
+													style={{
+														fontSize: "12pt",
+														fontWeight: "bold",
+														fontFamily: '"Times New Roman", Times, serif',
+														marginTop: "0.5rem",
+													}}
+												>
+													SMA NEGERI 2 BREBES
+												</p>
+											</div>
+										</div>
+										<PageFooter current={pageCounter++} total={totalPagesSingle} />
+									</PageContainer>
+									<div className="html2pdf__page-break"></div>
+
+									{/* HALAMAN 2+: KOP SURAT & TABEL RIWAYAT */}
+									{chunks.map((chunk, idx) => {
+										const isLastPage = idx === chunks.length - 1;
+										return (
+											<div key={`chunk-${idx}`}>
+												<PageContainer isLast={isLastPage}>
+													<KopSurat />
+													{idx === 0 && (
+														<h3
+															style={{
+																fontSize: "11pt",
+																fontWeight: "bold",
+																borderBottom: "2px solid #000",
+																paddingBottom: "0.5rem",
+																marginBottom: "1rem",
+																textTransform: "uppercase",
+															}}
+														>
+															RIWAYAT KEGIATAN BELAJAR MENGAJAR (KBM) - {selectedItem.kelasNama}
+														</h3>
+													)}
+													<table
+														style={{
+															width: "100%",
+															borderCollapse: "collapse",
+															border: "1px solid #000",
+															marginBottom: "2rem",
+															fontSize: "9pt",
+														}}
+													>
+														<thead style={{ display: "table-header-group" }}>
+															<tr>
+																<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "5%", textAlign: "center" }}>Pert.</th>
+																<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "15%", textAlign: "center" }}>Tanggal</th>
+																<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "12%", textAlign: "center" }}>Jam Ke-</th>
+																<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "20%" }}>Waktu Mengajar</th>
+																<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "20%" }}>Topik</th>
+																<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "20%" }}>Topik Tugas</th>
+																<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "15%", textAlign: "center" }}>Status</th>
+															</tr>
+														</thead>
+														<tbody>
+															{chunk.length === 0 ? (
+																<tr>
+																	<td colSpan={7} style={{ textAlign: "center", padding: "1rem", border: "1px solid #000" }}>Belum ada riwayat.</td>
+																</tr>
+															) : (
+																chunk.map((row: any, i: number) => (
+																	<tr key={i} style={{ pageBreakInside: "avoid" }}>
+																		<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center", fontWeight: "bold" }}>{row.pertemuanKe}</td>
+																		<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{row.tanggalStr}</td>
+																		<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{row.jamStr}</td>
+																		<td style={{ border: "1px solid #000", padding: "4px", color: "#1e3a8a", fontWeight: "bold" }}>{row.waktuMengajar}</td>
+																		<td style={{ border: "1px solid #000", padding: "4px" }}>{row.topik || "-"}</td>
+																		<td style={{ border: "1px solid #000", padding: "4px" }}>{row.topikTugas || "-"}</td>
+																		<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center", fontWeight: "bold", color: row.status === "Terisi" ? "#10b981" : "#ef4444" }}>{row.status}</td>
+																	</tr>
+																))
+															)}
+														</tbody>
+													</table>
+													<PageFooter current={pageCounter++} total={totalPagesSingle} />
+												</PageContainer>
+												{!isLastPage && <div className="html2pdf__page-break"></div>}
+											</div>
+										);
+									})}
+								</>
+							);
+						})()}
 					</div>
 				</div>
 			)}
@@ -465,243 +445,187 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 			{/* --- CONTAINER PDF: BULK MULTI-GURU --- */}
 			{pdfGurusData.length > 0 && (
 				<div style={{ display: "none" }}>
-					<div
-						id="pdf-monitoring-bulk"
-						style={{
-							width: "195mm",
-							minHeight: "297mm",
-							padding: "15mm",
-							boxSizing: "border-box",
-							backgroundColor: "#fff",
-							color: "#000",
-							fontFamily: "Arial, sans-serif",
-						}}
-					>
-						{pdfGurusData.map((guruData, gIndex) => (
-							<div key={gIndex}>
-								{/* COVER PER GURU */}
-								<div
-									style={{
-										height: "240mm",
-										display: "flex",
-										flexDirection: "column",
-										justifyContent: "center",
-										alignItems: "center",
-									}}
-								>
-									<h2
-										style={{
-											fontSize: "16pt",
-											fontWeight: 800,
-											marginBottom: "0.5rem",
-											fontFamily: '"Times New Roman", Times, serif',
-										}}
-									>
-										REKAP KEHADIRAN GURU MENGAJAR
-									</h2>
-									<h1
-										style={{
-											fontSize: "24pt",
-											fontWeight: 900,
-											color: "#0a2540",
-											marginBottom: "0.5rem",
-											textTransform: "uppercase",
-											fontFamily: '"Times New Roman", Times, serif',
-											textAlign: "center",
-										}}
-									>
-										{guruData.guruNama}
-									</h1>
-									<p style={{ fontSize: "14pt", fontWeight: 600 }}>Tahun Ajaran {guruData.tahunAjaranNama}</p>
-									<div style={{ margin: "4rem 0", display: "flex", justifyContent: "center" }}>
-										<img src="/logo.jpg" alt="Logo" style={{ width: "160px", height: "160px", objectFit: "contain" }} />
-									</div>
-									<div style={{ textAlign: "center" }}>
-										<p style={{ fontSize: "12pt", marginBottom: "0.5rem" }}>
-											<strong>NPP:</strong>
-										</p>
-										<p style={{ fontSize: "16pt", fontWeight: 700, color: "#0a2540" }}>{guruData.guruNpp}</p>
-									</div>
-									<div
-										style={{
-											marginTop: "4rem",
-											textAlign: "center",
-											borderTop: "2px solid #0a2540",
-											paddingTop: "1.5rem",
-											width: "60%",
-											margin: "4rem auto 0 auto",
-										}}
-									>
-										<p
-											style={{
-												fontSize: "12pt",
-												fontWeight: "bold",
-												fontFamily: '"Times New Roman", Times, serif',
-												marginTop: "0.5rem",
-											}}
-										>
-											SMA NEGERI 2 BREBES
-										</p>
-									</div>
-								</div>
+					<div id="pdf-monitoring-bulk" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
+						{(() => {
+							const MAX_ROWS = 25;
+							let globalTotalPages = 0;
 
-								<div className="html2pdf__page-break"></div>
+							// Kalkulasi total halaman semua guru
+							const guruPagesInfo = pdfGurusData.map((guruData) => {
+								let guruTotalPages = 1; // cover
+								const classChunks = guruData.items.map((kbmItem: any) => {
+									const sortedRiwayat = [...(kbmItem.riwayat || [])].sort((a, b) => a.pertemuanKe - b.pertemuanKe);
+									const chunks = chunkArray(sortedRiwayat, MAX_ROWS);
+									if (chunks.length === 0) chunks.push([]);
+									guruTotalPages += chunks.length;
+									return chunks;
+								});
+								globalTotalPages += guruTotalPages;
+								return { classChunks };
+							});
 
-								{/* DATA RIWAYAT SEMUA KELAS MILIK GURU TERSEBUT */}
-								{pdfHeader}
-								<h3 style={{ fontSize: "14pt", fontWeight: "bold", textAlign: "center", marginBottom: "1rem" }}>
-									JURNAL MENGAJAR GURU
-								</h3>
+							let pageCounter = 1;
 
-								{guruData.items.map((kbmItem: any, kIndex: number) => (
-									<div key={kIndex} style={{ marginBottom: "2rem" }}>
-										<h4
-											style={{
-												fontSize: "11pt",
-												fontWeight: "bold",
-												borderBottom: "1px solid #000",
-												paddingBottom: "0.5rem",
-												marginBottom: "0.5rem",
-												backgroundColor: "#f8fafc",
-												padding: "5px",
-											}}
-										>
-											KELAS: {kbmItem.kelasNama} | MATA PELAJARAN: {kbmItem.mapelNama}
-										</h4>
-										<table
-											style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", fontSize: "9pt" }}
-										>
-											<thead>
-												<tr>
-													<th
+							return (
+								<>
+									{pdfGurusData.map((guruData, gIndex) => {
+										const { classChunks } = guruPagesInfo[gIndex];
+										const isLastGuru = gIndex === pdfGurusData.length - 1;
+
+										return (
+											<div key={gIndex}>
+												{/* COVER PER GURU */}
+												<PageContainer isLast={false}>
+													<div
 														style={{
-															border: "1px solid #000",
-															backgroundColor: "#f1f5f9",
-															padding: "6px",
-															width: "5%",
-															textAlign: "center",
+															height: "240mm",
+															display: "flex",
+															flexDirection: "column",
+															justifyContent: "center",
+															alignItems: "center",
 														}}
 													>
-														P.Ke
-													</th>
-													<th
-														style={{
-															border: "1px solid #000",
-															backgroundColor: "#f1f5f9",
-															padding: "6px",
-															width: "15%",
-															textAlign: "center",
-														}}
-													>
-														Tanggal
-													</th>
-													<th
-														style={{
-															border: "1px solid #000",
-															backgroundColor: "#f1f5f9",
-															padding: "6px",
-															width: "12%",
-															textAlign: "center",
-														}}
-													>
-														Jam Ke-
-													</th>
-													<th
-														style={{
-															border: "1px solid #000",
-															backgroundColor: "#f1f5f9",
-															padding: "6px",
-															width: "20%",
-														}}
-													>
-														Waktu Mengajar
-													</th>
-													<th
-														style={{
-															border: "1px solid #000",
-															backgroundColor: "#f1f5f9",
-															padding: "6px",
-															width: "20%",
-														}}
-													>
-														Topik
-													</th>
-													<th
-														style={{
-															border: "1px solid #000",
-															backgroundColor: "#f1f5f9",
-															padding: "6px",
-															width: "20%",
-														}}
-													>
-														Topik Tugas
-													</th>
-													<th
-														style={{
-															border: "1px solid #000",
-															backgroundColor: "#f1f5f9",
-															padding: "6px",
-															width: "15%",
-															textAlign: "center",
-														}}
-													>
-														Status
-													</th>
-												</tr>
-											</thead>
-											<tbody>
-												{(() => {
-													const sortedRiwayat = [...(kbmItem.riwayat || [])].sort(
-														(a, b) => a.pertemuanKe - b.pertemuanKe,
-													);
-													if (sortedRiwayat.length === 0) {
-														return (
-															<tr>
-																<td
-																	colSpan={6}
-																	style={{ textAlign: "center", padding: "1rem", border: "1px solid #000" }}
-																>
-																	Belum ada riwayat.
-																</td>
-															</tr>
-														);
-													}
-													return sortedRiwayat.map((row: any, idx: number) => (
-														<tr key={idx}>
-															<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>
-																{row.pertemuanKe}
-															</td>
-															<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>
-																{row.tanggalStr}
-															</td>
-															<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>
-																{row.jamStr}
-															</td>
-															<td style={{ border: "1px solid #000", padding: "4px" }}>{row.waktuMengajar}</td>
-															<td style={{ border: "1px solid #000", padding: "4px" }}>{row.topik || "-"}</td>
-															<td style={{ border: "1px solid #000", padding: "4px" }}>{row.topikTugas || "-"}</td>
-															<td
+														<h2
+															style={{
+																fontSize: "16pt",
+																fontWeight: 800,
+																marginBottom: "0.5rem",
+																fontFamily: '"Times New Roman", Times, serif',
+															}}
+														>
+															REKAP KEHADIRAN GURU MENGAJAR
+														</h2>
+														<h1
+															style={{
+																fontSize: "24pt",
+																fontWeight: 900,
+																color: "#0a2540",
+																marginBottom: "0.5rem",
+																textTransform: "uppercase",
+																fontFamily: '"Times New Roman", Times, serif',
+																textAlign: "center",
+															}}
+														>
+															{guruData.guruNama}
+														</h1>
+														<p style={{ fontSize: "14pt", fontWeight: 600 }}>Tahun Ajaran {guruData.tahunAjaranNama}</p>
+														<div style={{ margin: "4rem 0", display: "flex", justifyContent: "center" }}>
+															<img src="/logo.jpg" alt="Logo" style={{ width: "160px", height: "160px", objectFit: "contain" }} />
+														</div>
+														<div style={{ textAlign: "center" }}>
+															<p style={{ fontSize: "12pt", marginBottom: "0.5rem" }}>
+																<strong>NPP:</strong>
+															</p>
+															<p style={{ fontSize: "16pt", fontWeight: 700, color: "#0a2540" }}>{guruData.guruNpp}</p>
+														</div>
+														<div
+															style={{
+																marginTop: "4rem",
+																textAlign: "center",
+																borderTop: "2px solid #0a2540",
+																paddingTop: "1.5rem",
+																width: "60%",
+																margin: "4rem auto 0 auto",
+															}}
+														>
+															<p
 																style={{
-																	border: "1px solid #000",
-																	padding: "4px",
-																	textAlign: "center",
+																	fontSize: "12pt",
 																	fontWeight: "bold",
-																	color: row.status === "Terisi" ? "#10b981" : "#ef4444",
+																	fontFamily: '"Times New Roman", Times, serif',
+																	marginTop: "0.5rem",
 																}}
 															>
-																{row.status}
-															</td>
-														</tr>
-													));
-												})()}
-											</tbody>
-										</table>
-									</div>
-								))}
+																SMA NEGERI 2 BREBES
+															</p>
+														</div>
+													</div>
+													<PageFooter current={pageCounter++} total={globalTotalPages} />
+												</PageContainer>
+												<div className="html2pdf__page-break"></div>
 
-								{gIndex < pdfGurusData.length - 1 && <div className="html2pdf__page-break"></div>}
-							</div>
-						))}
+												{/* DATA RIWAYAT KELAS-KELAS */}
+												{guruData.items.map((kbmItem: any, kIndex: number) => {
+													const chunks = classChunks[kIndex];
+													const isLastClass = kIndex === guruData.items.length - 1;
+
+													return chunks.map((chunk: any[], chunkIdx: number) => {
+														const isLastChunkOfLastClass = isLastClass && chunkIdx === chunks.length - 1;
+														const isLastOfDocument = isLastGuru && isLastChunkOfLastClass;
+
+														return (
+															<div key={`guru-${gIndex}-kelas-${kIndex}-chunk-${chunkIdx}`}>
+																<PageContainer isLast={isLastOfDocument}>
+																	<KopSurat />
+																	{chunkIdx === 0 && (
+																		<>
+																			{kIndex === 0 && (
+																				<h3 style={{ fontSize: "14pt", fontWeight: "bold", textAlign: "center", marginBottom: "1rem" }}>
+																					JURNAL MENGAJAR GURU
+																				</h3>
+																			)}
+																			<h4
+																				style={{
+																					fontSize: "11pt",
+																					fontWeight: "bold",
+																					borderBottom: "1px solid #000",
+																					paddingBottom: "0.5rem",
+																					marginBottom: "0.5rem",
+																					backgroundColor: "#f8fafc",
+																					padding: "5px",
+																				}}
+																			>
+																				KELAS: {kbmItem.kelasNama} | MATA PELAJARAN: {kbmItem.mapelNama}
+																			</h4>
+																		</>
+																	)}
+																	<table
+																		style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", fontSize: "9pt", marginBottom: "2rem" }}
+																	>
+																		<thead style={{ display: "table-header-group" }}>
+																			<tr>
+																				<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "5%", textAlign: "center" }}>P.Ke</th>
+																				<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "15%", textAlign: "center" }}>Tanggal</th>
+																				<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "12%", textAlign: "center" }}>Jam Ke-</th>
+																				<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "20%" }}>Waktu Mengajar</th>
+																				<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "20%" }}>Topik</th>
+																				<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "20%" }}>Topik Tugas</th>
+																				<th style={{ border: "1px solid #000", backgroundColor: "#f1f5f9", padding: "6px", width: "15%", textAlign: "center" }}>Status</th>
+																			</tr>
+																		</thead>
+																		<tbody>
+																			{chunk.length === 0 ? (
+																				<tr>
+																					<td colSpan={7} style={{ textAlign: "center", padding: "1rem", border: "1px solid #000" }}>Belum ada riwayat.</td>
+																				</tr>
+																			) : (
+																				chunk.map((row: any, i: number) => (
+																					<tr key={i} style={{ pageBreakInside: "avoid" }}>
+																						<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center", fontWeight: "bold" }}>{row.pertemuanKe}</td>
+																						<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{row.tanggalStr}</td>
+																						<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{row.jamStr}</td>
+																						<td style={{ border: "1px solid #000", padding: "4px", color: "#1e3a8a", fontWeight: "bold" }}>{row.waktuMengajar}</td>
+																						<td style={{ border: "1px solid #000", padding: "4px" }}>{row.topik || "-"}</td>
+																						<td style={{ border: "1px solid #000", padding: "4px" }}>{row.topikTugas || "-"}</td>
+																						<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center", fontWeight: "bold", color: row.status === "Terisi" ? "#10b981" : "#ef4444" }}>{row.status}</td>
+																					</tr>
+																				))
+																			)}
+																		</tbody>
+																	</table>
+																	<PageFooter current={pageCounter++} total={globalTotalPages} />
+																</PageContainer>
+																{!isLastOfDocument && <div className="html2pdf__page-break"></div>}
+															</div>
+														);
+													});
+												})}
+											</div>
+										);
+									})}
+								</>
+							);
+						})()}
 					</div>
 				</div>
 			)}
@@ -844,196 +768,202 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 				</div>
 			)}
 
-			{/* === SIDEBAR === */}
-			
-
-			{/* === MAIN CONTENT === */}
-			<>
-				
-
-				<div className={styles.dashboardContainer}>
-					{/* HALAMAN LIST */}
-					{viewMode === "list" && (
-						<div>
-							<div className={styles.sectionHeader}>
-								<div>
-									<h2 className={styles.sectionTitle}>Monitoring Jurnal Mengajar</h2>
-									<p className={styles.sectionDate}>Overview of teaching journals across all subjects and classes.</p>
+			{/* === WEB UI CONTENT === */}
+			<div className={styles.dashboardContainer}>
+				{/* HALAMAN LIST */}
+				{viewMode === "list" && (
+					<div>
+						<div className={styles.sectionHeader}>
+							<div>
+								<h2 className={styles.sectionTitle}>Monitoring Jurnal Mengajar</h2>
+								<p className={styles.sectionDate}>Overview of teaching journals across all subjects and classes.</p>
+							</div>
+							<div className={styles.headerButtons}>
+								<div className={styles.searchBoxCard}>
+									<Search size={16} className={styles.searchIcon} />
+									<input
+										type="text"
+										placeholder="Cari Mapel, Kelas, atau Guru..."
+										className={styles.searchInput}
+										value={searchTerm}
+										onChange={(e) => setSearchTerm(e.target.value)}
+									/>
 								</div>
+								<button className={styles.btnOutline}>
+									<Filter size={16} /> Filter
+								</button>
+
+								{/* TOMBOL EXPORT MULTI GURU */}
+								<button
+									className={styles.btnPrimaryDark}
+									onClick={() => {
+										setIsBulkExportModalOpen(true);
+										setSelectedExportGurus([...uniqueGurus]); // Default pilih semua
+									}}
+									style={{
+										display: "flex",
+										alignItems: "center",
+										gap: "0.5rem",
+										padding: "0.75rem 1.25rem",
+										borderRadius: "0.5rem",
+										border: "none",
+										cursor: "pointer",
+										background: "#0b1c36",
+										color: "#fff",
+										fontWeight: "600",
+									}}
+								>
+									<Download size={16} /> Ekspor PDF (Per Guru)
+								</button>
+							</div>
+						</div>
+
+						<div className={styles.gridCards}>
+							{paginatedCards.length === 0 ? (
+								<div className={styles.emptyState}>Tidak ada kelas yang cocok dengan pencarian.</div>
+							) : (
+								paginatedCards.map((item: any) => (
+									<div key={item.id} className={styles.kbmCard}>
+										<div className={styles.kbmCardHeader}>
+											<div>
+												<h3 className={styles.kbmMapel}>{item.mapelNama}</h3>
+												<p className={styles.kbmKelas}>{item.kelasNama}</p>
+											</div>
+											<div className={styles.iconMapel}>{getMapelIcon(item.mapelNama)}</div>
+										</div>
+
+										<div className={styles.guruProfileBox}>
+											<div className={styles.guruAvatar}>{item.guruInitials}</div>
+											<div>
+												<div className={styles.guruName}>{item.guruNama}</div>
+												<div className={styles.guruRole}>Teacher</div>
+											</div>
+										</div>
+
+										<div className={styles.progressSection}>
+											<div className={styles.progressLabels}>
+												<span>Jumlah Jurnal</span>
+												<span style={{ fontWeight: 800 }}>
+													{item.terisi}/{item.totalSesi}{" "}
+													<span style={{ fontSize: "0.75rem", fontWeight: 500, color: "#64748b" }}>Sesi</span>
+												</span>
+											</div>
+											<div className={styles.progressTrack}>
+												<div
+													className={styles.progressBar}
+													style={{
+														width: `${item.totalSesi > 0 ? (item.terisi / item.totalSesi) * 100 : 0}%`,
+														backgroundColor:
+															item.jamKosong > 0 ? (item.terisi === 0 ? "#ef4444" : "#f59e0b") : "#10b981",
+													}}
+												></div>
+											</div>
+										</div>
+
+										<button className={styles.btnOutlineFull} onClick={() => handleLihatDetail(item)}>
+											Lihat Detail
+										</button>
+									</div>
+								))
+							)}
+						</div>
+
+						{totalCardPages > 1 && (
+							<div className={styles.paginationCenter}>
+								<div className={styles.pageButtons}>
+									<button
+										className={styles.pageBtn}
+										disabled={currentCardPage === 1}
+										onClick={() => setCurrentCardPage((p) => p - 1)}
+									>
+										&lt; Prev
+									</button>
+									<span className={styles.pageIndicator}>
+										Halaman {currentCardPage} dari {totalCardPages}
+									</span>
+									<button
+										className={styles.pageBtn}
+										disabled={currentCardPage === totalCardPages}
+										onClick={() => setCurrentCardPage((p) => p + 1)}
+									>
+										Next &gt;
+									</button>
+								</div>
+							</div>
+						)}
+					</div>
+				)}
+
+				{/* HALAMAN DETAIL */}
+				{viewMode === "detail" && selectedItem && (
+					<div>
+						<div
+							style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}
+						>
+							<button className={styles.btnBack} onClick={() => setViewMode("list")}>
+								<ArrowLeft size={16} /> Detail Jurnal & Monitoring
+							</button>
+							<button
+								className={styles.btnPrimary}
+								onClick={() => setIsPdfModalOpen(true)}
+								style={{ padding: "0.5rem 1rem", borderRadius: "0.5rem" }}
+							>
+								<Download size={16} /> Export PDF
+							</button>
+						</div>
+
+						<div className={styles.detailHeaderGrid}>
+							<div className={styles.detailSummaryCard}>
+								<div className={styles.iconBoxBlue}>
+									<BookOpen size={24} color="#3b82f6" />
+								</div>
+								<div>
+									<h2 className={styles.detailTitleBig}>{selectedItem.mapelNama}</h2>
+									<div className={styles.detailSubInfo}>
+										<div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+											<Building size={14} color="#64748b" /> {selectedItem.kelasNama}
+										</div>
+										<span style={{ color: "#cbd5e1" }}>•</span>
+										<div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+											<User size={14} color="#64748b" /> {selectedItem.guruNama}
+										</div>
+										<span style={{ color: "#cbd5e1" }}>•</span>
+										<span style={{ color: "#94a3b8" }}>(NPP: {selectedItem.guruNpp})</span>
+									</div>
+								</div>
+							</div>
+							<div className={styles.alertSummaryCard}>
+								<AlertTriangle size={24} color="#ef4444" style={{ marginBottom: "0.5rem" }} />
+								<div style={{ color: "#64748b", fontSize: "0.875rem", fontWeight: 600 }}>Total Jam Kosong</div>
+								<div style={{ color: "#ef4444", fontSize: "2rem", fontWeight: 800 }}>
+									{selectedItem.jamKosong} <span style={{ fontSize: "1rem", fontWeight: 600 }}>Sesi</span>
+								</div>
+							</div>
+						</div>
+
+						<div className={styles.tableCard}>
+							<div className={styles.tableHeader}>
+								<h3 style={{ fontSize: "1.25rem", fontWeight: 800, color: "#0f172a" }}>Riwayat Sesi Pembelajaran</h3>
 								<div className={styles.headerButtons}>
 									<div className={styles.searchBoxCard}>
 										<Search size={16} className={styles.searchIcon} />
 										<input
 											type="text"
-											placeholder="Cari Mapel, Kelas, atau Guru..."
+											placeholder="Cari topik..."
 											className={styles.searchInput}
-											value={searchTerm}
-											onChange={(e) => setSearchTerm(e.target.value)}
+											value={searchTopik}
+											onChange={(e) => {
+												setSearchTopik(e.target.value);
+												setCurrentPage(1);
+											}}
 										/>
 									</div>
-									<button className={styles.btnOutline}>
-										<Filter size={16} /> Filter
-									</button>
-
-									{/* TOMBOL BARU: EXPORT MULTI GURU */}
-									<button
-										className={styles.btnPrimaryDark}
-										onClick={() => {
-											setIsBulkExportModalOpen(true);
-											setSelectedExportGurus([...uniqueGurus]); // Default pilih semua
-										}}
-									>
-										<Download size={16} /> Ekspor PDF (Per Guru)
-									</button>
 								</div>
 							</div>
 
-							<div className={styles.gridCards}>
-								{paginatedCards.length === 0 ? (
-									<div className={styles.emptyState}>Tidak ada kelas yang cocok dengan pencarian.</div>
-								) : (
-									paginatedCards.map((item: any) => (
-										<div key={item.id} className={styles.kbmCard}>
-											<div className={styles.kbmCardHeader}>
-												<div>
-													<h3 className={styles.kbmMapel}>{item.mapelNama}</h3>
-													<p className={styles.kbmKelas}>{item.kelasNama}</p>
-												</div>
-												<div className={styles.iconMapel}>{getMapelIcon(item.mapelNama)}</div>
-											</div>
-
-											<div className={styles.guruProfileBox}>
-												<div className={styles.guruAvatar}>{item.guruInitials}</div>
-												<div>
-													<div className={styles.guruName}>{item.guruNama}</div>
-													<div className={styles.guruRole}>Teacher</div>
-												</div>
-											</div>
-
-											<div className={styles.progressSection}>
-												<div className={styles.progressLabels}>
-													<span>Jumlah Jurnal</span>
-													<span style={{ fontWeight: 800 }}>
-														{item.terisi}/{item.totalSesi}{" "}
-														<span style={{ fontSize: "0.75rem", fontWeight: 500, color: "#64748b" }}>Sesi</span>
-													</span>
-												</div>
-												<div className={styles.progressTrack}>
-													<div
-														className={styles.progressBar}
-														style={{
-															width: `${item.totalSesi > 0 ? (item.terisi / item.totalSesi) * 100 : 0}%`,
-															backgroundColor:
-																item.jamKosong > 0 ? (item.terisi === 0 ? "#ef4444" : "#f59e0b") : "#10b981",
-														}}
-													></div>
-												</div>
-											</div>
-
-											<button className={styles.btnOutlineFull} onClick={() => handleLihatDetail(item)}>
-												Lihat Detail
-											</button>
-										</div>
-									))
-								)}
-							</div>
-
-							{totalCardPages > 1 && (
-								<div className={styles.paginationCenter}>
-									<div className={styles.pageButtons}>
-										<button
-											className={styles.pageBtn}
-											disabled={currentCardPage === 1}
-											onClick={() => setCurrentCardPage((p) => p - 1)}
-										>
-											&lt; Prev
-										</button>
-										<span className={styles.pageIndicator}>
-											Halaman {currentCardPage} dari {totalCardPages}
-										</span>
-										<button
-											className={styles.pageBtn}
-											disabled={currentCardPage === totalCardPages}
-											onClick={() => setCurrentCardPage((p) => p + 1)}
-										>
-											Next &gt;
-										</button>
-									</div>
-								</div>
-							)}
-						</div>
-					)}
-
-					{/* HALAMAN DETAIL */}
-					{viewMode === "detail" && selectedItem && (
-						<div>
-							<div
-								style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}
-							>
-								<button className={styles.btnBack} onClick={() => setViewMode("list")}>
-									<ArrowLeft size={16} /> Detail Jurnal & Monitoring
-								</button>
-								<button
-									className={styles.btnPrimary}
-									onClick={() => setIsPdfModalOpen(true)}
-									style={{ padding: "0.5rem 1rem", borderRadius: "0.5rem" }}
-								>
-									<Download size={16} /> Export PDF
-								</button>
-							</div>
-
-							<div className={styles.detailHeaderGrid}>
-								<div className={styles.detailSummaryCard}>
-									<div className={styles.iconBoxBlue}>
-										<BookOpen size={24} color="#3b82f6" />
-									</div>
-									<div>
-										<h2 className={styles.detailTitleBig}>{selectedItem.mapelNama}</h2>
-										<div className={styles.detailSubInfo}>
-											<div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-												<Building size={14} color="#64748b" /> {selectedItem.kelasNama}
-											</div>
-											<span style={{ color: "#cbd5e1" }}>•</span>
-											<div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-												<User size={14} color="#64748b" /> {selectedItem.guruNama}
-											</div>
-											<span style={{ color: "#cbd5e1" }}>•</span>
-											<span style={{ color: "#94a3b8" }}>(NPP: {selectedItem.guruNpp})</span>
-										</div>
-									</div>
-								</div>
-								<div className={styles.alertSummaryCard}>
-									<AlertTriangle size={24} color="#ef4444" style={{ marginBottom: "0.5rem" }} />
-									<div style={{ color: "#64748b", fontSize: "0.875rem", fontWeight: 600 }}>Total Jam Kosong</div>
-									<div style={{ color: "#ef4444", fontSize: "2rem", fontWeight: 800 }}>
-										{selectedItem.jamKosong} <span style={{ fontSize: "1rem", fontWeight: 600 }}>Sesi</span>
-									</div>
-								</div>
-							</div>
-
-							<div className={styles.tableCard}>
-								<div className={styles.tableHeader}>
-									<h3 style={{ fontSize: "1.25rem", fontWeight: 800, color: "#0f172a" }}>Riwayat Sesi Pembelajaran</h3>
-									<div className={styles.headerButtons}>
-										<div className={styles.searchBoxCard}>
-											<Search size={16} className={styles.searchIcon} />
-											<input
-												type="text"
-												placeholder="Cari topik..."
-												className={styles.searchInput}
-												value={searchTopik}
-												onChange={(e) => {
-													setSearchTopik(e.target.value);
-													setCurrentPage(1);
-												}}
-											/>
-										</div>
-									</div>
-								</div>
-
-								<div className={styles.tableWrapper}>
-									<div style={{ overflowX: "auto", width: "100%" }}>
-<table className={styles.dataTable}>
+							<div className={styles.tableWrapper}>
+								<div style={{ overflowX: "auto", width: "100%" }}>
+									<table className={styles.dataTable}>
 										<thead>
 											<tr>
 												<th
@@ -1082,8 +1012,8 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 										<tbody>
 											{paginatedRiwayat.length === 0 ? (
 												<tr>
-													<td colSpan={6} style={{ textAlign: "center", padding: "2rem", color: "#94a3b8" }}>
-														Tidak ada riwayat yang cocok.
+													<td colSpan={7} className={styles.emptyTable}>
+														Tidak ada sesi yang cocok dengan pencarian.
 													</td>
 												</tr>
 											) : (
@@ -1113,37 +1043,36 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 											)}
 										</tbody>
 									</table>
-</div>
 								</div>
+							</div>
 
-								<div className={styles.pagination}>
-									<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
-										Menampilkan {processedRiwayat.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} -{" "}
-										{Math.min(currentPage * itemsPerPage, processedRiwayat.length)} dari {processedRiwayat.length}{" "}
-										pertemuan
-									</span>
-									<div className={styles.pageButtons}>
-										<button
-											className={styles.pageBtn}
-											disabled={currentPage === 1}
-											onClick={() => setCurrentPage((prev) => prev - 1)}
-										>
-											&lt;
-										</button>
-										<button
-											className={styles.pageBtn}
-											disabled={currentPage === totalPages || processedRiwayat.length === 0}
-											onClick={() => setCurrentPage((prev) => prev + 1)}
-										>
-											&gt;
-										</button>
-									</div>
+							<div className={styles.paginationTable}>
+								<span className={styles.pageIndicatorInfo}>
+									Menampilkan {processedRiwayat.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} -{" "}
+									{Math.min(currentPage * itemsPerPage, processedRiwayat.length)} dari {processedRiwayat.length}{" "}
+									pertemuan
+								</span>
+								<div className={styles.pageButtonsMini}>
+									<button
+										className={styles.pageBtnMini}
+										disabled={currentPage === 1}
+										onClick={() => setCurrentPage((prev) => prev - 1)}
+									>
+										&lt;
+									</button>
+									<button
+										className={styles.pageBtnMini}
+										disabled={currentPage === totalPages || processedRiwayat.length === 0}
+										onClick={() => setCurrentPage((prev) => prev + 1)}
+									>
+										&gt;
+									</button>
 								</div>
 							</div>
 						</div>
-					)}
-				</div>
-			</>
+					</div>
+				)}
+			</div>
 		</>
 	);
 }

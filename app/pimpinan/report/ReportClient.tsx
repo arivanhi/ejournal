@@ -29,6 +29,40 @@ import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { savePdcaAction } from "./actions";
 
+function chunkArray<T>(arr: T[], size: number): T[][] {
+	const chunks = [];
+	for (let i = 0; i < arr.length; i += size) {
+		chunks.push(arr.slice(i, i + size));
+	}
+	return chunks;
+}
+
+const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
+	<div
+		style={{
+			width: "330mm",
+			height: "215mm",
+			padding: "10mm 15mm",
+			boxSizing: "border-box",
+			display: "flex",
+			flexDirection: "column",
+			pageBreakAfter: isLast ? "auto" : "always",
+			backgroundColor: "white",
+			color: "black",
+			position: "relative",
+			overflow: "hidden"
+		}}
+	>
+		{children}
+	</div>
+);
+
+const PageFooter = ({ current, total }: { current: number; total: number }) => (
+	<div style={{ textAlign: "right", fontSize: "10pt", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid #e2e8f0" }}>
+		Halaman {current} dari {total}
+	</div>
+);
+
 export default function ReportClient({ user, dataRekap }: any) {
 	const [viewMode, setViewMode] = useState<"selection" | "detail">("selection");
 	const [selectedTahun, setSelectedTahun] = useState<string>("");
@@ -162,7 +196,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 						image: { type: "jpeg", quality: 1 },
 						html2canvas: { scale: 2, useCORS: true },
 						jsPDF: { unit: "mm", format: [215, 330], orientation: "landscape" },
-						pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+						pagebreak: { mode: ['css'] }
 					};
 
 					await html2pdf().set(opt).from(element).save();
@@ -200,252 +234,292 @@ export default function ReportClient({ user, dataRekap }: any) {
 			{/* CONTAINER TERSEMBUNYI UNTUK EXPORT PDF A4 LANDSCAPE */}
 			{activeData && (
 				<div style={{ display: "none" }}>
-					<div
-						id="pdf-report-container"
-						style={{
-							width: "310mm",
-							minHeight: "215mm",
-							padding: "15mm",
-							boxSizing: "border-box",
-							backgroundColor: "#fff",
-							color: "#000",
-							fontFamily: "Arial, sans-serif",
-						}}
-					>
-						<div
-							style={{
-								position: "relative",
-								textAlign: "center",
-								borderBottom: "3px solid #000",
-								paddingBottom: "15px",
-								marginBottom: "15px",
-							}}
-						>
-							<img
-								src="/logo.jpg"
-								alt="Logo SMAN 2 Brebes"
-								style={{
-									position: "absolute",
-									left: "10px",
-									top: "50%",
-									transform: "translateY(-50%)",
-									width: "80px",
-									height: "80px",
-									objectFit: "contain",
-								}}
-							/>
-							<h1
-								style={{
-									margin: "0 0 5px 0",
-									fontSize: "18pt",
-									fontWeight: "bold",
-									color: "#000",
-									fontFamily: '"Times New Roman", Times, serif',
-								}}
-							>
-								SMA NEGERI 2 BREBES
-							</h1>
-							<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-							<p style={{ margin: 0, fontSize: "11pt" }}>
-								Website: sman2brebes.sch.id - Email: smandabes@gmail.com
-							</p>
-						</div>
+					<div id="pdf-report-container">
+						{(() => {
+							const MAX_ROWS = 25;
+							const aksiChunks = chunkArray(activeData.pdca.doImplementasi, MAX_ROWS);
+							if (aksiChunks.length === 0) aksiChunks.push([]);
 
-						<div style={{ textAlign: "center", marginBottom: "20px" }}>
-							<h2 style={{ margin: 0, fontSize: "14pt", fontWeight: "bold", textTransform: "uppercase" }}>
-								LAPORAN REKAPITULASI - ANALISA PDCA
-							</h2>
-							<p style={{ margin: "5px 0", fontSize: "11pt" }}>
-								Semester {selectedSemester} Tahun Ajaran {selectedTahun}
-							</p>
-							{startDate && endDate && (
-								<p style={{ margin: "5px 0", fontSize: "10pt", fontWeight: "bold" }}>
-									Periode: {new Date(startDate).toLocaleDateString("id-ID")} s.d. {new Date(endDate).toLocaleDateString("id-ID")}
-								</p>
-							)}
-						</div>
+							const guruKosongChunks = periodicGuruKosong.length > 0 ? chunkArray(periodicGuruKosong, MAX_ROWS) : [];
 
-						<div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-							{/* STATISTIK CHART UNTUK PDF */}
-							<div style={{ flex: 1, border: "1px solid #000", padding: "10px" }}>
-								<h4 style={{ margin: "0 0 10px 0", fontSize: "11pt", textAlign: "center" }}>Distribusi Presensi</h4>
-								<ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: "10pt" }}>
-									<li>🟩 Hadir: {activeData.distribusi.hadir}%</li>
-									<li>🟨 Izin: {activeData.distribusi.izin}%</li>
-									<li>🟧 Sakit: {activeData.distribusi.sakit}%</li>
-									<li>🟥 Alpha: {activeData.distribusi.alpha}%</li>
-								</ul>
-							</div>
-							<div style={{ flex: 2, border: "1px solid #000", padding: "10px" }}>
-								<h4 style={{ margin: "0 0 10px 0", fontSize: "11pt", textAlign: "center" }}>
-									Tren Kinerja Akademik Bulanan
-								</h4>
+							const totalPages = 1 + aksiChunks.length + guruKosongChunks.length;
+							let pageCounter = 1;
+
+							const pdfHeader = (
 								<div
 									style={{
-										display: "flex",
-										justifyContent: "space-around",
-										alignItems: "flex-end",
-										height: "80px",
-										borderBottom: "1px solid #ccc",
+										position: "relative",
+										textAlign: "center",
+										borderBottom: "3px solid #000",
+										paddingBottom: "15px",
+										marginBottom: "15px",
 									}}
 								>
-									{activeData.trenKinerja.length === 0 ? (
-										<p>Belum ada data tren.</p>
-									) : (
-										activeData.trenKinerja.map((t: any, i: number) => (
-											<div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-												<div style={{ display: "flex", gap: "2px", alignItems: "flex-end", height: "60px" }}>
-													<div
-														style={{ width: "15px", height: `${t.pctKehadiran}%`, backgroundColor: "#1e3a8a", position: "relative" }}
-														title="Kehadiran"
-													>
-														<span style={{ position: "absolute", top: "-12px", left: "50%", transform: "translateX(-50%)", fontSize: "7px", color: "#1e3a8a", fontWeight: "bold" }}>{t.pctKehadiran}%</span>
-													</div>
-													<div
-														style={{ width: "15px", height: `${t.pctJurnal}%`, backgroundColor: "#65a30d", position: "relative" }}
-														title="Jurnal"
-													>
-														<span style={{ position: "absolute", top: "-12px", left: "50%", transform: "translateX(-50%)", fontSize: "7px", color: "#65a30d", fontWeight: "bold" }}>{t.pctJurnal}%</span>
-													</div>
-												</div>
-												<span style={{ fontSize: "8pt", marginTop: "4px" }}>{t.bulan}</span>
+									<img
+										src="/logo.jpg"
+										alt="Logo SMAN 2 Brebes"
+										style={{
+											position: "absolute",
+											left: "10px",
+											top: "50%",
+											transform: "translateY(-50%)",
+											width: "80px",
+											height: "80px",
+											objectFit: "contain",
+										}}
+									/>
+									<h1
+										style={{
+											margin: "0 0 5px 0",
+											fontSize: "18pt",
+											fontWeight: "bold",
+											color: "#000",
+											fontFamily: '"Times New Roman", Times, serif',
+										}}
+									>
+										SMA NEGERI 2 BREBES
+									</h1>
+									<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+									<p style={{ margin: 0, fontSize: "11pt" }}>
+										Website: sman2brebes.sch.id - Email: smandabes@gmail.com
+									</p>
+								</div>
+							);
+
+							return (
+								<>
+									{/* HALAMAN 1: SUMMARY & ANALISA */}
+									<PageContainer isLast={false}>
+										{pdfHeader}
+										<div style={{ textAlign: "center", marginBottom: "20px" }}>
+											<h2 style={{ margin: 0, fontSize: "14pt", fontWeight: "bold", textTransform: "uppercase" }}>
+												LAPORAN REKAPITULASI - ANALISA PDCA
+											</h2>
+											<p style={{ margin: "5px 0", fontSize: "11pt" }}>
+												Semester {selectedSemester} Tahun Ajaran {selectedTahun}
+											</p>
+											{startDate && endDate && (
+												<p style={{ margin: "5px 0", fontSize: "10pt", fontWeight: "bold" }}>
+													Periode: {new Date(startDate).toLocaleDateString("id-ID")} s.d. {new Date(endDate).toLocaleDateString("id-ID")}
+												</p>
+											)}
+										</div>
+
+										<div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+											<div style={{ flex: 1, border: "1px solid #000", padding: "10px" }}>
+												<h4 style={{ margin: "0 0 10px 0", fontSize: "11pt", textAlign: "center" }}>Distribusi Presensi</h4>
+												<ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: "10pt" }}>
+													<li>🟩 Hadir: {activeData.distribusi.hadir}%</li>
+													<li>🟨 Izin: {activeData.distribusi.izin}%</li>
+													<li>🟧 Sakit: {activeData.distribusi.sakit}%</li>
+													<li>🟥 Alpha: {activeData.distribusi.alpha}%</li>
+												</ul>
 											</div>
-										))
-									)}
-								</div>
-								<div style={{ fontSize: "8pt", marginTop: "5px", textAlign: "center" }}>
-									🟦 Kehadiran Siswa | 🟩 Pengisian Jurnal
-								</div>
-							</div>
-						</div>
+											<div style={{ flex: 2, border: "1px solid #000", padding: "10px" }}>
+												<h4 style={{ margin: "0 0 10px 0", fontSize: "11pt", textAlign: "center" }}>
+													Tren Kinerja Akademik Bulanan
+												</h4>
+												<div
+													style={{
+														display: "flex",
+														justifyContent: "space-around",
+														alignItems: "flex-end",
+														height: "80px",
+														borderBottom: "1px solid #ccc",
+													}}
+												>
+													{activeData.trenKinerja.length === 0 ? (
+														<p>Belum ada data tren.</p>
+													) : (
+														activeData.trenKinerja.map((t: any, i: number) => (
+															<div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+																<div style={{ display: "flex", gap: "2px", alignItems: "flex-end", height: "60px" }}>
+																	<div
+																		style={{ width: "15px", height: `${t.pctKehadiran}%`, backgroundColor: "#1e3a8a", position: "relative" }}
+																		title="Kehadiran"
+																	>
+																		<span style={{ position: "absolute", top: "-12px", left: "50%", transform: "translateX(-50%)", fontSize: "7px", color: "#1e3a8a", fontWeight: "bold" }}>{t.pctKehadiran}%</span>
+																	</div>
+																	<div
+																		style={{ width: "15px", height: `${t.pctJurnal}%`, backgroundColor: "#65a30d", position: "relative" }}
+																		title="Jurnal"
+																	>
+																		<span style={{ position: "absolute", top: "-12px", left: "50%", transform: "translateX(-50%)", fontSize: "7px", color: "#65a30d", fontWeight: "bold" }}>{t.pctJurnal}%</span>
+																	</div>
+																</div>
+																<span style={{ fontSize: "8pt", marginTop: "4px" }}>{t.bulan}</span>
+															</div>
+														))
+													)}
+												</div>
+												<div style={{ fontSize: "8pt", marginTop: "5px", textAlign: "center" }}>
+													🟦 Kehadiran Siswa | 🟩 Pengisian Jurnal
+												</div>
+											</div>
+										</div>
 
-						<h3
-							style={{
-								fontSize: "12pt",
-								fontWeight: "bold",
-								borderBottom: "1px solid #000",
-								paddingBottom: "5px",
-								marginBottom: "10px",
-							}}
-						>
-							Analisa & Rekomendasi
-						</h3>
-						<div
-							style={{
-								border: "1px dashed #000",
-								padding: "10px",
-								fontSize: "10pt",
-								marginBottom: "20px",
-								minHeight: "50px",
-							}}
-						>
-							{activeData.pdca.actRekomendasi || "Belum ada rekomendasi tertulis."}
-						</div>
+										<h3
+											style={{
+												fontSize: "12pt",
+												fontWeight: "bold",
+												borderBottom: "1px solid #000",
+												paddingBottom: "5px",
+												marginBottom: "10px",
+											}}
+										>
+											Analisa & Rekomendasi
+										</h3>
+										<div
+											style={{
+												border: "1px dashed #000",
+												padding: "10px",
+												fontSize: "10pt",
+												marginBottom: "20px",
+												minHeight: "50px",
+											}}
+										>
+											{activeData.pdca.actRekomendasi || "Belum ada rekomendasi tertulis."}
+										</div>
+										<PageFooter current={pageCounter++} total={totalPages} />
+									</PageContainer>
 
-						<h3
-							style={{
-								fontSize: "12pt",
-								fontWeight: "bold",
-								borderBottom: "1px solid #000",
-								paddingBottom: "5px",
-								marginBottom: "10px",
-							}}
-						>
-							Rencana Aksi (PDCA)
-						</h3>
-						<table
-							style={{
-								width: "100%",
-								borderCollapse: "collapse",
-								fontSize: "10pt",
-								border: "1px solid #000",
-								marginBottom: "20px",
-							}}
-						>
-							<thead>
-								<tr style={{ backgroundColor: "#f1f5f9" }}>
-									<th style={{ border: "1px solid #000", padding: "6px", width: "15%" }}>Aspek</th>
-									<th style={{ border: "1px solid #000", padding: "6px", width: "35%" }}>Temuan Utama</th>
-									<th style={{ border: "1px solid #000", padding: "6px", width: "35%" }}>Rencana Aksi</th>
-									<th style={{ border: "1px solid #000", padding: "6px", width: "15%", textAlign: "center" }}>
-										Status
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{activeData.pdca.doImplementasi.length === 0 ? (
-									<tr>
-										<td colSpan={4} style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-											Belum ada rencana aksi.
-										</td>
-									</tr>
-								) : (
-									activeData.pdca.doImplementasi.map((row: any, i: number) => (
-										<tr key={i}>
-											<td style={{ border: "1px solid #000", padding: "6px" }}>{row.aspek}</td>
-											<td style={{ border: "1px solid #000", padding: "6px" }}>{row.temuan}</td>
-											<td style={{ border: "1px solid #000", padding: "6px" }}>{row.aksi}</td>
-											<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{row.status}</td>
-										</tr>
-									))
-								)}
-							</tbody>
-						</table>
+									{/* HALAMAN 2+: Rencana Aksi */}
+									{aksiChunks.map((chunk: any[], chunkIdx: number) => {
+										const isLastAksi = chunkIdx === aksiChunks.length - 1;
+										const hasGuruKosong = guruKosongChunks.length > 0;
+										const isVeryLastPage = isLastAksi && !hasGuruKosong;
 
-						{/* TABEL GURU JAM KOSONG (PERIODIK) */}
-						{periodicGuruKosong.length > 0 && (
-							<>
-								<div className="html2pdf__page-break"></div>
-								<h3
-									style={{
-										fontSize: "12pt",
-										fontWeight: "bold",
-										borderBottom: "1px solid #000",
-										paddingBottom: "5px",
-										marginBottom: "10px",
-										marginTop: "20px",
-									}}
-								>
-									Daftar Guru dengan Jam Kosong (Tidak Mengisi Jurnal)
-								</h3>
-								<table
-									style={{
-										width: "100%",
-										borderCollapse: "collapse",
-										fontSize: "10pt",
-										border: "1px solid #000",
-										marginBottom: "20px",
-									}}
-								>
-									<thead>
-										<tr style={{ backgroundColor: "#f1f5f9" }}>
-											<th style={{ border: "1px solid #000", padding: "6px", width: "5%" }}>No</th>
-											<th style={{ border: "1px solid #000", padding: "6px", width: "25%" }}>Nama Guru</th>
-											<th style={{ border: "1px solid #000", padding: "6px", width: "20%" }}>Mata Pelajaran</th>
-											<th style={{ border: "1px solid #000", padding: "6px", width: "20%" }}>Kelas</th>
-											<th style={{ border: "1px solid #000", padding: "6px", width: "30%" }}>Tanggal Kosong</th>
-										</tr>
-									</thead>
-									<tbody>
-										{periodicGuruKosong.map((guru: any, i: number) => (
-											<tr key={i}>
-												<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{i + 1}</td>
-												<td style={{ border: "1px solid #000", padding: "6px" }}>{guru.nama}</td>
-												<td style={{ border: "1px solid #000", padding: "6px" }}>{guru.mapel}</td>
-												<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{guru.kelas}</td>
-												<td style={{ border: "1px solid #000", padding: "6px" }}>{guru.tanggal.join(", ")}</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
-							</>
-						)}
+										return (
+											<PageContainer key={`aksi-${chunkIdx}`} isLast={isVeryLastPage}>
+												{pdfHeader}
+												{chunkIdx === 0 && (
+													<h3
+														style={{
+															fontSize: "12pt",
+															fontWeight: "bold",
+															borderBottom: "1px solid #000",
+															paddingBottom: "5px",
+															marginBottom: "10px",
+														}}
+													>
+														Rencana Aksi (PDCA)
+													</h3>
+												)}
+												<table
+													style={{
+														width: "100%",
+														borderCollapse: "collapse",
+														fontSize: "10pt",
+														border: "1px solid #000",
+														marginBottom: "20px",
+													}}
+												>
+													<thead>
+														<tr style={{ backgroundColor: "#f1f5f9" }}>
+															<th style={{ border: "1px solid #000", padding: "6px", width: "15%" }}>Aspek</th>
+															<th style={{ border: "1px solid #000", padding: "6px", width: "35%" }}>Temuan Utama</th>
+															<th style={{ border: "1px solid #000", padding: "6px", width: "35%" }}>Rencana Aksi</th>
+															<th style={{ border: "1px solid #000", padding: "6px", width: "15%", textAlign: "center" }}>Status</th>
+														</tr>
+													</thead>
+													<tbody>
+														{chunk.length === 0 ? (
+															<tr>
+																<td colSpan={4} style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+																	Belum ada rencana aksi.
+																</td>
+															</tr>
+														) : (
+															chunk.map((row: any, i: number) => (
+																<tr key={i}>
+																	<td style={{ border: "1px solid #000", padding: "6px" }}>{row.aspek}</td>
+																	<td style={{ border: "1px solid #000", padding: "6px" }}>{row.temuan}</td>
+																	<td style={{ border: "1px solid #000", padding: "6px" }}>{row.aksi}</td>
+																	<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{row.status}</td>
+																</tr>
+															))
+														)}
+													</tbody>
+												</table>
+												
+												{isVeryLastPage && (
+													<div style={{ textAlign: "right", marginTop: "20px" }}>
+														<p style={{ margin: 0, fontSize: "11pt" }}>Kepala Sekolah SMAN 2 Brebes</p>
+														<p style={{ margin: "50px 0 0 0", fontSize: "11pt", fontWeight: "bold" }}>{user.nama}</p>
+														<p style={{ margin: 0, fontSize: "11pt" }}>NIP: {user.username}</p>
+													</div>
+												)}
+												<PageFooter current={pageCounter++} total={totalPages} />
+											</PageContainer>
+										);
+									})}
 
-						<div style={{ textAlign: "right", marginTop: "20px" }}>
-							<p style={{ margin: 0, fontSize: "11pt" }}>Kepala Sekolah SMAN 2 Brebes</p>
-							<p style={{ margin: "50px 0 0 0", fontSize: "11pt", fontWeight: "bold" }}>{user.nama}</p>
-							<p style={{ margin: 0, fontSize: "11pt" }}>NIP: {user.username}</p>
-						</div>
+									{/* HALAMAN 3+: Guru Kosong */}
+									{guruKosongChunks.map((chunk: any[], chunkIdx: number) => {
+										const isVeryLastPage = chunkIdx === guruKosongChunks.length - 1;
+
+										return (
+											<PageContainer key={`guru-${chunkIdx}`} isLast={isVeryLastPage}>
+												{pdfHeader}
+												{chunkIdx === 0 && (
+													<h3
+														style={{
+															fontSize: "12pt",
+															fontWeight: "bold",
+															borderBottom: "1px solid #000",
+															paddingBottom: "5px",
+															marginBottom: "10px",
+															marginTop: "20px",
+														}}
+													>
+														Daftar Guru dengan Jam Kosong (Tidak Mengisi Jurnal)
+													</h3>
+												)}
+												<table
+													style={{
+														width: "100%",
+														borderCollapse: "collapse",
+														fontSize: "10pt",
+														border: "1px solid #000",
+														marginBottom: "20px",
+													}}
+												>
+													<thead>
+														<tr style={{ backgroundColor: "#f1f5f9" }}>
+															<th style={{ border: "1px solid #000", padding: "6px", width: "5%" }}>No</th>
+															<th style={{ border: "1px solid #000", padding: "6px", width: "25%" }}>Nama Guru</th>
+															<th style={{ border: "1px solid #000", padding: "6px", width: "20%" }}>Mata Pelajaran</th>
+															<th style={{ border: "1px solid #000", padding: "6px", width: "20%" }}>Kelas</th>
+															<th style={{ border: "1px solid #000", padding: "6px", width: "30%" }}>Tanggal Kosong</th>
+														</tr>
+													</thead>
+													<tbody>
+														{chunk.map((guru: any, i: number) => (
+															<tr key={i}>
+																<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{chunkIdx * MAX_ROWS + i + 1}</td>
+																<td style={{ border: "1px solid #000", padding: "6px" }}>{guru.nama}</td>
+																<td style={{ border: "1px solid #000", padding: "6px" }}>{guru.mapel}</td>
+																<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{guru.kelas}</td>
+																<td style={{ border: "1px solid #000", padding: "6px" }}>{guru.tanggal.join(", ")}</td>
+															</tr>
+														))}
+													</tbody>
+												</table>
+												
+												{isVeryLastPage && (
+													<div style={{ textAlign: "right", marginTop: "20px" }}>
+														<p style={{ margin: 0, fontSize: "11pt" }}>Kepala Sekolah SMAN 2 Brebes</p>
+														<p style={{ margin: "50px 0 0 0", fontSize: "11pt", fontWeight: "bold" }}>{user.nama}</p>
+														<p style={{ margin: 0, fontSize: "11pt" }}>NIP: {user.username}</p>
+													</div>
+												)}
+												<PageFooter current={pageCounter++} total={totalPages} />
+											</PageContainer>
+										);
+									})}
+								</>
+							);
+						})()}
 					</div>
 				</div>
 			)}
