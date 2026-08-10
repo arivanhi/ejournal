@@ -842,7 +842,8 @@ export default function ReportClient({ user, dataRekap }: any) {
 										</button>
 									</div>
 
-									<table className={styles.pdcaTable}>
+									<div style={{ overflowX: "auto", width: "100%" }}>
+<table className={styles.pdcaTable}>
 										<thead>
 											<tr>
 												<th>Aspek</th>
@@ -888,6 +889,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 											)}
 										</tbody>
 									</table>
+</div>
 								</div>
 
 								<div className={styles.recommendationBox}>

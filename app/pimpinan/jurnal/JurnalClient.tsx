@@ -1162,7 +1162,8 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 									</div>
 
 									<div className={styles.tableWrapper}>
-										<table className={styles.dataTable}>
+										<div style={{ overflowX: "auto", width: "100%" }}>
+<table className={styles.dataTable}>
 											<thead>
 												<tr>
 													<th
@@ -1241,6 +1242,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 												)}
 											</tbody>
 										</table>
+</div>
 									</div>
 
 									<div className={styles.paginationTable}>
@@ -1429,7 +1431,8 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 							</div>
 							
 							<div style={{ maxHeight: "60vh", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "0.5rem" }}>
-								<table className={styles.dataTable} style={{ margin: 0, width: "100%" }}>
+								<div style={{ overflowX: "auto", width: "100%" }}>
+<table className={styles.dataTable} style={{ margin: 0, width: "100%" }}>
 									<thead style={{ position: "sticky", top: 0, backgroundColor: "#f1f5f9", zIndex: 1 }}>
 										<tr>
 											<th style={{ width: "10%", padding: "0.75rem", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>No</th>
@@ -1461,6 +1464,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 										})()}
 									</tbody>
 								</table>
+</div>
 							</div>
 						</div>
 					</div>

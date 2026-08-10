@@ -623,7 +623,8 @@ export default function PimpinanDashboardClient({
 								</div>
 
 								<div className={styles.tableWrapper}>
-									<table className={styles.dataTable}>
+									<div style={{ overflowX: "auto", width: "100%" }}>
+<table className={styles.dataTable}>
 										<thead>
 											<tr>
 												<th style={{ width: "5%" }}>NO</th>
@@ -678,6 +679,7 @@ export default function PimpinanDashboardClient({
 											))}
 										</tbody>
 									</table>
+</div>
 								</div>
 							</>
 						)}
@@ -706,7 +708,8 @@ export default function PimpinanDashboardClient({
 						</div>
 
 						<div className={styles.tableWrapper}>
-							<table className={styles.dataTable}>
+							<div style={{ overflowX: "auto", width: "100%" }}>
+<table className={styles.dataTable}>
 								<thead>
 									<tr>
 										<th>NAMA GURU</th>
@@ -756,6 +759,7 @@ export default function PimpinanDashboardClient({
 									)}
 								</tbody>
 							</table>
+</div>
 						</div>
 
 						<div className={styles.pagination}>

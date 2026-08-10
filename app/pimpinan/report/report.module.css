@@ -183,8 +183,13 @@
 
 .selectionGrid {
 	display: grid;
-	grid-template-columns: 1fr 2.5fr;
+	grid-template-columns: 1fr;
 	gap: 2rem;
+}
+@media (min-width: 768px) {
+	.selectionGrid {
+		grid-template-columns: 1fr 2.5fr;
+	}
 }
 .filterCol {
 	display: flex;
@@ -381,9 +386,14 @@
 /* 3 Grid Top Cards */
 .threeGrid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: 1fr;
 	gap: 1.5rem;
 	margin-bottom: 1.5rem;
+}
+@media (min-width: 768px) {
+	.threeGrid {
+		grid-template-columns: repeat(3, 1fr);
+	}
 }
 .statCard {
 	background-color: white;
@@ -575,8 +585,13 @@
 /* Bottom Grid (Table & Recom) */
 .bottomGrid {
 	display: grid;
-	grid-template-columns: 2fr 1fr;
+	grid-template-columns: 1fr;
 	gap: 1.5rem;
+}
+@media (min-width: 768px) {
+	.bottomGrid {
+		grid-template-columns: 2fr 1fr;
+	}
 }
 .tableCard {
 	background-color: white;

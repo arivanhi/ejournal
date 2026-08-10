@@ -1031,7 +1031,8 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 								</div>
 
 								<div className={styles.tableWrapper}>
-									<table className={styles.dataTable}>
+									<div style={{ overflowX: "auto", width: "100%" }}>
+<table className={styles.dataTable}>
 										<thead>
 											<tr>
 												<th
@@ -1111,6 +1112,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 											)}
 										</tbody>
 									</table>
+</div>
 								</div>
 
 								<div className={styles.pagination}>

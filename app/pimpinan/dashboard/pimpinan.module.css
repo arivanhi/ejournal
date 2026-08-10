@@ -222,9 +222,14 @@
 /* Summary Cards */
 .summaryGrid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: 1fr;
 	gap: 1.5rem;
 	margin-bottom: 2rem;
+}
+@media (min-width: 768px) {
+	.summaryGrid {
+		grid-template-columns: repeat(3, 1fr);
+	}
 }
 .summaryCard {
 	background-color: white;
@@ -329,8 +334,13 @@
 /* Box Cards (Two Col) */
 .twoColGrid {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
+	grid-template-columns: 1fr;
 	gap: 1.5rem;
+}
+@media (min-width: 768px) {
+	.twoColGrid {
+		grid-template-columns: 1fr 1fr;
+	}
 }
 .boxCard {
 	background-color: white;

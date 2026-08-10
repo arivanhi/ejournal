@@ -288,8 +288,13 @@
 /* View 1: KBM Grid Cards (Disesuaikan jadi 3 Kolom) */
 .gridCards {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: 1fr;
 	gap: 1.5rem;
+}
+@media (min-width: 768px) {
+	.gridCards {
+		grid-template-columns: repeat(3, 1fr);
+	}
 }
 .kbmCard {
 	background-color: white;
@@ -380,9 +385,14 @@
 /* View 2: Detail Header Cards */
 .detailHeaderGrid {
 	display: grid;
-	grid-template-columns: 2fr 1fr;
+	grid-template-columns: 1fr;
 	gap: 1.5rem;
 	margin-bottom: 1.5rem;
+}
+@media (min-width: 768px) {
+	.detailHeaderGrid {
+		grid-template-columns: 2fr 1fr;
+	}
 }
 .detailSummaryCard {
 	background-color: white;

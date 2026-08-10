@@ -240,8 +240,13 @@
 /* Grid Cards Jurnal */
 .gridCards {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: 1fr;
 	gap: 1.5rem;
+}
+@media (min-width: 768px) {
+	.gridCards {
+		grid-template-columns: repeat(3, 1fr);
+	}
 }
 .jurnalCard {
 	background-color: white;
@@ -443,9 +448,14 @@
 /* Stat Cards & PERBAIKAN: Monochromatic Icons */
 .statGrid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: 1fr;
 	gap: 1.5rem;
 	margin-bottom: 2rem;
+}
+@media (min-width: 768px) {
+	.statGrid {
+		grid-template-columns: repeat(3, 1fr);
+	}
 }
 .statCard {
 	background-color: white;
@@ -514,8 +524,13 @@
 /* Bottom Grid (Chart & Table) */
 .bottomGrid {
 	display: grid;
-	grid-template-columns: 1fr 2fr;
+	grid-template-columns: 1fr;
 	gap: 1.5rem;
+}
+@media (min-width: 768px) {
+	.bottomGrid {
+		grid-template-columns: 1fr 2fr;
+	}
 }
 .chartCard {
 	background-color: white;

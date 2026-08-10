@@ -761,7 +761,8 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 											</div>
 
 											<div className={styles.tableWrapper}>
-												<table className={styles.dataTable}>
+												<div style={{ overflowX: "auto", width: "100%" }}>
+<table className={styles.dataTable}>
 													<thead>
 														<tr>
 															<th>NO</th>
@@ -867,6 +868,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 														)}
 													</tbody>
 												</table>
+</div>
 											</div>
 										</div>
 									)}
