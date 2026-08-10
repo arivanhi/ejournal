@@ -46,30 +46,63 @@ export async function POST(req: Request) {
 
 		// Loop setiap hari dalam range
 		for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-			let jsDay = d.getDay(); 
-			let hari = jsDay === 0 ? 7 : jsDay; // Sesuaikan jika 0 (Minggu) menjadi 7 di DB (walau sekolah jarang hari minggu)
-			
-			// Format YYYY-MM-DD
+			let jsDay = d.getDay();
+			let hari = jsDay === 0 ? 7 : jsDay;
+
 			const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 			const dateDisplay = d.toLocaleDateString("id-ID", { day: '2-digit', month: 'long', year: 'numeric' });
 
-			// Cari jadwal yang aktif di hari ini
-			const jadwalHariIni = jadwalTaIni.filter((j) => j.hari === hari);
+			const jadwalHariIniRaw = jadwalTaIni.filter((j) => j.hari === hari);
 
-			jadwalHariIni.forEach((jadwal) => {
-				const key = `${jadwal.id}_${dateStr}`;
-				if (!jurnalSet.has(key)) {
-					// Gunakan kombinasi guru, mapel, dan kelas agar tidak duplikat
-					const groupKey = `${jadwal.guruId}_${jadwal.mapelId}_${jadwal.kelasId}`;
+			// Group Jadwal Berurutan (sama seperti dashboard pimpinan)
+			const jadwalBlocks: any[] = [];
+			const groupedJadwal: Record<string, any[]> = {};
+			jadwalHariIniRaw.forEach((j) => {
+				const key = `${j.guruId}-${j.mapelId}-${j.kelasId}`;
+				if (!groupedJadwal[key]) groupedJadwal[key] = [];
+				groupedJadwal[key].push(j);
+			});
+
+			for (const key in groupedJadwal) {
+				const group = groupedJadwal[key].sort((a, b) => (parseInt(a.waktuMulai) || 0) - (parseInt(b.waktuMulai) || 0));
+				let currentBlock: any = null;
+				for (const j of group) {
+					const currentSesi = parseInt(j.waktuMulai) || 0;
+					if (!currentBlock) {
+						currentBlock = { ...j, originalIds: [j.id], endSesi: j.waktuMulai };
+					} else {
+						const prevSesi = parseInt(currentBlock.endSesi) || 0;
+						if (currentSesi === prevSesi + 1) {
+							currentBlock.endSesi = j.waktuMulai;
+							currentBlock.originalIds.push(j.id);
+						} else {
+							jadwalBlocks.push(currentBlock);
+							currentBlock = { ...j, originalIds: [j.id], endSesi: j.waktuMulai };
+						}
+					}
+				}
+				if (currentBlock) jadwalBlocks.push(currentBlock);
+			}
+
+			jadwalBlocks.forEach((block) => {
+				// Cek apakah ada satupun ID dari block yang ada di jurnalSet (berarti sudah terisi setidaknya 1)
+				const isFilled = block.originalIds.some((id: string) => jurnalSet.has(`${id}_${dateStr}`));
+				
+				if (!isFilled) {
+					const groupKey = `${block.guruId}_${block.mapelId}_${block.kelasId}`;
 					if (!guruKosongMap[groupKey]) {
 						guruKosongMap[groupKey] = {
-							nama: jadwal.guru.user.nama,
-							mapel: jadwal.mapel.nama,
-							kelas: jadwal.kelas.nama,
+							nama: block.guru.user.nama,
+							mapel: block.mapel.nama,
+							kelas: block.kelas.nama,
 							tanggal: new Set()
 						};
 					}
-					guruKosongMap[groupKey].tanggal.add(dateDisplay);
+					
+					let jamSesi = block.waktuMulai === block.endSesi ? block.waktuMulai : `${block.waktuMulai}-${block.endSesi}`;
+					if (!jamSesi || jamSesi === "-") jamSesi = "-";
+					
+					guruKosongMap[groupKey].tanggal.add(`${dateDisplay} (Jam ${jamSesi})`);
 				}
 			});
 		}

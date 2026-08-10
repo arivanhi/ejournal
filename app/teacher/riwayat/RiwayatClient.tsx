@@ -157,7 +157,7 @@ export default function RiwayatClient({
 				margin: 0,
 				filename: `Riwayat_Jurnal_${activeJadwal.tahunAjaran.nama}_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}.pdf`,
 				image: { type: "jpeg", quality: 1 },
-				html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+				html2canvas: { scale: 2, useCORS: true, windowWidth: 1024, letterRendering: true },
 				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
 			};
 
@@ -213,7 +213,7 @@ export default function RiwayatClient({
 	);
 
 	return (
-		<div className={styles.layoutWrapper}>
+		<>
 			{/* === MODAL PREVIEW & PILIH BULAN PDF === */}
 			{isPdfModalOpen && activeJadwal && (
 				<div className={styles.modalOverlay}>
@@ -687,61 +687,11 @@ export default function RiwayatClient({
 			)}
 
 			{/* === SIDEBAR === */}
-			<aside className={styles.sidebar}>
-				<div className={styles.sidebarHeader}>
-					<div className={styles.logoWrapper}>
-						<img src="/logo.jpg" alt="Logo" className={styles.logoImage} />
-					</div>
-					<div>
-						<div className={styles.schoolName}>
-							SMAN 2<br />
-							Brebes
-						</div>
-						<div className={styles.portalName}>Teacher Portal</div>
-					</div>
-				</div>
-				<nav className={styles.menuContainer}>
-					<Link href="/teacher/dashboard" className={styles.menuItem}>
-						<LayoutDashboard size={18} /> Dashboard
-					</Link>
-					<Link href="/teacher/jurnal" className={styles.menuItem}>
-						<BookOpen size={18} /> Jurnal Mengajar
-					</Link>
-					<Link href="/teacher/presensi" className={styles.menuItem}>
-						<QrCode size={18} /> Presensi QR
-					</Link>
-					<Link href="/teacher/riwayat" className={`${styles.menuItem} ${styles.menuItemActive}`}>
-						<History size={18} /> Riwayat
-					</Link>
-					{isWaliKelas && (
-						<>
-							<div className={styles.menuSection}>MENU WALI KELAS</div>
-							<Link href="/teacher/data-siswa" className={styles.menuItem}>
-								<Users size={18} /> Data Siswa
-							</Link>
-						</>
-					)}
-					<Link href="/teacher/setelan" className={styles.menuItem}>
-						<Settings size={18} /> Setelan
-					</Link>
-				</nav>
-				<div className={styles.sidebarFooter}>
-					<button className={styles.logoutBtn} onClick={() => signOut({ callbackUrl: "/login" })}>
-						<LogOut size={18} /> Keluar
-					</button>
-				</div>
-			</aside>
+			
 
 			{/* === MAIN CONTENT === */}
-			<main className={styles.mainContent}>
-				<header className={styles.topbar}>
-					<h1 className={styles.greeting}>E-Journal & Presensi</h1>
-					<div className={styles.topbarActions}>
-						<Bell size={20} style={{ cursor: "pointer" }} />
-						<HelpCircle size={20} style={{ cursor: "pointer" }} />
-						<div className={styles.profileAvatar}></div>
-					</div>
-				</header>
+			<>
+				
 
 				<div className={styles.dashboardContainer}>
 					{/* === VIEW 1: ARSIP LIST === */}
@@ -943,6 +893,7 @@ export default function RiwayatClient({
 
 								{/* --- TAB 1: REKAP SISWA --- */}
 								{activeTab === "rekap" && (
+									<div style={{ overflowX: "auto", width: "100%" }}>
 									<table className={styles.tableStyle}>
 										<thead>
 											<tr>
@@ -1002,6 +953,7 @@ export default function RiwayatClient({
 											})()}
 										</tbody>
 									</table>
+									</div>
 								)}
 
 								{/* --- TAB: TUGAS HARIAN --- */}
@@ -1267,7 +1219,7 @@ export default function RiwayatClient({
 						</div>
 					)}
 				</div>
-			</main>
-		</div>
+			</>
+		</>
 	);
 }

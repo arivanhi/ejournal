@@ -198,7 +198,7 @@ export default function PresensiClient({
 	}
 
 	return (
-		<div className={styles.layoutWrapper}>
+		<>
 			<div className={styles.toastContainer}>
 				{toasts.map((toast) => (
 					<div
@@ -263,60 +263,10 @@ export default function PresensiClient({
 				</div>
 			)}
 
-			<aside className={styles.sidebar}>
-				<div className={styles.sidebarHeader}>
-					<div className={styles.logoWrapper}>
-						<img src="/logo.jpg" alt="Logo" className={styles.logoImage} />
-					</div>
-					<div>
-						<div className={styles.schoolName}>
-							SMAN 2<br />
-							Brebes
-						</div>
-						<div className={styles.portalName}>Teacher Portal</div>
-					</div>
-				</div>
-				<nav className={styles.menuContainer}>
-					<Link href="/teacher/dashboard" className={styles.menuItem}>
-						<LayoutDashboard size={18} /> Dashboard
-					</Link>
-					<Link href="/teacher/jurnal" className={styles.menuItem}>
-						<BookOpen size={18} /> Jurnal Mengajar
-					</Link>
-					<Link href="/teacher/presensi" className={`${styles.menuItem} ${styles.menuItemActive}`}>
-						<QrCode size={18} /> Presensi QR
-					</Link>
-					<Link href="/teacher/riwayat" className={styles.menuItem}>
-						<History size={18} /> Riwayat
-					</Link>
-					{isWaliKelas && (
-						<>
-							<div className={styles.menuSection}>MENU WALI KELAS</div>
-							<Link href="/teacher/data-siswa" className={styles.menuItem}>
-								<Users size={18} /> Data Siswa
-							</Link>
-						</>
-					)}
-					<Link href="/teacher/setelan" className={styles.menuItem}>
-						<Settings size={18} /> Setelan
-					</Link>
-				</nav>
-				<div className={styles.sidebarFooter}>
-					<button className={styles.logoutBtn} onClick={() => signOut({ callbackUrl: "/login" })}>
-						<LogOut size={18} /> Keluar
-					</button>
-				</div>
-			</aside>
+			
 
-			<main className={styles.mainContent}>
-				<header className={styles.topbar}>
-					<h1 className={styles.greeting}>E-Journal & Presensi</h1>
-					<div className={styles.topbarActions}>
-						<Bell size={20} style={{ cursor: "pointer" }} />
-						<HelpCircle size={20} style={{ cursor: "pointer" }} />
-						<div className={styles.profileAvatar}></div>
-					</div>
-				</header>
+			<>
+				
 
 				<div className={styles.dashboardContainer}>
 					{/* === STATE 1: EMPTY STATE === */}
@@ -538,8 +488,8 @@ export default function PresensiClient({
 						</div>
 					)}
 				</div>
-			</main>
-		</div>
+			</>
+		</>
 	);
 }
 

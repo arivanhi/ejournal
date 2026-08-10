@@ -249,7 +249,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 	);
 
 	return (
-		<div className={styles.layoutWrapper}>
+		<>
 			{/* --- CONTAINER TERSEMBUNYI UNTUK CETAK PDF --- */}
 			{pdfItemsData.length > 0 && (
 				<div style={{ display: "none" }}>
@@ -892,65 +892,12 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 				</div>
 			)}
 
-			{/* SIDEBAR */}
-			<aside className={styles.sidebar}>
-				<div className={styles.sidebarHeader}>
-					<div className={styles.logoWrapper}>
-						<img src="/logo.jpg" alt="Logo SMAN 2 Brebes" className={styles.logoImage} />
-					</div>
-					<div>
-						<div className={styles.schoolName}>SMAN 2 Brebes</div>
-						<div className={styles.portalName}>Dashboard Pimpinan</div>
-					</div>
-				</div>
+			
+			
 
-				<nav className={styles.menuContainer}>
-					<Link href="/pimpinan/dashboard" className={styles.menuItem}>
-						<LayoutDashboard size={18} /> Dashboard
-					</Link>
-					<Link href="/pimpinan/kehadiran" className={styles.menuItem}>
-						<Users size={18} /> Kehadiran Siswa
-					</Link>
-					<Link href="/pimpinan/monitoring" className={styles.menuItem}>
-						<Clock size={18} /> Monitoring KBM
-					</Link>
-					<Link href="/pimpinan/jurnal" className={`${styles.menuItem} ${styles.menuItemActive}`}>
-						<BookOpen size={18} /> Jurnal Mengajar
-					</Link>
-					<Link href="/pimpinan/report" className={styles.menuItem}>
-						<FileBarChart size={18} /> Laporan Rekapitulasi
-					</Link>
-					<Link href="/pimpinan/setelan" className={styles.menuItem}>
-						<Settings size={18} /> Setelan
-					</Link>
-				</nav>
-
-				<div className={styles.sidebarFooter}>
-					<button className={styles.logoutBtn} onClick={() => signOut({ callbackUrl: "/login" })}>
-						<LogOut size={18} /> Keluar
-					</button>
-				</div>
-			</aside>
-
-			{/* MAIN CONTENT */}
-			<main className={styles.mainContent}>
-				<header className={styles.topbar}>
-					<div>
-						<h1 className={styles.topbarTitle}>E-Journal & Presensi</h1>
-					</div>
-					<div className={styles.topbarActions}>
-						<Bell size={20} className={styles.iconAction} />
-						<Settings size={20} className={styles.iconAction} />
-						<div className={styles.profileSection}>
-							<div className={styles.profileInfo}>
-								<span className={styles.profileName}>{user.nama}</span>
-								<span className={styles.profileRole}>
-									{user.role === "KEPSEK" ? "Kepala Sekolah" : "Wakil Kepala Sekolah"}
-								</span>
-							</div>
-						</div>
-					</div>
-				</header>
+			
+			<>
+				
 
 				<div className={styles.dashboardContainer}>
 					{/* VIEW 1: FILTER & KARTU JURNAL */}
@@ -1458,7 +1405,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 						</div>
 					</div>
 				)}
-			</main>
+			</>
 			{/* MODAL DETAIL NILAI SISWA */}
 			{isNilaiModalOpen && selectedSesiModal && (
 				<div className={styles.modalOverlay}>
@@ -1519,6 +1466,6 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 					</div>
 				</div>
 			)}
-		</div>
+		</>
 	);
 }

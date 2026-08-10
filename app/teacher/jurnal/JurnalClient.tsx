@@ -461,7 +461,7 @@ export default function JurnalClient({
 	};
 
 	return (
-		<div className={styles.layoutWrapper}>
+		<>
 			<div className={styles.toastContainer}>
 				{toasts.map((toast) => (
 					<div
@@ -653,67 +653,11 @@ export default function JurnalClient({
 			)}
 
 			{/* === SIDEBAR === */}
-			<aside className={styles.sidebar}>
-				<div className={styles.sidebarHeader}>
-					<div className={styles.logoWrapper}>
-						<img src="/logo.jpg" alt="Logo SMAN 2 Brebes" className={styles.logoImage} />
-					</div>
-					<div>
-						<div className={styles.schoolName}>
-							SMAN 2<br />
-							Brebes
-						</div>
-						<div className={styles.portalName}>Teacher Portal</div>
-					</div>
-				</div>
-
-				<nav className={styles.menuContainer}>
-					<Link href="/teacher/dashboard" className={styles.menuItem}>
-						<LayoutDashboard size={18} /> Dashboard
-					</Link>
-					<Link href="/teacher/jurnal" className={`${styles.menuItem} ${styles.menuItemActive}`}>
-						<BookOpen size={18} /> Jurnal Mengajar
-					</Link>
-					<Link href="/teacher/presensi" className={styles.menuItem}>
-						<QrCode size={18} /> Presensi QR
-					</Link>
-					<Link href="/teacher/riwayat" className={styles.menuItem}>
-						<History size={18} /> Riwayat
-					</Link>
-					{isWaliKelas && (
-						<>
-							<div className={styles.menuSection}>MENU WALI KELAS</div>
-							<Link href="/teacher/data-siswa" className={styles.menuItem}>
-								<Users size={18} /> Data Siswa
-							</Link>
-						</>
-					)}
-					<Link href="/teacher/setelan" className={styles.menuItem}>
-						<Settings size={18} /> Setelan
-					</Link>
-				</nav>
-
-				<div className={styles.sidebarFooter}>
-					<button className={styles.logoutBtn} onClick={() => signOut({ callbackUrl: "/login" })}>
-						<LogOut size={18} /> Keluar
-					</button>
-				</div>
-			</aside>
+			
 
 			{/* === MAIN CONTENT === */}
-			<main className={styles.mainContent}>
-				<header className={styles.topbar}>
-					<h1 className={styles.greeting} style={{ fontSize: "1rem" }}>
-						E-Journal & Presensi
-					</h1>
-					<div className={styles.topbarActions}>
-						<Bell size={20} style={{ cursor: "pointer" }} />
-						<HelpCircle size={20} style={{ cursor: "pointer" }} />
-						<div className={styles.profileAvatar}>
-							<div style={{ width: "100%", height: "100%", backgroundColor: "#dbeafe" }}></div>
-						</div>
-					</div>
-				</header>
+			<>
+				
 
 				<div className={styles.dashboardContainer}>
 					{/* === VIEW 1: DAFTAR KELAS === */}
@@ -821,7 +765,7 @@ export default function JurnalClient({
 									Buat Jurnal Pertemuan Baru
 								</div>
 
-								<div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "2rem", alignItems: "start" }}>
+								<div className={styles.formGrid}>
 									<div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
 										<div>
 											<label className={styles.formLabel}>Tanggal Pertemuan *</label>
@@ -905,7 +849,8 @@ export default function JurnalClient({
 										Riwayat Jurnal & Presensi Kelas
 									</div>
 								</div>
-								<table className={styles.tableStyle}>
+								<div style={{ overflowX: "auto", width: "100%" }}>
+									<table className={styles.tableStyle}>
 									<thead>
 										<tr>
 											<th>No</th>
@@ -1099,6 +1044,7 @@ export default function JurnalClient({
 										)}
 									</tbody>
 								</table>
+								</div>
 							</div>
 						</div>
 					)}
@@ -1153,9 +1099,7 @@ export default function JurnalClient({
 								</button>
 							</div>
 
-							<div
-								style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}
-							>
+							<div className={styles.statsGrid}>
 								<div
 									className={styles.summaryCard}
 									style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
@@ -1255,7 +1199,8 @@ export default function JurnalClient({
 										</div>
 									</div>
 								</div>
-								<table className={styles.tableStyle}>
+								<div style={{ overflowX: "auto", width: "100%" }}>
+									<table className={styles.tableStyle}>
 									<thead>
 										<tr>
 											<th>No</th>
@@ -1472,6 +1417,7 @@ export default function JurnalClient({
 										})()}
 									</tbody>
 								</table>
+								</div>
 							</div>
 
 							<div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
@@ -1659,7 +1605,7 @@ export default function JurnalClient({
 						</div>
 					)}
 				</div>
-			</main>
-		</div>
+			</>
+		</>
 	);
 }

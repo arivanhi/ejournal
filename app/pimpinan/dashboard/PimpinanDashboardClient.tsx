@@ -160,7 +160,7 @@ export default function PimpinanDashboardClient({
 	);
 
 	return (
-		<div className={styles.layoutWrapper}>
+		<>
 			<div style={{ display: "none" }}>
 				<div
 					id="pdf-harian-container"
@@ -422,63 +422,10 @@ export default function PimpinanDashboardClient({
 				</div>
 			)}
 
-			<aside className={styles.sidebar}>
-				<div className={styles.sidebarHeader}>
-					<div className={styles.logoWrapper}>
-						<img src="/logo.jpg" alt="Logo SMAN 2 Brebes" className={styles.logoImage} />
-					</div>
-					<div>
-						<div className={styles.schoolName}>SMAN 2 Brebes</div>
-						<div className={styles.portalName}>Dashboard Pimpinan</div>
-					</div>
-				</div>
+			
 
-				<nav className={styles.menuContainer}>
-					<Link href="/pimpinan/dashboard" className={`${styles.menuItem} ${styles.menuItemActive}`}>
-						<LayoutDashboard size={18} /> Dashboard
-					</Link>
-					<Link href="/pimpinan/kehadiran" className={styles.menuItem}>
-						<Users size={18} /> Kehadiran Siswa
-					</Link>
-					<Link href="/pimpinan/monitoring" className={styles.menuItem}>
-						<Clock size={18} /> Monitoring KBM
-					</Link>
-					<Link href="/pimpinan/jurnal" className={styles.menuItem}>
-						<BookOpen size={18} /> Jurnal Mengajar
-					</Link>
-					<Link href="/pimpinan/report" className={styles.menuItem}>
-						<FileBarChart size={18} /> Laporan Rekapitulasi
-					</Link>
-					<Link href="/pimpinan/setelan" className={styles.menuItem} style={{ marginBottom: "0.5rem" }}>
-						<Settings size={18} /> Setelan
-					</Link>
-				</nav>
-
-				<div className={styles.sidebarFooter}>
-					<button className={styles.logoutBtn} onClick={() => signOut({ callbackUrl: "/login" })}>
-						<LogOut size={18} /> Keluar
-					</button>
-				</div>
-			</aside>
-
-			<main className={styles.mainContent}>
-				<header className={styles.topbar}>
-					<div>
-						<h1 className={styles.topbarTitle}>E-Journal & Presensi</h1>
-					</div>
-					<div className={styles.topbarActions}>
-						<Bell size={20} className={styles.iconAction} />
-						<Settings size={20} className={styles.iconAction} />
-						<div className={styles.profileSection}>
-							<div className={styles.profileInfo}>
-								<span className={styles.profileName}>{user.nama}</span>
-								<span className={styles.profileRole}>
-									{user.role === "KEPSEK" ? "Kepala Sekolah" : "Wakil Kepala Sekolah"}
-								</span>
-							</div>
-						</div>
-					</div>
-				</header>
+			<>
+				
 
 				<div className={styles.dashboardContainer}>
 					<div className={styles.sectionHeader}>
@@ -844,7 +791,7 @@ export default function PimpinanDashboardClient({
 						</div>
 					</div>
 				</div>
-			</main>
-		</div>
+			</>
+		</>
 	);
 }

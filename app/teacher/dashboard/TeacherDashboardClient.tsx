@@ -192,84 +192,13 @@ export default function TeacherDashboardClient({
 		}) + " WIB" || "MEMUAT JAM...";
 
 	return (
-		<div className={styles.layoutWrapper}>
-			{/* SIDEBAR */}
-			<aside className={styles.sidebar}>
-				<div className={styles.sidebarHeader}>
-					<div
-						className={styles.logoWrapper}
-						style={{
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "center",
-							width: "40px",
-							height: "40px",
-							borderRadius: "50%",
-							backgroundColor: "white",
-							overflow: "hidden",
-						}}
-					>
-						<img
-							src="/logo.jpg"
-							alt="Logo SMAN 2 Brebes"
-							className={styles.logoImage}
-							style={{ width: "100%", height: "100%", objectFit: "cover" }}
-						/>
-					</div>
-					<div>
-						<div className={styles.schoolName}>
-							SMAN 2<br />
-							Brebes
-						</div>
-						<div className={styles.portalName}>Teacher Portal</div>
-					</div>
-				</div>
+		<>
+			
+			
 
-				<nav className={styles.menuContainer}>
-					<Link href="/teacher/dashboard" className={`${styles.menuItem} ${styles.menuItemActive}`}>
-						<LayoutDashboard size={18} /> Dashboard
-					</Link>
-					<Link href="/teacher/jurnal" className={styles.menuItem}>
-						<BookOpen size={18} /> Jurnal Mengajar
-					</Link>
-					<Link href="/teacher/presensi" className={styles.menuItem}>
-						<QrCode size={18} /> Presensi QR
-					</Link>
-					<Link href="/teacher/riwayat" className={styles.menuItem}>
-						<History size={18} /> Riwayat
-					</Link>
-					{isWaliKelas && (
-						<>
-							<div className={styles.menuSection}>MENU WALI KELAS</div>
-							<Link href="/teacher/data-siswa" className={styles.menuItem}>
-								<Users size={18} /> Data Siswa
-							</Link>
-						</>
-					)}
-					<Link href="/teacher/setelan" className={styles.menuItem}>
-						<Settings size={18} /> Setelan
-					</Link>
-				</nav>
-
-				<div className={styles.sidebarFooter}>
-					<button className={styles.logoutBtn} onClick={() => signOut({ callbackUrl: "/login" })}>
-						<LogOut size={18} /> Keluar
-					</button>
-				</div>
-			</aside>
-
-			{/* MAIN CONTENT */}
-			<main className={styles.mainContent}>
-				<header className={styles.topbar}>
-					<h1 className={styles.greeting}>Selamat Pagi, {user.nama}!</h1>
-					<div className={styles.topbarActions}>
-						<Bell size={20} style={{ cursor: "pointer" }} />
-						<HelpCircle size={20} style={{ cursor: "pointer" }} />
-						<div className={styles.profileAvatar}>
-							<div style={{ width: "100%", height: "100%", backgroundColor: "#dbeafe" }}></div>
-						</div>
-					</div>
-				</header>
+			
+			<>
+				
 
 				<div className={styles.dashboardContainer}>
 					<div className={styles.heroBanner}>
@@ -471,7 +400,7 @@ export default function TeacherDashboardClient({
 						</div>
 					</div>
 				</div>
-			</main>
-		</div>
+			</>
+		</>
 	);
 }

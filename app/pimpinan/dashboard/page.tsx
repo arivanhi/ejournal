@@ -30,7 +30,7 @@ export default async function PimpinanDashboard() {
 	endOfDay.setHours(23, 59, 59, 999);
 
 	// 1. Ambil Semua Jadwal Hari Ini
-	const jadwalHariIni = tahunAjaranAktif
+	const rawJadwalHariIni = tahunAjaranAktif
 		? await prisma.jadwalPelajaran.findMany({
 				where: {
 					tahunAjaranId: tahunAjaranAktif.id,
@@ -40,8 +40,38 @@ export default async function PimpinanDashboard() {
 			})
 		: [];
 
+	// 1.5. Group Jadwal yang Berurutan
+	const jadwalBlocks: any[] = [];
+	const groupedJadwal: Record<string, any[]> = {};
+	rawJadwalHariIni.forEach((j) => {
+		const key = `${j.guruId}-${j.mapelId}-${j.kelasId}`;
+		if (!groupedJadwal[key]) groupedJadwal[key] = [];
+		groupedJadwal[key].push(j);
+	});
+
+	for (const key in groupedJadwal) {
+		const group = groupedJadwal[key].sort((a, b) => (parseInt(a.waktuMulai) || 0) - (parseInt(b.waktuMulai) || 0));
+		let currentBlock: any = null;
+		for (const j of group) {
+			const currentSesi = parseInt(j.waktuMulai) || 0;
+			if (!currentBlock) {
+				currentBlock = { ...j, originalIds: [j.id], endSesi: j.waktuMulai };
+			} else {
+				const prevSesi = parseInt(currentBlock.endSesi) || 0;
+				if (currentSesi === prevSesi + 1) {
+					currentBlock.endSesi = j.waktuMulai;
+					currentBlock.originalIds.push(j.id);
+				} else {
+					jadwalBlocks.push(currentBlock);
+					currentBlock = { ...j, originalIds: [j.id], endSesi: j.waktuMulai };
+				}
+			}
+		}
+		if (currentBlock) jadwalBlocks.push(currentBlock);
+	}
+
 	// 2. Ambil Semua Jurnal Hari Ini (Sertakan detail Siswa untuk absensi)
-	const jurnalHariIni = await prisma.jurnalMengajar.findMany({
+	const rawJurnalHariIni = await prisma.jurnalMengajar.findMany({
 		where: { tanggal: { gte: startOfDay, lt: endOfDay } },
 		include: {
 			jadwal: { include: { mapel: true, kelas: true, guru: { include: { user: true } } } },
@@ -54,16 +84,34 @@ export default async function PimpinanDashboard() {
 		orderBy: { waktuMulai: "desc" },
 	});
 
-	// 3. Kalkulasi: Jurnal Terkumpul
-	const totalJadwal = jadwalHariIni.length;
-	const terkumpul = jurnalHariIni.length;
+	// 3. Kalkulasi: Jurnal Terkumpul dan Deduplikasi Jurnal
+	const totalJadwal = jadwalBlocks.length;
+	const fulfilledBlocks = new Set<string>();
+	const jurnalHariIni: any[] = [];
+	
+	rawJurnalHariIni.forEach((jurnal) => {
+		const block = jadwalBlocks.find((b) => b.originalIds.includes(jurnal.jadwalId));
+		if (block) {
+			const blockKey = block.originalIds.join(",");
+			if (!fulfilledBlocks.has(blockKey)) {
+				fulfilledBlocks.add(blockKey);
+				jurnal.jadwal.waktuMulai = block.waktuMulai;
+				jurnal.jadwal.waktuSelesai = block.endSesi;
+				jurnalHariIni.push(jurnal);
+			}
+		} else {
+			jurnalHariIni.push(jurnal);
+		}
+	});
+
+	const terkumpul = fulfilledBlocks.size;
 
 	// 4. Kalkulasi: Total Siswa Absen & Rekapitulasi SELURUH Kehadiran Siswa
 	let totalSiswaAbsen = 0;
 	const absenPerKelas: Record<string, number> = {};
 	const dataKehadiranSiswa: any[] = []; // <-- Menyimpan Hadir, Sakit, Izin, Alpa
 
-	jurnalHariIni.forEach((jurnal) => {
+	rawJurnalHariIni.forEach((jurnal) => {
 		const namaKelas = jurnal.jadwal.kelas.nama;
 		if (!absenPerKelas[namaKelas]) absenPerKelas[namaKelas] = 0;
 
@@ -91,26 +139,22 @@ export default async function PimpinanDashboard() {
 		.slice(0, 4);
 
 	// 5. Kalkulasi: Peringatan Jam Kosong
-	const jadwalTerkumpulIds = jurnalHariIni.map((j) => j.jadwalId);
 	let jamKosongCount = 0;
 	const peringatanJamKosong: any[] = [];
 
-	jadwalHariIni.forEach((jadwal) => {
-		if (!jadwalTerkumpulIds.includes(jadwal.id)) {
+	jadwalBlocks.forEach((block) => {
+		const blockKey = block.originalIds.join(",");
+		if (!fulfilledBlocks.has(blockKey)) {
 			jamKosongCount++;
 
-			// Logika format jam yang kebal terhadap isi database yang kosong / strip "-"
-			let jamSesi = jadwal.waktuMulai && jadwal.waktuMulai !== "-" ? jadwal.waktuMulai : "";
-			if (jadwal.waktuSelesai && jadwal.waktuSelesai !== "-" && jadwal.waktuSelesai !== jadwal.waktuMulai) {
-				jamSesi = jamSesi ? `${jamSesi}-${jadwal.waktuSelesai}` : jadwal.waktuSelesai;
-			}
-			if (!jamSesi) jamSesi = "-"; // Fallback terakhir jika database benar-benar hanya berisi "-"
+			let jamSesi = block.waktuMulai === block.endSesi ? block.waktuMulai : `${block.waktuMulai}-${block.endSesi}`;
+			if (!jamSesi || jamSesi === "-") jamSesi = "-";
 
 			peringatanJamKosong.push({
 				jam: jamSesi,
-				mapel: jadwal.mapel.nama,
-				kelas: jadwal.kelas.nama,
-				guru: jadwal.guru.user.nama,
+				mapel: block.mapel.nama,
+				kelas: block.kelas.nama,
+				guru: block.guru.user.nama,
 				status: "Belum Dikonfirmasi",
 			});
 		}

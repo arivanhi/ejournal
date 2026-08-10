@@ -1,0 +1,314 @@
+/* app/components/responsiveLayout.module.css */
+
+/* Layout Global */
+.layoutWrapper {
+	display: flex;
+	height: 100vh;
+	background-color: #f8fafc;
+	font-family: "Inter", sans-serif;
+	overflow: hidden;
+	position: relative;
+}
+
+/* Overlay untuk Sidebar di Mobile */
+.sidebarOverlay {
+	display: none;
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.5);
+	z-index: 40;
+}
+.sidebarOverlay.open {
+	display: block;
+}
+
+/* Sidebar (Navy Blue) */
+.sidebar {
+	width: 260px;
+	background-color: #0f172a;
+	color: white;
+	display: flex;
+	flex-direction: column;
+	border-right: 1px solid #1e293b;
+	position: fixed;
+	top: 0;
+	bottom: 0;
+	left: -260px; /* Hidden by default on mobile */
+	z-index: 50;
+	transition: left 0.3s ease;
+}
+.sidebar.open {
+	left: 0;
+}
+
+@media (min-width: 1024px) {
+	.sidebar {
+		position: relative;
+		left: 0; /* Always visible on desktop */
+	}
+	.sidebarOverlay {
+		display: none !important;
+	}
+}
+
+.sidebarContent {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.sidebarHeader {
+	padding: 1.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	border-bottom: 1px solid #1e293b;
+}
+
+.sidebarHeaderLeft {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+.closeSidebarBtn {
+	display: flex;
+	background: none;
+	border: none;
+	color: #94a3b8;
+	cursor: pointer;
+}
+.closeSidebarBtn:hover {
+	color: white;
+}
+@media (min-width: 1024px) {
+	.closeSidebarBtn {
+		display: none;
+	}
+}
+
+.logoWrapper {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background-color: white;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	overflow: hidden;
+}
+.logoImage {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.schoolName {
+	font-weight: 700;
+	font-size: 1.1rem;
+	line-height: 1.2;
+}
+.portalName {
+	font-size: 0.75rem;
+	color: #94a3b8;
+	margin-top: 0.2rem;
+}
+.menuContainer {
+	padding: 1.5rem 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	flex: 1;
+	overflow-y: auto;
+}
+.menuItem {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem 1rem;
+	border-radius: 0.5rem;
+	color: #cbd5e1;
+	text-decoration: none;
+	font-size: 0.875rem;
+	transition: all 0.2s;
+}
+.menuItem:hover {
+	background-color: rgba(255, 255, 255, 0.05);
+	color: white;
+}
+.menuItemActive {
+	background-color: rgba(255, 255, 255, 0.1);
+	color: white;
+	font-weight: 600;
+	border-left: 3px solid #facc15;
+}
+.sidebarFooter {
+	padding: 1.5rem;
+	border-top: 1px solid #1e293b;
+}
+.logoutBtn {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem 1rem;
+	background-color: transparent;
+	border: none;
+	color: #cbd5e1;
+	cursor: pointer;
+	border-radius: 0.5rem;
+	transition: 0.2s;
+}
+.logoutBtn:hover {
+	background-color: #ef4444;
+	color: white;
+}
+
+/* Main Content */
+.mainContent {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+	overflow-x: hidden;
+	width: 100%;
+}
+.topbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1rem 1.5rem;
+	background-color: white;
+	border-bottom: 1px solid #e2e8f0;
+}
+@media (min-width: 1024px) {
+	.topbar {
+		padding: 1.25rem 2rem;
+	}
+}
+
+.topbarLeft {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+.burgerBtn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: none;
+	border: none;
+	color: #475569;
+	cursor: pointer;
+	padding: 0.5rem;
+	border-radius: 0.5rem;
+}
+.burgerBtn:hover {
+	background-color: #f1f5f9;
+}
+@media (min-width: 1024px) {
+	.burgerBtn {
+		display: none;
+	}
+}
+
+.topbarTitle {
+	font-size: 1.1rem;
+	font-weight: 800;
+	color: #0f172a;
+	margin: 0;
+	display: none;
+}
+@media (min-width: 640px) {
+	.topbarTitle {
+		display: block;
+		font-size: 1.25rem;
+	}
+}
+
+.topbarActions {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+@media (min-width: 1024px) {
+	.topbarActions {
+		gap: 1.5rem;
+	}
+}
+
+.iconAction {
+	color: #64748b;
+	cursor: pointer;
+}
+.profileSection {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	border-left: 1px solid #e2e8f0;
+	padding-left: 1rem;
+}
+@media (min-width: 1024px) {
+	.profileSection {
+		padding-left: 1.5rem;
+	}
+}
+.profileInfo {
+	display: none;
+	flex-direction: column;
+	text-align: right;
+}
+@media (min-width: 640px) {
+	.profileInfo {
+		display: flex;
+	}
+}
+
+.profileName {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #1e293b;
+}
+.profileRole {
+	font-size: 0.75rem;
+	color: #64748b;
+}
+.avatar {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background-color: #e2e8f0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	color: #64748b;
+}
+@media (min-width: 1024px) {
+	.avatar {
+		width: 36px;
+		height: 36px;
+	}
+}
+
+/* Page Content Wrapper */
+.contentScroll {
+	flex: 1;
+	overflow-y: auto;
+	padding: 1.5rem;
+	background-color: #f8fafc;
+}
+@media (min-width: 1024px) {
+	.contentScroll {
+		padding: 2rem;
+	}
+}
+
+
+/* Global Mobile Scroll Fix v3 */
+:global([class*="tabContainer"]), :global([class*="tabs"]), :global([class*="filterSection"]) {
+  max-width: 100%;
+  overflow-x: auto;
+}
