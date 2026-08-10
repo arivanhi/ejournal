@@ -65,22 +65,6 @@ const JAM_MAP = [
 	{ jam: 10, start: "15:15", end: "16:00" },
 ];
 
-const TIME_OPTIONS = [
-	"07:00",
-	"07:45",
-	"08:30",
-	"09:15",
-	"10:00",
-	"10:30",
-	"11:15",
-	"12:00",
-	"13:00",
-	"13:45",
-	"14:30",
-	"15:15",
-	"16:00",
-];
-
 const getWaktuString = (jams: number[]) => {
 	if (!jams || jams.length === 0) return "-";
 	const first = JAM_MAP.find((m) => m.jam === jams[0]);
@@ -88,6 +72,73 @@ const getWaktuString = (jams: number[]) => {
 	if (first && last) return `${first.start} - ${last.end}`;
 	return "-";
 };
+
+// ============================================================================
+// KOMPONEN PEMBANTU PDF (PAGINATION MANUAL)
+// ============================================================================
+const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
+	<div
+		style={{
+			width: "210mm",
+			height: "296mm",
+			padding: "15mm 20mm",
+			boxSizing: "border-box",
+			display: "flex",
+			flexDirection: "column",
+			pageBreakAfter: isLast ? "auto" : "always",
+			backgroundColor: "white",
+			color: "black",
+			position: "relative",
+			overflow: "hidden"
+		}}
+	>
+		{children}
+	</div>
+);
+
+const PageFooter = ({ current, total }: { current: number; total: number }) => (
+	<div style={{ textAlign: "right", fontSize: "10pt", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid #e2e8f0" }}>
+		Halaman {current} dari {total}
+	</div>
+);
+
+const KopSurat = () => (
+	<div style={{ paddingBottom: "5px", backgroundColor: "white", marginBottom: "15px", flexShrink: 0 }}>
+		<div
+			style={{
+				display: "flex",
+				alignItems: "center",
+				borderBottom: "3px solid black",
+				paddingBottom: "10px",
+				marginBottom: "2px",
+			}}
+		>
+			<img
+				src="/logo.jpg"
+				alt="Logo SMAN 2 Brebes"
+				style={{ width: "80px", height: "80px", objectFit: "contain", margin: "0 20px" }}
+			/>
+			<div style={{ flex: 1, textAlign: "center" }}>
+				<h1
+					style={{
+						margin: "0 0 4px 0",
+						fontSize: "20pt",
+						fontWeight: "bold",
+						color: "#000",
+						fontFamily: '"Times New Roman", Times, serif',
+					}}
+				>
+					SMA NEGERI 2 BREBES
+				</h1>
+				<p style={{ margin: "2px 0", fontSize: "11pt", color: "#000" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
+			</div>
+			<div style={{ width: "120px" }}></div>
+		</div>
+		<div style={{ borderBottom: "1px solid black" }}></div>
+	</div>
+);
+
 
 export default function JurnalClient({
 	jadwalSemua,
@@ -127,7 +178,7 @@ export default function JurnalClient({
 	const [presensiEdits, setPresensiEdits] = useState<Record<string, string>>({});
 	const [nilaiTugasEdits, setNilaiTugasEdits] = useState<Record<string, number>>({});
 	const [alasanIzinEdits, setAlasanIzinEdits] = useState<Record<string, string>>({});
-	
+
 	const [sortColumn, setSortColumn] = useState<"nis" | "nama" | "jk" | "status" | "nilai">("nama");
 	const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
@@ -198,14 +249,11 @@ export default function JurnalClient({
 		return grouped;
 	}, [jadwalSemua]);
 
-	// SET DEFAULT JAM PADA FORM SAAT GURU MEMILIH KELAS
 	useEffect(() => {
 		if (activeJadwal && groupedJadwal) {
 			const updatedJadwal = groupedJadwal.find((j) => j.id === activeJadwal.id);
 			if (updatedJadwal) {
 				setActiveJadwal(updatedJadwal);
-
-				// Ambil default dari rentang jadwal yang sudah tergabung
 				if (updatedJadwal.waktuRentang && updatedJadwal.waktuRentang.includes("-")) {
 					const times = updatedJadwal.waktuRentang.split(" - ");
 					setWaktuMulai(times[0].trim());
@@ -229,7 +277,6 @@ export default function JurnalClient({
 		setMateri("");
 		setTugas("");
 
-		// Inisiasi jam berdasarkan jadwal
 		if (jadwal.waktuRentang && jadwal.waktuRentang.includes("-")) {
 			const times = jadwal.waktuRentang.split(" - ");
 			setWaktuMulai(times[0].trim());
@@ -240,21 +287,15 @@ export default function JurnalClient({
 
 	const handleSimpanJurnalBaru = async () => {
 		setLoading(true);
-
-		// --- CEK SYARAT AUTO-HADIR (HANYA JAM KE 2-9) ---
 		let isAutoHadir = false;
 		if (activeJadwal.jams && activeJadwal.jams.length > 0) {
-			// Ambil angka jam terkecil dan terbesar dari sesi jadwal
 			const minJam = Math.min(...activeJadwal.jams);
 			const maxJam = Math.max(...activeJadwal.jams);
-
-			// Jika jam paling awal minimal jam ke-2, DAN jam terakhir maksimal jam ke-9, maka Auto-Hadir
 			if (minJam >= 2 && maxJam <= 9) {
 				isAutoHadir = true;
 			}
 		}
 
-		// --- AMBIL SEMUA ID SISWA DI KELAS INI ---
 		const siswaIds = activeJadwal.kelas?.riwayatSiswa?.map((rs: any) => rs.siswa.id) || [];
 
 		const res = await buatJurnalAction({
@@ -266,8 +307,8 @@ export default function JurnalClient({
 			tujuan: "",
 			catatan: "",
 			tugas,
-			isAutoHadir, // Kirim status kelayakan auto-hadir
-			siswaIds, // Kirim daftar id siswa
+			isAutoHadir,
+			siswaIds,
 		});
 
 		setLoading(false);
@@ -324,8 +365,8 @@ export default function JurnalClient({
 
 	const handleSimpanPresensiManual = async () => {
 		setLoading(true);
-		const presensiData = Object.entries(presensiEdits).map(([siswaId, status]) => ({ 
-			siswaId, 
+		const presensiData = Object.entries(presensiEdits).map(([siswaId, status]) => ({
+			siswaId,
 			status,
 			nilaiTugas: nilaiTugasEdits[siswaId],
 			alasanIzin: alasanIzinEdits[siswaId]
@@ -339,14 +380,12 @@ export default function JurnalClient({
 		} else showToast(res.message, "error");
 	};
 
-	// --- TRIGGER MODAL ---
 	const triggerModalSimpanJurnalBaru = () => {
 		if (!tanggal || !materi) {
 			showToast("Peringatan: Tanggal dan Topik Materi wajib diisi!", "error");
 			return;
 		}
 
-		// Tampilkan pesan dinamis di modal untuk memberi tahu guru apakah ini auto-hadir atau manual
 		let autoHadirMsg = "";
 		if (activeJadwal.jams && activeJadwal.jams.length > 0) {
 			const minJam = Math.min(...activeJadwal.jams);
@@ -410,7 +449,6 @@ export default function JurnalClient({
 		setEditMateri(jurnalItem.materiBab);
 		setEditTugas(jurnalItem.tugas || "");
 
-		// Panggil waktu spesifik di Jurnal, jika kosong gunakan default dari Jadwal
 		setEditWaktuMulai(jurnalItem.waktuMulai || activeJadwal.waktuRentang.split(" - ")[0].trim());
 		setEditWaktuSelesai(jurnalItem.waktuSelesai || activeJadwal.waktuRentang.split(" - ")[1].trim());
 		setIsEditModalOpen(true);
@@ -436,6 +474,17 @@ export default function JurnalClient({
 		setViewMode("presensi");
 	};
 
+	// ============================================================================
+	// LOGIKA PERHITUNGAN HALAMAN MANUAL (CHUNKING PDF)
+	// ============================================================================
+	const MAX_ROWS = 20; // PERBAIKAN: Max 20 Data agar tidak terlalu padat ke bawah
+	const chunkArray = (arr: any[], size: number) => {
+		if (!arr || arr.length === 0) return [[]];
+		const res = [];
+		for (let i = 0; i < arr.length; i += size) res.push(arr.slice(i, i + size));
+		return res;
+	};
+
 	// --- FUNGSI EXPORT PDF ---
 	const handleDownloadPdf = async () => {
 		setIsDownloading(true);
@@ -447,8 +496,9 @@ export default function JurnalClient({
 				margin: 0,
 				filename: `Detail_Presensi_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}_${new Date(activeJurnal.tanggal).toLocaleDateString("en-CA")}.pdf`,
 				image: { type: "jpeg", quality: 1 },
-				html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+				html2canvas: { scale: 2, useCORS: true },
 				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+				pagebreak: { mode: ['css'] }
 			};
 
 			await html2pdf().set(opt).from(element).save();
@@ -590,7 +640,6 @@ export default function JurnalClient({
 								/>
 							</div>
 
-							{/* FORM EDIT WAKTU AKTUAL */}
 							<div>
 								<label className={styles.formLabel}>Waktu Aktual Mengajar</label>
 								<div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
@@ -619,7 +668,7 @@ export default function JurnalClient({
 									onChange={(e) => setEditMateri(e.target.value)}
 								/>
 							</div>
-							
+
 							<div>
 								<label className={styles.formLabel}>Tugas Harian (Opsional)</label>
 								<textarea
@@ -652,205 +701,198 @@ export default function JurnalClient({
 				</div>
 			)}
 
-			{/* === SIDEBAR === */}
-			
-
 			{/* === MAIN CONTENT === */}
-			<>
-				
-
-				<div className={styles.dashboardContainer}>
-					{/* === VIEW 1: DAFTAR KELAS === */}
-					{viewMode === "list" && (
-						<div>
-							<div className={styles.pageHeader}>
-								<div>
-									<h1 className={styles.pageTitle}>Daftar Mata Pelajaran & Kelas</h1>
-									<p className={styles.pageSubtitle}>
-										Pilih mata pelajaran di bawah ini untuk mengisi jurnal dan melihat riwayat presensi.
-									</p>
-								</div>
+			<div className={styles.dashboardContainer}>
+				{/* === VIEW 1: DAFTAR KELAS === */}
+				{viewMode === "list" && (
+					<div>
+						<div className={styles.pageHeader}>
+							<div>
+								<h1 className={styles.pageTitle}>Daftar Mata Pelajaran & Kelas</h1>
+								<p className={styles.pageSubtitle}>
+									Pilih mata pelajaran di bawah ini untuk mengisi jurnal dan melihat riwayat presensi.
+								</p>
 							</div>
-
-							{!groupedJadwal || groupedJadwal.length === 0 ? (
-								<div className={styles.emptyStateContainer}>Anda tidak memiliki jadwal mengajar pada semester ini.</div>
-							) : (
-								<div className={styles.cardGrid}>
-									{groupedJadwal.map((jadwal: any) => {
-										const hariIniStr = new Date().toLocaleDateString("en-CA");
-										const jurnalHariIni = jadwal.jurnal?.find(
-											(j: any) => new Date(j.tanggal).toLocaleDateString("en-CA") === hariIniStr,
-										);
-										const isSubmitted = !!jurnalHariIni;
-
-										let cardClass = isSubmitted ? styles.statusSelesai : styles.statusBelum;
-										let badgeClass = isSubmitted ? styles.badgeSelesai : styles.badgeBelum;
-										let statusText = isSubmitted ? "Sudah Diisi" : "Belum Diisi";
-										const hariText =
-											["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][jadwal.hari] || "";
-
-										return (
-											<div key={jadwal.id} className={`${styles.jurnalCard} ${cardClass}`}>
-												<div className={styles.cardHeader}>
-													<div className={styles.iconBox}>
-														<Beaker size={20} />
-													</div>
-													<div style={{ display: "flex", flexDirection: "column" }}>
-														<div className={styles.mapelTitle}>{jadwal.mapel.nama}</div>
-														<div className={styles.mapelSubtitle}>{jadwal.kelas.nama}</div>
-														<div className={`${styles.badgeStatus} ${badgeClass}`}>{statusText}</div>
-													</div>
-												</div>
-
-												<div className={styles.cardBody}>
-													<div className={styles.infoRow}>
-														<Clock size={14} />
-														<span>
-															<strong style={{ color: "#1e293b" }}>{hariText},</strong> {jadwal.displaySesi} (
-															{jadwal.waktuRentang} WIB)
-														</span>
-													</div>
-													<div className={styles.infoRow}>
-														<MapPin size={14} /> {jadwal.ruang || "-"}
-													</div>
-												</div>
-
-												<div style={{ marginTop: "auto", paddingTop: "1rem" }}>
-													<button className={styles.btnPrimaryFull} onClick={() => handleBukaKelas(jadwal)}>
-														Kelola Jurnal
-													</button>
-												</div>
-											</div>
-										);
-									})}
-								</div>
-							)}
 						</div>
-					)}
 
-					{/* === VIEW 2: FORM & RIWAYAT === */}
-					{viewMode === "detail" && activeJadwal && (
-						<div>
-							<button className={styles.btnBack} onClick={() => setViewMode("list")}>
-								<ArrowLeft size={16} /> Kembali ke Daftar Mata Pelajaran
-							</button>
+						{!groupedJadwal || groupedJadwal.length === 0 ? (
+							<div className={styles.emptyStateContainer}>Anda tidak memiliki jadwal mengajar pada semester ini.</div>
+						) : (
+							<div className={styles.cardGrid}>
+								{groupedJadwal.map((jadwal: any) => {
+									const hariIniStr = new Date().toLocaleDateString("en-CA");
+									const jurnalHariIni = jadwal.jurnal?.find(
+										(j: any) => new Date(j.tanggal).toLocaleDateString("en-CA") === hariIniStr,
+									);
+									const isSubmitted = !!jurnalHariIni;
 
-							<div className={styles.pageHeader} style={{ marginBottom: "1.5rem" }}>
-								<div>
-									<h1 className={styles.pageTitle} style={{ fontSize: "1.5rem" }}>
-										{activeJadwal.mapel.nama} - {activeJadwal.kelas.nama}
-									</h1>
-									<p className={styles.pageSubtitle}>
-										<Clock
-											size={14}
-											style={{ display: "inline", marginRight: "0.25rem", verticalAlign: "text-bottom" }}
-										/>
-										Jadwal Reguler:{" "}
-										{["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][activeJadwal.hari]} (
-										{activeJadwal.displaySesi}, {activeJadwal.waktuRentang} WIB)
-									</p>
-								</div>
-							</div>
+									let cardClass = isSubmitted ? styles.statusSelesai : styles.statusBelum;
+									let badgeClass = isSubmitted ? styles.badgeSelesai : styles.badgeBelum;
+									let statusText = isSubmitted ? "Sudah Diisi" : "Belum Diisi";
+									const hariText =
+										["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][jadwal.hari] || "";
 
-							<div className={styles.formSection} style={{ marginBottom: "2.5rem" }}>
-								<div
-									className={styles.formTitle}
-									style={{
-										fontSize: "1.15rem",
-										marginBottom: "1.5rem",
-										borderBottom: "1px solid #e2e8f0",
-										paddingBottom: "0.75rem",
-									}}
-								>
-									Buat Jurnal Pertemuan Baru
-								</div>
+									return (
+										<div key={jadwal.id} className={`${styles.jurnalCard} ${cardClass}`}>
+											<div className={styles.cardHeader}>
+												<div className={styles.iconBox}>
+													<Beaker size={20} />
+												</div>
+												<div style={{ display: "flex", flexDirection: "column" }}>
+													<div className={styles.mapelTitle}>{jadwal.mapel.nama}</div>
+													<div className={styles.mapelSubtitle}>{jadwal.kelas.nama}</div>
+													<div className={`${styles.badgeStatus} ${badgeClass}`}>{statusText}</div>
+												</div>
+											</div>
 
-								<div className={styles.formGrid}>
-									<div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-										<div>
-											<label className={styles.formLabel}>Tanggal Pertemuan *</label>
-											<input
-												type="date"
-												className={styles.formInput}
-												value={tanggal}
-												onChange={(e) => setTanggal(e.target.value)}
-												style={{ backgroundColor: "white" }}
-											/>
-										</div>
+											<div className={styles.cardBody}>
+												<div className={styles.infoRow}>
+													<Clock size={14} />
+													<span>
+														<strong style={{ color: "#1e293b" }}>{hariText},</strong> {jadwal.displaySesi} (
+														{jadwal.waktuRentang} WIB)
+													</span>
+												</div>
+												<div className={styles.infoRow}>
+													<MapPin size={14} /> {jadwal.ruang || "-"}
+												</div>
+											</div>
 
-										{/* FORM INPUT JAM (DINAMIS) */}
-										<div>
-											<label className={styles.formLabel}>Waktu Aktual Mengajar *</label>
-											<div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-												<input
-													type="time"
-													className={styles.formInput}
-													value={waktuMulai}
-													onChange={(e) => setWaktuMulai(e.target.value)}
-													style={{ backgroundColor: "white", cursor: "pointer" }}
-												/>
-												<span style={{ color: "#64748b", fontWeight: "bold" }}>s.d</span>
-												<input
-													type="time"
-													className={styles.formInput}
-													value={waktuSelesai}
-													onChange={(e) => setWaktuSelesai(e.target.value)}
-													style={{ backgroundColor: "white", cursor: "pointer" }}
-												/>
+											<div style={{ marginTop: "auto", paddingTop: "1rem" }}>
+												<button className={styles.btnPrimaryFull} onClick={() => handleBukaKelas(jadwal)}>
+													Kelola Jurnal
+												</button>
 											</div>
 										</div>
+									);
+								})}
+							</div>
+						)}
+					</div>
+				)}
+
+				{/* === VIEW 2: FORM & RIWAYAT === */}
+				{viewMode === "detail" && activeJadwal && (
+					<div>
+						<button className={styles.btnBack} onClick={() => setViewMode("list")}>
+							<ArrowLeft size={16} /> Kembali ke Daftar Mata Pelajaran
+						</button>
+
+						<div className={styles.pageHeader} style={{ marginBottom: "1.5rem" }}>
+							<div>
+								<h1 className={styles.pageTitle} style={{ fontSize: "1.5rem" }}>
+									{activeJadwal.mapel.nama} - {activeJadwal.kelas.nama}
+								</h1>
+								<p className={styles.pageSubtitle}>
+									<Clock
+										size={14}
+										style={{ display: "inline", marginRight: "0.25rem", verticalAlign: "text-bottom" }}
+									/>
+									Jadwal Reguler:{" "}
+									{["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][activeJadwal.hari]} (
+									{activeJadwal.displaySesi}, {activeJadwal.waktuRentang} WIB)
+								</p>
+							</div>
+						</div>
+
+						<div className={styles.formSection} style={{ marginBottom: "2.5rem" }}>
+							<div
+								className={styles.formTitle}
+								style={{
+									fontSize: "1.15rem",
+									marginBottom: "1.5rem",
+									borderBottom: "1px solid #e2e8f0",
+									paddingBottom: "0.75rem",
+								}}
+							>
+								Buat Jurnal Pertemuan Baru
+							</div>
+
+							<div className={styles.formGrid}>
+								<div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+									<div>
+										<label className={styles.formLabel}>Tanggal Pertemuan *</label>
+										<input
+											type="date"
+											className={styles.formInput}
+											value={tanggal}
+											onChange={(e) => setTanggal(e.target.value)}
+											style={{ backgroundColor: "white" }}
+										/>
 									</div>
 
-									<div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-										<div>
-											<label className={styles.formLabel}>Topik Materi *</label>
-											<textarea
-												className={styles.formTextarea}
-												style={{ minHeight: "115px" }}
-												value={materi}
-												onChange={(e) => setMateri(e.target.value)}
-												placeholder="Tuliskan materi yang diajarkan hari ini..."
+									<div>
+										<label className={styles.formLabel}>Waktu Aktual Mengajar *</label>
+										<div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+											<input
+												type="time"
+												className={styles.formInput}
+												value={waktuMulai}
+												onChange={(e) => setWaktuMulai(e.target.value)}
+												style={{ backgroundColor: "white", cursor: "pointer" }}
+											/>
+											<span style={{ color: "#64748b", fontWeight: "bold" }}>s.d</span>
+											<input
+												type="time"
+												className={styles.formInput}
+												value={waktuSelesai}
+												onChange={(e) => setWaktuSelesai(e.target.value)}
+												style={{ backgroundColor: "white", cursor: "pointer" }}
 											/>
 										</div>
+									</div>
+								</div>
 
-										<div>
-											<label className={styles.formLabel}>Tugas Harian (Opsional)</label>
-											<textarea
-												className={styles.formTextarea}
-												style={{ minHeight: "80px" }}
-												value={tugas}
-												onChange={(e) => setTugas(e.target.value)}
-												placeholder="Tuliskan tugas harian jika ada..."
-											/>
-										</div>
+								<div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+									<div>
+										<label className={styles.formLabel}>Topik Materi *</label>
+										<textarea
+											className={styles.formTextarea}
+											style={{ minHeight: "115px" }}
+											value={materi}
+											onChange={(e) => setMateri(e.target.value)}
+											placeholder="Tuliskan materi yang diajarkan hari ini..."
+										/>
+									</div>
 
-										<div style={{ display: "flex", justifyContent: "flex-end" }}>
-											<button
-												className={styles.btnPrimaryFull}
-												style={{
-													width: "auto",
-													padding: "0.6rem 1.5rem",
-													display: "flex",
-													alignItems: "center",
-													gap: "0.5rem",
-												}}
-												onClick={triggerModalSimpanJurnalBaru}
-											>
-												<Save size={16} /> Simpan Jurnal Baru
-											</button>
-										</div>
+									<div>
+										<label className={styles.formLabel}>Tugas Harian (Opsional)</label>
+										<textarea
+											className={styles.formTextarea}
+											style={{ minHeight: "80px" }}
+											value={tugas}
+											onChange={(e) => setTugas(e.target.value)}
+											placeholder="Tuliskan tugas harian jika ada..."
+										/>
+									</div>
+
+									<div style={{ display: "flex", justifyContent: "flex-end" }}>
+										<button
+											className={styles.btnPrimaryFull}
+											style={{
+												width: "auto",
+												padding: "0.6rem 1.5rem",
+												display: "flex",
+												alignItems: "center",
+												gap: "0.5rem",
+											}}
+											onClick={triggerModalSimpanJurnalBaru}
+										>
+											<Save size={16} /> Simpan Jurnal Baru
+										</button>
 									</div>
 								</div>
 							</div>
+						</div>
 
-							<div className={styles.tableCard}>
-								<div className={styles.tableToolbar}>
-									<div style={{ fontWeight: 700, color: "#0f172a", fontSize: "1.1rem" }}>
-										Riwayat Jurnal & Presensi Kelas
-									</div>
+						<div className={styles.tableCard}>
+							<div className={styles.tableToolbar}>
+								<div style={{ fontWeight: 700, color: "#0f172a", fontSize: "1.1rem" }}>
+									Riwayat Jurnal & Presensi Kelas
 								</div>
-								<div style={{ overflowX: "auto", width: "100%" }}>
-									<table className={styles.tableStyle}>
+							</div>
+							<div style={{ overflowX: "auto", width: "100%" }}>
+								<table className={styles.tableStyle}>
 									<thead>
 										<tr>
 											<th>No</th>
@@ -888,8 +930,6 @@ export default function JurnalClient({
 														<tr key={jurnalItem.id}>
 															<td style={{ fontWeight: 500 }}>{index + 1}</td>
 															<td style={{ fontWeight: 600, color: "#0f172a" }}>{tglFormatted}</td>
-
-															{/* TAMPILKAN JAM SPESIFIK JURNAL */}
 															<td style={{ color: "#475569" }}>
 																<div style={{ fontWeight: 600, color: "#1e293b" }}>
 																	{jurnalItem.waktuMulai && jurnalItem.waktuSelesai
@@ -1044,168 +1084,170 @@ export default function JurnalClient({
 										)}
 									</tbody>
 								</table>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{/* === VIEW 3: DETAIL PRESENSI (MANUAL) === */}
+				{viewMode === "presensi" && activeJurnal && activeJadwal && (
+					<div>
+						<div style={{ fontSize: "0.875rem", color: "#64748b", marginBottom: "1rem" }}>
+							Jurnal Mengajar &gt; {activeJadwal.mapel.nama} {activeJadwal.kelas.nama} &gt;{" "}
+							<span style={{ fontWeight: 600, color: "#0f172a" }}>Detail Presensi</span>
+						</div>
+
+						<div
+							style={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "flex-end",
+								marginBottom: "1.5rem",
+							}}
+						>
+							<div>
+								<h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem", color: "#0f172a" }}>
+									Presensi Manual - {activeJadwal.mapel.nama} {activeJadwal.kelas.nama}
+								</h2>
+								<div
+									style={{
+										color: "#64748b",
+										fontSize: "0.875rem",
+										display: "flex",
+										alignItems: "center",
+										gap: "0.5rem",
+									}}
+								>
+									<CalendarDays size={16} />
+									{new Date(activeJurnal.tanggal).toLocaleDateString("id-ID", {
+										weekday: "long",
+										day: "numeric",
+										month: "long",
+										year: "numeric",
+									})}{" "}
+									| {activeJadwal.displaySesi} ({activeJadwal.waktuRentang} WIB)
+								</div>
+							</div>
+							<button
+								className={styles.btnOutlineFull}
+								style={{ width: "auto", margin: 0, padding: "0.5rem 1rem", backgroundColor: "white" }}
+								onClick={handleDownloadPdf}
+								disabled={isDownloading}
+							>
+								<Download size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: "0.5rem" }} />{" "}
+								{isDownloading ? "Memproses PDF..." : "Export PDF"}
+							</button>
+						</div>
+
+						<div className={styles.statsGrid}>
+							<div
+								className={styles.summaryCard}
+								style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
+							>
+								<div style={{ backgroundColor: "#e0f2fe", padding: "0.75rem", borderRadius: "50%" }}>
+									<Users size={24} color="#3b82f6" />
+								</div>
+								<div>
+									<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Total Siswa</div>
+									<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#0f172a" }}>
+										{activeJadwal.kelas?.riwayatSiswa?.length || 0}
+									</div>
+								</div>
+							</div>
+							<div
+								className={styles.summaryCard}
+								style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
+							>
+								<div style={{ backgroundColor: "#d1fae5", padding: "0.75rem", borderRadius: "50%" }}>
+									<CheckCircle2 size={24} color="#10b981" />
+								</div>
+								<div>
+									<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Hadir</div>
+									<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#10b981" }}>
+										{activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H")
+											.length || 0}
+									</div>
+								</div>
+							</div>
+							<div
+								className={styles.summaryCard}
+								style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
+							>
+								<div style={{ backgroundColor: "#fef3c7", padding: "0.75rem", borderRadius: "50%" }}>
+									<Clock size={24} color="#f59e0b" />
+								</div>
+								<div>
+									<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Izin/Sakit</div>
+									<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#f59e0b" }}>
+										{activeJadwal.kelas?.riwayatSiswa?.filter(
+											(rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
+										).length || 0}
+									</div>
+								</div>
+							</div>
+							<div
+								className={styles.summaryCard}
+								style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
+							>
+								<div style={{ backgroundColor: "#fee2e2", padding: "0.75rem", borderRadius: "50%" }}>
+									<X size={24} color="#ef4444" />
+								</div>
+								<div>
+									<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Alpha/Belum</div>
+									<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#ef4444" }}>
+										{(activeJadwal.kelas?.riwayatSiswa?.length || 0) -
+											(activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H")
+												.length || 0) -
+											(activeJadwal.kelas?.riwayatSiswa?.filter(
+												(rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
+											).length || 0)}
+									</div>
 								</div>
 							</div>
 						</div>
-					)}
 
-					{/* === VIEW 3: DETAIL PRESENSI (MANUAL) === */}
-					{viewMode === "presensi" && activeJurnal && activeJadwal && (
-						<div>
-							<div style={{ fontSize: "0.875rem", color: "#64748b", marginBottom: "1rem" }}>
-								Jurnal Mengajar &gt; {activeJadwal.mapel.nama} {activeJadwal.kelas.nama} &gt;{" "}
-								<span style={{ fontWeight: 600, color: "#0f172a" }}>Detail Presensi</span>
-							</div>
-
+						<div className={styles.tableCard}>
 							<div
-								style={{
-									display: "flex",
-									justifyContent: "space-between",
-									alignItems: "flex-end",
-									marginBottom: "1.5rem",
-								}}
+								className={styles.tableToolbar}
+								style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
 							>
-								<div>
-									<h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem", color: "#0f172a" }}>
-										Presensi Manual - {activeJadwal.mapel.nama} {activeJadwal.kelas.nama}
-									</h2>
-									<div
-										style={{
-											color: "#64748b",
-											fontSize: "0.875rem",
-											display: "flex",
-											alignItems: "center",
-											gap: "0.5rem",
-										}}
-									>
-										<CalendarDays size={16} />
-										{new Date(activeJurnal.tanggal).toLocaleDateString("id-ID", {
-											weekday: "long",
-											day: "numeric",
-											month: "long",
-											year: "numeric",
-										})}{" "}
-										| {activeJadwal.displaySesi} ({activeJadwal.waktuRentang} WIB)
-									</div>
-								</div>
-								<button
-									className={styles.btnOutlineFull}
-									style={{ width: "auto", margin: 0, padding: "0.5rem 1rem", backgroundColor: "white" }}
-									onClick={handleDownloadPdf}
-									disabled={isDownloading}
-								>
-									<Download size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: "0.5rem" }} />{" "}
-									{isDownloading ? "Memproses PDF..." : "Export PDF"}
-								</button>
-							</div>
-
-							<div className={styles.statsGrid}>
-								<div
-									className={styles.summaryCard}
-									style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
-								>
-									<div style={{ backgroundColor: "#e0f2fe", padding: "0.75rem", borderRadius: "50%" }}>
-										<Users size={24} color="#3b82f6" />
-									</div>
-									<div>
-										<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Total Siswa</div>
-										<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#0f172a" }}>
-											{activeJadwal.kelas?.riwayatSiswa?.length || 0}
-										</div>
-									</div>
-								</div>
-								<div
-									className={styles.summaryCard}
-									style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
-								>
-									<div style={{ backgroundColor: "#d1fae5", padding: "0.75rem", borderRadius: "50%" }}>
-										<CheckCircle2 size={24} color="#10b981" />
-									</div>
-									<div>
-										<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Hadir</div>
-										<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#10b981" }}>
-											{activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H")
-												.length || 0}
-										</div>
-									</div>
-								</div>
-								<div
-									className={styles.summaryCard}
-									style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
-								>
-									<div style={{ backgroundColor: "#fef3c7", padding: "0.75rem", borderRadius: "50%" }}>
-										<Clock size={24} color="#f59e0b" />
-									</div>
-									<div>
-										<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Izin/Sakit</div>
-										<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#f59e0b" }}>
-											{activeJadwal.kelas?.riwayatSiswa?.filter(
-												(rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
-											).length || 0}
-										</div>
-									</div>
-								</div>
-								<div
-									className={styles.summaryCard}
-									style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
-								>
-									<div style={{ backgroundColor: "#fee2e2", padding: "0.75rem", borderRadius: "50%" }}>
-										<X size={24} color="#ef4444" />
-									</div>
-									<div>
-										<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Alpha/Belum</div>
-										<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#ef4444" }}>
-											{(activeJadwal.kelas?.riwayatSiswa?.length || 0) -
-												(activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H")
-													.length || 0) -
-												(activeJadwal.kelas?.riwayatSiswa?.filter(
-													(rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
-												).length || 0)}
-										</div>
+								<div style={{ fontWeight: 700, color: "#0f172a" }}>Daftar Kehadiran</div>
+								<div style={{ display: "flex", gap: "1rem" }}>
+									<div style={{ position: "relative", width: "250px" }}>
+										<Search
+											size={16}
+											style={{
+												position: "absolute",
+												left: "0.75rem",
+												top: "50%",
+												transform: "translateY(-50%)",
+												color: "#94a3b8",
+											}}
+										/>
+										<input
+											type="text"
+											placeholder="Cari nama siswa..."
+											style={{
+												width: "100%",
+												padding: "0.5rem 1rem 0.5rem 2.25rem",
+												borderRadius: "0.5rem",
+												border: "1px solid #cbd5e1",
+												fontSize: "0.875rem",
+												outline: "none",
+											}}
+										/>
 									</div>
 								</div>
 							</div>
+							<div style={{ overflowX: "auto", width: "100%" }}>
 
-							<div className={styles.tableCard}>
-								<div
-									className={styles.tableToolbar}
-									style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-								>
-									<div style={{ fontWeight: 700, color: "#0f172a" }}>Daftar Kehadiran</div>
-									<div style={{ display: "flex", gap: "1rem" }}>
-										<div style={{ position: "relative", width: "250px" }}>
-											<Search
-												size={16}
-												style={{
-													position: "absolute",
-													left: "0.75rem",
-													top: "50%",
-													transform: "translateY(-50%)",
-													color: "#94a3b8",
-												}}
-											/>
-											<input
-												type="text"
-												placeholder="Cari nama siswa..."
-												style={{
-													width: "100%",
-													padding: "0.5rem 1rem 0.5rem 2.25rem",
-													borderRadius: "0.5rem",
-													border: "1px solid #cbd5e1",
-													fontSize: "0.875rem",
-													outline: "none",
-												}}
-											/>
-										</div>
-									</div>
-								</div>
-								<div style={{ overflowX: "auto", width: "100%" }}>
-									<table className={styles.tableStyle}>
+								{/* PERBAIKAN: TABEL WEB UI DIKEMBALIKAN KE BENTUK ASLI */}
+								<table className={styles.tableStyle}>
 									<thead>
 										<tr>
 											<th>No</th>
-											<th 
-												style={{ cursor: "pointer" }} 
+											<th
+												style={{ cursor: "pointer" }}
 												onClick={() => {
 													if (sortColumn === "nis") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
 													else { setSortColumn("nis"); setSortDirection("asc"); }
@@ -1221,8 +1263,8 @@ export default function JurnalClient({
 													)}
 												</div>
 											</th>
-											<th 
-												style={{ cursor: "pointer" }} 
+											<th
+												style={{ cursor: "pointer" }}
 												onClick={() => {
 													if (sortColumn === "nama") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
 													else { setSortColumn("nama"); setSortDirection("asc"); }
@@ -1238,8 +1280,8 @@ export default function JurnalClient({
 													)}
 												</div>
 											</th>
-											<th 
-												style={{ cursor: "pointer" }} 
+											<th
+												style={{ cursor: "pointer" }}
 												onClick={() => {
 													if (sortColumn === "jk") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
 													else { setSortColumn("jk"); setSortDirection("asc"); }
@@ -1255,8 +1297,8 @@ export default function JurnalClient({
 													)}
 												</div>
 											</th>
-											<th 
-												style={{ cursor: "pointer" }} 
+											<th
+												style={{ cursor: "pointer" }}
 												onClick={() => {
 													if (sortColumn === "status") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
 													else { setSortColumn("status"); setSortDirection("asc"); }
@@ -1273,8 +1315,8 @@ export default function JurnalClient({
 												</div>
 											</th>
 											{activeJurnal.tugas && (
-												<th 
-													style={{ cursor: "pointer", textAlign: "center", width: "120px" }} 
+												<th
+													style={{ cursor: "pointer", textAlign: "center", width: "120px" }}
 													onClick={() => {
 														if (sortColumn === "nilai") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
 														else { setSortColumn("nilai"); setSortDirection("asc"); }
@@ -1297,11 +1339,11 @@ export default function JurnalClient({
 									<tbody>
 										{(() => {
 											let sortedData = [...activeJadwal.kelas.riwayatSiswa];
-											
+
 											sortedData.sort((a, b) => {
 												let valA: any = "";
 												let valB: any = "";
-												
+
 												switch (sortColumn) {
 													case "nis":
 														valA = a.siswa.nis;
@@ -1324,288 +1366,255 @@ export default function JurnalClient({
 														valB = nilaiTugasEdits[b.siswa.id] || -1;
 														break;
 												}
-												
+
 												if (valA < valB) return sortDirection === "asc" ? -1 : 1;
 												if (valA > valB) return sortDirection === "asc" ? 1 : -1;
 												return 0;
 											});
-											
+
 											return sortedData.map((rs: any, index: number) => {
 												const siswa = rs.siswa;
 												const originalAbsensi = activeJurnal.presensi?.find((p: any) => p.siswaId === siswa.id);
 												const currentStatus = presensiEdits[siswa.id] || "";
 
-											let badgeStyle = { bg: "#f1f5f9", text: "#64748b", label: "Belum Absen" };
-											if (currentStatus === "H") badgeStyle = { bg: "#d1fae5", text: "#047857", label: "Hadir" };
-											else if (currentStatus === "I") badgeStyle = { bg: "#fef3c7", text: "#b45309", label: "Izin" };
-											else if (currentStatus === "S") badgeStyle = { bg: "#dbeafe", text: "#1d4ed8", label: "Sakit" };
-											else if (currentStatus === "A") badgeStyle = { bg: "#fee2e2", text: "#b91c1c", label: "Alpha" };
+												let badgeStyle = { bg: "#f1f5f9", text: "#64748b", label: "Belum Absen" };
+												if (currentStatus === "H") badgeStyle = { bg: "#d1fae5", text: "#047857", label: "Hadir" };
+												else if (currentStatus === "I") badgeStyle = { bg: "#fef3c7", text: "#b45309", label: "Izin" };
+												else if (currentStatus === "S") badgeStyle = { bg: "#dbeafe", text: "#1d4ed8", label: "Sakit" };
+												else if (currentStatus === "A") badgeStyle = { bg: "#fee2e2", text: "#b91c1c", label: "Alpha" };
 
-											return (
-												<tr key={siswa.id}>
-													<td>{index + 1}</td>
-													<td style={{ fontWeight: 500 }}>{siswa.nis}</td>
-													<td style={{ fontWeight: 600, color: "#0f172a" }}>{siswa.user?.nama || "Nama Siswa"}</td>
-													<td>{siswa.jenisKelamin === "L" ? "L" : "P"}</td>
-													<td>
-														<span
-															style={{
-																background: badgeStyle.bg,
-																color: badgeStyle.text,
-																padding: "0.35rem 0.75rem",
-																borderRadius: "0.375rem",
-																fontSize: "0.75rem",
-																fontWeight: 700,
-															}}
-														>
-															{badgeStyle.label}{" "}
-															{originalAbsensi?.waktuScan && currentStatus === originalAbsensi.status
-																? `(${new Date(originalAbsensi.waktuScan).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })})`
-																: ""}
-														</span>
-													</td>
-													{activeJurnal.tugas && (
-														<td style={{ textAlign: "center" }}>
-															<input
-																type="number"
-																className={styles.formInput}
-																style={{ width: "80px", padding: "0.25rem 0.5rem", textAlign: "center", margin: "0 auto" }}
-																placeholder="0-100"
-																value={nilaiTugasEdits[siswa.id] === undefined ? "" : nilaiTugasEdits[siswa.id]}
-																onChange={(e) => {
-																	const val = e.target.value === "" ? undefined : parseInt(e.target.value);
-																	if (val !== undefined && (val < 0 || val > 100)) return;
-																	setNilaiTugasEdits({ ...nilaiTugasEdits, [siswa.id]: val as any });
+												return (
+													<tr key={siswa.id}>
+														<td>{index + 1}</td>
+														<td style={{ fontWeight: 500 }}>{siswa.nis}</td>
+														<td style={{ fontWeight: 600, color: "#0f172a" }}>{siswa.user?.nama || "Nama Siswa"}</td>
+														<td>{siswa.jenisKelamin === "L" ? "L" : "P"}</td>
+														<td>
+															<span
+																style={{
+																	background: badgeStyle.bg,
+																	color: badgeStyle.text,
+																	padding: "0.35rem 0.75rem",
+																	borderRadius: "0.375rem",
+																	fontSize: "0.75rem",
+																	fontWeight: 700,
 																}}
-															/>
+															>
+																{badgeStyle.label}{" "}
+																{originalAbsensi?.waktuScan && currentStatus === originalAbsensi.status
+																	? `(${new Date(originalAbsensi.waktuScan).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })})`
+																	: ""}
+															</span>
 														</td>
-													)}
-													<td style={{ textAlign: "center" }}>
-														<select
-															className={styles.filterSelect}
-															style={{
-																width: "100%",
-																padding: "0.4rem",
-																cursor: "pointer",
-																fontWeight: 600,
-																color: badgeStyle.text,
-																borderColor: badgeStyle.text,
-															}}
-															value={currentStatus}
-															onChange={(e) => {
-																const newStatus = e.target.value;
-																setPresensiEdits({ ...presensiEdits, [siswa.id]: newStatus });
-																if (newStatus === "I") {
-																	setCurrentSiswaIzin({ id: siswa.id, nama: siswa.user?.nama || "Siswa" });
-																	setInputAlasan(alasanIzinEdits[siswa.id] || "");
-																	setIsModalIzinOpen(true);
-																}
-															}}
-														>
-															<option value="" disabled>
-																Pilih Aksi
-															</option>
-															<option value="H">Hadir</option>
-															<option value="I">Izin</option>
-															<option value="S">Sakit</option>
-															<option value="A">Alpha</option>
-														</select>
-													</td>
-												</tr>
-											);
-										});
+														{activeJurnal.tugas && (
+															<td style={{ textAlign: "center" }}>
+																<input
+																	type="number"
+																	className={styles.formInput}
+																	style={{ width: "80px", padding: "0.25rem 0.5rem", textAlign: "center", margin: "0 auto" }}
+																	placeholder="0-100"
+																	value={nilaiTugasEdits[siswa.id] === undefined ? "" : nilaiTugasEdits[siswa.id]}
+																	onChange={(e) => {
+																		const val = e.target.value === "" ? undefined : parseInt(e.target.value);
+																		if (val !== undefined && (val < 0 || val > 100)) return;
+																		setNilaiTugasEdits({ ...nilaiTugasEdits, [siswa.id]: val as any });
+																	}}
+																/>
+															</td>
+														)}
+														<td style={{ textAlign: "center" }}>
+															<select
+																className={styles.filterSelect}
+																style={{
+																	width: "100%",
+																	padding: "0.4rem",
+																	cursor: "pointer",
+																	fontWeight: 600,
+																	color: badgeStyle.text,
+																	borderColor: badgeStyle.text,
+																}}
+																value={currentStatus}
+																onChange={(e) => {
+																	const newStatus = e.target.value;
+																	setPresensiEdits({ ...presensiEdits, [siswa.id]: newStatus });
+																	if (newStatus === "I") {
+																		setCurrentSiswaIzin({ id: siswa.id, nama: siswa.user?.nama || "Siswa" });
+																		setInputAlasan(alasanIzinEdits[siswa.id] || "");
+																		setIsModalIzinOpen(true);
+																	}
+																}}
+															>
+																<option value="" disabled>
+																	Pilih Aksi
+																</option>
+																<option value="H">Hadir</option>
+																<option value="I">Izin</option>
+																<option value="S">Sakit</option>
+																<option value="A">Alpha</option>
+															</select>
+														</td>
+													</tr>
+												);
+											});
 										})()}
 									</tbody>
 								</table>
-								</div>
-							</div>
-
-							<div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
-								<button
-									className={styles.btnOutlineFull}
-									style={{ width: "auto" }}
-									onClick={() => setViewMode("detail")}
-								>
-									Batal & Kembali
-								</button>
-								<button
-									className={styles.btnPrimaryFull}
-									style={{ width: "auto", display: "flex", alignItems: "center", gap: "0.5rem" }}
-									onClick={triggerModalSimpanPresensi}
-								>
-									<Save size={16} /> Simpan Perubahan Presensi
-								</button>
-							</div>
-							<div style={{ display: "none" }}>
-								<div id="pdf-presensi-content" className={styles.pdfA4Container} style={{ padding: "20mm", color: "#000" }}>
-									<div
-										style={{
-											position: "relative",
-											textAlign: "center",
-											borderBottom: "3px solid #000",
-											paddingBottom: "15px",
-											marginBottom: "15px",
-											paddingTop: "10px",
-										}}
-									>
-										<img
-											src="/logo.jpg"
-											alt="Logo SMAN 2 Brebes"
-											style={{
-												position: "absolute",
-												left: "10px",
-												top: "50%",
-												transform: "translateY(-50%)",
-												width: "80px",
-												height: "80px",
-												objectFit: "contain",
-											}}
-										/>
-										<h1
-											style={{
-												margin: "0 0 5px 0",
-												fontSize: "18pt",
-												fontWeight: "bold",
-												color: "#000",
-												fontFamily: '"Times New Roman", Times, serif',
-											}}
-										>
-											SMA NEGERI 2 BREBES
-										</h1>
-										<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-										<p style={{ margin: 0, fontSize: "11pt" }}>Website: www.sman2-brebes.sch.id - Email: smadabes@ymail.com</p>
-									</div>
-
-									<table style={{ width: "100%", marginBottom: "20px", fontSize: "11pt", borderCollapse: "collapse" }}>
-										<tbody>
-											<tr>
-												<td style={{ width: "20%", padding: "4px 0", fontWeight: "bold" }}>Mata Pelajaran</td>
-												<td style={{ width: "5%", padding: "4px 0" }}>:</td>
-												<td style={{ width: "75%", padding: "4px 0" }}>{activeJadwal.mapel.nama}</td>
-											</tr>
-											<tr>
-												<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kelas</td>
-												<td style={{ padding: "4px 0" }}>:</td>
-												<td style={{ padding: "4px 0" }}>{activeJadwal.kelas.nama}</td>
-											</tr>
-											<tr>
-												<td style={{ padding: "4px 0", fontWeight: "bold" }}>Topik Jurnal</td>
-												<td style={{ padding: "4px 0" }}>:</td>
-												<td style={{ padding: "4px 0" }}>{activeJurnal.materiBab || "-"}</td>
-											</tr>
-											<tr>
-												<td style={{ padding: "4px 0", fontWeight: "bold" }}>Tugas</td>
-												<td style={{ padding: "4px 0" }}>:</td>
-												<td style={{ padding: "4px 0" }}>{activeJurnal.tugas || "-"}</td>
-											</tr>
-											<tr>
-												<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kendala KBM</td>
-												<td style={{ padding: "4px 0" }}>:</td>
-												<td style={{ padding: "4px 0" }}>{activeJurnal.catatan || "-"}</td>
-											</tr>
-											<tr>
-												<td style={{ padding: "4px 0", fontWeight: "bold" }}>Tanggal & Waktu</td>
-												<td style={{ padding: "4px 0" }}>:</td>
-												<td style={{ padding: "4px 0" }}>
-													{new Date(activeJurnal.tanggal).toLocaleDateString("id-ID", {
-														weekday: "long",
-														day: "numeric",
-														month: "long",
-														year: "numeric",
-													})}{" "}
-													/ {activeJadwal.waktuRentang} WIB
-												</td>
-											</tr>
-											<tr>
-												<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kehadiran</td>
-												<td style={{ padding: "4px 0" }}>:</td>
-												<td style={{ padding: "4px 0" }}>
-													Hadir:{" "}
-													{activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H")
-														.length || 0}{" "}
-													| Izin/Sakit:{" "}
-													{activeJadwal.kelas?.riwayatSiswa?.filter(
-														(rs: any) =>
-															presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
-													).length || 0}{" "}
-													| Alpha:{" "}
-													{(activeJadwal.kelas?.riwayatSiswa?.length || 0) -
-														(activeJadwal.kelas?.riwayatSiswa?.filter(
-															(rs: any) => presensiEdits[rs.siswa.id] === "H",
-														).length || 0) -
-														(activeJadwal.kelas?.riwayatSiswa?.filter(
-															(rs: any) =>
-																presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
-														).length || 0)}
-												</td>
-											</tr>
-										</tbody>
-									</table>
-
-									<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt" }}>
-										<thead>
-											<tr>
-												<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9" }}>No</th>
-												<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9" }}>NIS</th>
-												<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9" }}>
-													Nama Siswa
-												</th>
-												<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9" }}>
-													Status
-												</th>
-												{activeJurnal.tugas && (
-													<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9" }}>
-														Nilai Tugas
-													</th>
-												)}
-											</tr>
-										</thead>
-										<tbody>
-											{(() => {
-												let sortedData = [...activeJadwal.kelas.riwayatSiswa];
-												sortedData.sort((a, b) => (a.siswa.user?.nama || "").localeCompare(b.siswa.user?.nama || ""));
-												
-												return sortedData.map((rs: any, index: number) => {
-													const siswa = rs.siswa;
-													const currentStatus = presensiEdits[siswa.id] || "A";
-													
-													let statusLabel = "Alpha";
-													if (currentStatus === "H") statusLabel = "Hadir";
-													else if (currentStatus === "I") {
-														statusLabel = "Izin";
-														if (alasanIzinEdits[siswa.id]) statusLabel += ` (${alasanIzinEdits[siswa.id]})`;
-													}
-													else if (currentStatus === "S") statusLabel = "Sakit";
-
-													return (
-														<tr key={siswa.id}>
-															<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-																{index + 1}
-															</td>
-															<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-																{siswa.nis}
-															</td>
-															<td style={{ border: "1px solid #000", padding: "6px" }}>{siswa.user?.nama}</td>
-															<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-																{statusLabel}
-															</td>
-															{activeJurnal.tugas && (
-																<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-																	{nilaiTugasEdits[siswa.id] !== undefined ? nilaiTugasEdits[siswa.id] : "-"}
-																</td>
-															)}
-														</tr>
-													);
-												});
-											})()}
-										</tbody>
-									</table>
-								</div>
 							</div>
 						</div>
-					)}
-				</div>
-			</>
+
+						<div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
+							<button
+								className={styles.btnOutlineFull}
+								style={{ width: "auto" }}
+								onClick={() => setViewMode("detail")}
+							>
+								Batal & Kembali
+							</button>
+							<button
+								className={styles.btnPrimaryFull}
+								style={{ width: "auto", display: "flex", alignItems: "center", gap: "0.5rem" }}
+								onClick={triggerModalSimpanPresensi}
+							>
+								<Save size={16} /> Simpan Perubahan Presensi
+							</button>
+						</div>
+
+						{/* ================================================================= */}
+						{/* AREA TERSEMBUNYI UNTUK CETAK PDF (SISTEM PAGINATION MANUAL) */}
+						{/* ================================================================= */}
+						<div style={{ display: "none" }}>
+							<div id="pdf-presensi-content" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
+								{(() => {
+									let sortedData = [...activeJadwal.kelas.riwayatSiswa];
+									sortedData.sort((a, b) => (a.siswa.user?.nama || "").localeCompare(b.siswa.user?.nama || ""));
+
+									// PERBAIKAN: Max baris per tabel PDF sekarang diatur 20
+									const siswaChunks = chunkArray(sortedData, MAX_ROWS);
+									const totalPages = siswaChunks.length;
+
+									return siswaChunks.map((chunk, chunkIdx) => {
+										const isLastPage = chunkIdx === totalPages - 1;
+
+										const hCount = activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H").length || 0;
+										const isCount = activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S").length || 0;
+										const aCount = (activeJadwal.kelas?.riwayatSiswa?.length || 0) - hCount - isCount;
+
+										return (
+											<div key={`page-${chunkIdx}`}>
+												<PageContainer isLast={isLastPage}>
+													<KopSurat />
+
+													{chunkIdx === 0 && (
+														<table style={{ width: "100%", marginBottom: "20px", fontSize: "11pt", borderCollapse: "collapse" }}>
+															<tbody>
+																<tr>
+																	<td style={{ width: "20%", padding: "4px 0", fontWeight: "bold" }}>Mata Pelajaran</td>
+																	<td style={{ width: "5%", padding: "4px 0" }}>:</td>
+																	<td style={{ width: "75%", padding: "4px 0" }}>{activeJadwal.mapel.nama}</td>
+																</tr>
+																<tr>
+																	<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kelas</td>
+																	<td style={{ padding: "4px 0" }}>:</td>
+																	<td style={{ padding: "4px 0" }}>{activeJadwal.kelas.nama}</td>
+																</tr>
+																<tr>
+																	<td style={{ padding: "4px 0", fontWeight: "bold" }}>Topik Jurnal</td>
+																	<td style={{ padding: "4px 0" }}>:</td>
+																	<td style={{ padding: "4px 0" }}>{activeJurnal.materiBab || "-"}</td>
+																</tr>
+																<tr>
+																	<td style={{ padding: "4px 0", fontWeight: "bold" }}>Tugas</td>
+																	<td style={{ padding: "4px 0" }}>:</td>
+																	<td style={{ padding: "4px 0" }}>{activeJurnal.tugas || "-"}</td>
+																</tr>
+																<tr>
+																	<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kendala KBM</td>
+																	<td style={{ padding: "4px 0" }}>:</td>
+																	<td style={{ padding: "4px 0" }}>{activeJurnal.catatan || "-"}</td>
+																</tr>
+																<tr>
+																	<td style={{ padding: "4px 0", fontWeight: "bold" }}>Tanggal & Waktu</td>
+																	<td style={{ padding: "4px 0" }}>:</td>
+																	<td style={{ padding: "4px 0" }}>
+																		{new Date(activeJurnal.tanggal).toLocaleDateString("id-ID", {
+																			weekday: "long",
+																			day: "numeric",
+																			month: "long",
+																			year: "numeric",
+																		})}{" "}
+																		/ {activeJadwal.waktuRentang} WIB
+																	</td>
+																</tr>
+																<tr>
+																	<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kehadiran</td>
+																	<td style={{ padding: "4px 0" }}>:</td>
+																	<td style={{ padding: "4px 0" }}>
+																		Hadir: {hCount} | Izin/Sakit: {isCount} | Alpha: {aCount}
+																	</td>
+																</tr>
+															</tbody>
+														</table>
+													)}
+													{chunkIdx > 0 && (
+														<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>
+															Daftar Kehadiran (Lanjutan)
+														</h3>
+													)}
+
+													<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt" }}>
+														<thead style={{ display: "table-header-group" }}>
+															<tr>
+																<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "5%" }}>No</th>
+																<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "20%" }}>NIS</th>
+																<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "45%" }}>Nama Siswa</th>
+																<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "15%" }}>Status</th>
+																{activeJurnal.tugas && (
+																	<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "15%" }}>Nilai Tugas</th>
+																)}
+															</tr>
+														</thead>
+														<tbody>
+															{chunk.map((rs: any, index: number) => {
+																const globalIdx = (chunkIdx * MAX_ROWS) + index + 1;
+																const siswa = rs.siswa;
+																const currentStatus = presensiEdits[siswa.id] || "A";
+
+																let statusLabel = "Alpha";
+																if (currentStatus === "H") statusLabel = "Hadir";
+																else if (currentStatus === "I") {
+																	statusLabel = "Izin";
+																	if (alasanIzinEdits[siswa.id]) statusLabel += ` (${alasanIzinEdits[siswa.id]})`;
+																}
+																else if (currentStatus === "S") statusLabel = "Sakit";
+
+																return (
+																	<tr key={siswa.id}>
+																		<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{globalIdx}</td>
+																		<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{siswa.nis}</td>
+																		<td style={{ border: "1px solid #000", padding: "6px" }}>{siswa.user?.nama}</td>
+																		<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{statusLabel}</td>
+																		{activeJurnal.tugas && (
+																			<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+																				{nilaiTugasEdits[siswa.id] !== undefined ? nilaiTugasEdits[siswa.id] : "-"}
+																			</td>
+																		)}
+																	</tr>
+																);
+															})}
+														</tbody>
+													</table>
+													<PageFooter current={chunkIdx + 1} total={totalPages} />
+												</PageContainer>
+												{!isLastPage && <div className="html2pdf__page-break"></div>}
+											</div>
+										);
+									});
+								})()}
+							</div>
+						</div>
+					</div>
+				)}
+			</div>
 		</>
 	);
 }

@@ -184,7 +184,7 @@
 .dashboardContainer {
 	padding: 2rem;
 	max-width: 1200px;
-	margin: 0 auto;
+	margin: 0;
 	width: 100%;
 }
 
@@ -930,7 +930,7 @@
 	min-height: 297mm;
 	padding: 20mm;
 	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-	margin: 0 auto;
+	margin: 0;
 	color: #000;
 	font-family: "Times New Roman", Times, serif;
 	box-sizing: border-box;

@@ -102,11 +102,12 @@ export default function PimpinanDashboardClient({
 			const element = document.getElementById("pdf-harian-container");
 
 			const opt = {
-				margin: 0,
+				margin: 10,
 				filename: pdfFilename,
 				image: { type: "jpeg", quality: 1 },
 				html2canvas: { scale: 2, useCORS: true },
-				jsPDF: { unit: "mm", format: [215, 330], orientation: "portrait" },
+				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+				pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
 			};
 
 			await html2pdf().set(opt).from(element).save();
@@ -155,7 +156,7 @@ export default function PimpinanDashboardClient({
 				SMA NEGERI 2 BREBES
 			</h1>
 			<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-			<p style={{ margin: 0, fontSize: "11pt" }}>Website: www.sman2-brebes.sch.id - Email: smadabes@ymail.com</p>
+			<p style={{ margin: 0, fontSize: "11pt" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
 		</div>
 	);
 

@@ -8,7 +8,63 @@ body {
 }
 
 *,
-*::before,
 *::after {
 	box-sizing: inherit;
+}
+
+@media print {
+	body * {
+		visibility: hidden;
+	}
+	#pdf-portofolio-content,
+	#pdf-portofolio-content * {
+		visibility: visible;
+	}
+	#pdf-portofolio-content {
+		position: absolute;
+		left: 0;
+		top: 0;
+		width: 100%;
+		margin: 0;
+		padding: 0;
+		background: white;
+	}
+	table {
+		width: 100% !important;
+		border-collapse: collapse;
+		table-layout: auto !important;
+		word-wrap: break-word;
+	}
+	thead {
+		display: table-header-group !important;
+	}
+	tr, td, th {
+		page-break-inside: avoid !important;
+	}
+
+/* Fix table overflowing when captured by html2pdf */
+.pdfA4Container table,
+.pdfA4LandscapeContainer table,
+[id^="pdf-"] table {
+	table-layout: fixed !important;
+	width: 100% !important;
+}
+
+[id^="pdf-"] table td,
+[id^="pdf-"] table th {
+	word-wrap: break-word !important;
+	overflow-wrap: break-word !important;
+	white-space: normal !important;
+}
+
+[id^="pdf-"] {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+	.html2pdf__page-break {
+		page-break-before: always !important;
+	}
+	@page {
+		margin: 10mm;
+	}
 }

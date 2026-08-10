@@ -247,7 +247,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 							</h1>
 							<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
 							<p style={{ margin: 0, fontSize: "11pt" }}>
-								Website: www.sman2-brebes.sch.id - Email: smadabes@ymail.com
+								Website: sman2brebes.sch.id - Email: smandabes@gmail.com
 							</p>
 						</div>
 

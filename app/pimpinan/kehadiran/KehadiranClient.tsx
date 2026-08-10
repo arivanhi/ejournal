@@ -155,11 +155,12 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 				const element = document.getElementById("pdf-kehadiran-content");
 
 				const opt = {
-					margin: 0,
+					margin: 10,
 					filename: filename,
 					image: { type: "jpeg", quality: 1 },
 					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: [215, 330], orientation: "portrait" },
+					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+					pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
 				};
 
 				await html2pdf().set(opt).from(element).save();
@@ -280,7 +281,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 										Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060
 									</p>
 									<p style={{ margin: 0, fontSize: "11pt" }}>
-										Website: www.sman2-brebes.sch.id - Email: smadabes@ymail.com
+										Website: sman2brebes.sch.id - Email: smandabes@gmail.com
 									</p>
 								</div>
 
@@ -292,7 +293,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 											return (
 												<div
 													key={hariIdx}
-													style={{ flex: 1, minWidth: "120px", border: "1px solid #000", padding: "10px" }}
+													style={{ flex: 1, minWidth: "0", border: "1px solid #000", padding: "10px" }}
 												>
 													<h4
 														style={{

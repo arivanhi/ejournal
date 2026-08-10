@@ -104,13 +104,12 @@ export default function JadwalClient({
 	const [formGuru, setFormGuru] = useState("");
 	const [formGuruName, setFormGuruName] = useState("");
 	const [formHari, setFormHari] = useState("Senin");
-	const [formJam, setFormJam] = useState(SLOT_WAKTU[1].jam);
+	const [formJam, setFormJam] = useState(SLOT_WAKTU[0].jam); // Default ke jam 1
 	const [formRuang, setFormRuang] = useState("");
 
 	const filteredKelasList = kelasList.filter((k) => filterTingkat === "Semua" || k.nama.startsWith(filterTingkat));
 	const tahunAjaranTerpilih = daftarTahunAjaran.find((t) => t.id === selectedTahunId);
 
-	// Otomatis pilih semua kelas yang tampil di layar saat modal Download All dibuka
 	useEffect(() => {
 		if (isDownloadAllModalOpen) {
 			setSelectedClassesForDownload(filteredKelasList.map((k) => k.id));
@@ -125,8 +124,7 @@ export default function JadwalClient({
 	};
 
 	const openModal = (hari: string, jam: string, existingJadwal?: any) => {
-		if (hari === "Senin" && jam === "1") return;
-
+		// BUG FIX: Hapus kunci paksa "Senin Jam 1" agar modal bisa terbuka
 		setFormHari(hari);
 		setFormJam(jam);
 		if (existingJadwal) {
@@ -278,11 +276,12 @@ export default function JadwalClient({
 			const element = document.getElementById("pdf-jadwal-container");
 
 			const opt = {
-				margin: 0,
+				margin: 10,
 				filename: `Jadwal_Kelas_${activeKelasName.replace(" ", "_")}.pdf`,
 				image: { type: "jpeg", quality: 1 },
 				html2canvas: { scale: 2, useCORS: true },
 				jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+				pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
 			};
 
 			await html2pdf().set(opt).from(element).save();
@@ -304,11 +303,12 @@ export default function JadwalClient({
 			const element = document.getElementById("pdf-download-all-container");
 
 			const opt = {
-				margin: 0,
+				margin: 10,
 				filename: `Kumpulan_Jadwal_Pelajaran_${tahunAjaranTerpilih?.nama || "TA"}.pdf`,
 				image: { type: "jpeg", quality: 1 },
 				html2canvas: { scale: 2, useCORS: true },
 				jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+				pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
 			};
 
 			await html2pdf().set(opt).from(element).save();
@@ -350,55 +350,51 @@ export default function JadwalClient({
 	};
 
 	// FUNGSI RENDER PDF TEMPLATE BERSAMA
+	// BUG FIX: Mengubah absolute logo menjadi Flexbox dan menghapus batasan Fixed Width
 	const renderPdfTemplate = (namaKelas: string, jadwalUntukKelasIni: any[]) => {
 		return (
 			<div
 				style={{
-					width: "297mm",
-					height: "209mm",
-					padding: "10mm 15mm",
+					width: "100%", // Agar otomatis menyesuaikan ukuran margin dari html2pdf
 					boxSizing: "border-box",
 					backgroundColor: "#fff",
 					color: "#000",
 					fontFamily: "Arial, sans-serif",
 				}}
 			>
+				{/* Kop Surat Flexbox Agar Rata Tengah */}
 				<div
 					style={{
-						position: "relative",
-						textAlign: "center",
+						display: "flex",
+						alignItems: "center",
 						borderBottom: "3px solid #000",
-						paddingBottom: "15px",
+						paddingBottom: "10px",
 						marginBottom: "15px",
 					}}
 				>
 					<img
 						src="/logo.jpg"
-						alt="Logo SMAN 2 Brebes"
-						style={{
-							position: "absolute",
-							left: "20px",
-							top: "50%",
-							transform: "translateY(-50%)",
-							width: "80px",
-							height: "80px",
-							objectFit: "contain",
-						}}
+						onError={(e) => (e.currentTarget.src = "/logo.jpeg")}
+						style={{ width: "80px", height: "80px", objectFit: "contain", margin: "0 20px" }}
 					/>
-					<h1
-						style={{
-							margin: "0 0 5px 0",
-							fontSize: "20pt",
-							fontWeight: "bold",
-							color: "#000",
-							fontFamily: '"Times New Roman", Times, serif',
-						}}
-					>
-						SMA NEGERI 2 BREBES
-					</h1>
-					<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-					<p style={{ margin: 0, fontSize: "11pt" }}>Website: www.sman2-brebes.sch.id - Email: smadabes@ymail.com</p>
+					<div style={{ flex: 1, textAlign: "center" }}>
+						<h1
+							style={{
+								margin: "0 0 4px 0",
+								fontSize: "20pt",
+								fontWeight: "bold",
+								color: "#000",
+								fontFamily: '"Times New Roman", Times, serif',
+							}}
+						>
+							SMA NEGERI 2 BREBES
+						</h1>
+						<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+						<p style={{ margin: 0, fontSize: "11pt" }}>Website:  sman2brebes.sch.id - Email:  smandabes@gmail.com</p>
+					</div>
+					<div style={{ width: "120px" }}></div>
 				</div>
+
 				<div
 					style={{
 						display: "flex",
@@ -417,7 +413,6 @@ export default function JadwalClient({
 						borderCollapse: "collapse",
 						fontSize: "10pt",
 						border: "1px solid #000",
-						height: "calc(100% - 150px)",
 					}}
 				>
 					<thead>
@@ -609,7 +604,6 @@ export default function JadwalClient({
 						<h1 className={styles.pageTitle}>Manajemen Jadwal Pelajaran</h1>
 						<p className={styles.pageSubtitle}>Pilih kelas untuk mengatur atau melihat jadwal pelajaran.</p>
 					</div>
-					{/* KUNCI PERBAIKAN: Tombol Download All Jadwal */}
 					<button className={styles.btnPrimary} onClick={() => setIsDownloadAllModalOpen(true)}>
 						<CheckSquare size={16} /> Export Banyak Jadwal
 					</button>
@@ -975,12 +969,7 @@ export default function JadwalClient({
 											required
 											className={styles.formInput}
 											value={formHari}
-											onChange={(e) => {
-												setFormHari(e.target.value);
-												if (e.target.value === "Senin" && formJam === "1") {
-													setFormJam("2");
-												}
-											}}
+											onChange={(e) => setFormHari(e.target.value)}
 										>
 											{HARI.map((h) => (
 												<option key={h} value={h}>
@@ -997,7 +986,8 @@ export default function JadwalClient({
 											value={formJam}
 											onChange={(e) => setFormJam(e.target.value)}
 										>
-											{SLOT_WAKTU.filter((s) => !(formHari === "Senin" && s.jam === "1")).map((s) => (
+											{/* BUG FIX: Membuka kunci dropdown opsi jam agar bebas dipilih */}
+											{SLOT_WAKTU.map((s) => (
 												<option key={s.jam} value={s.jam}>
 													{s.label}
 												</option>

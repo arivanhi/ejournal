@@ -187,11 +187,12 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 				const element = document.getElementById("pdf-jurnal-content");
 
 				const opt = {
-					margin: 0,
+					margin: 10,
 					filename: filename,
 					image: { type: "jpeg", quality: 1 },
 					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: [215, 330], orientation: "portrait" },
+					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+					pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
 				};
 
 				await html2pdf().set(opt).from(element).save();
@@ -244,7 +245,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 				SMA NEGERI 2 BREBES
 			</h1>
 			<p style={{ margin: "2px 0", fontSize: "10pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-			<p style={{ margin: 0, fontSize: "10pt" }}>Website: www.sman2-brebes.sch.id - Email: smadabes@ymail.com</p>
+			<p style={{ margin: 0, fontSize: "10pt" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
 		</div>
 	);
 
@@ -892,12 +893,12 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 				</div>
 			)}
 
-			
-			
 
-			
+
+
+
 			<>
-				
+
 
 				<div className={styles.dashboardContainer}>
 					{/* VIEW 1: FILTER & KARTU JURNAL */}
@@ -1163,86 +1164,86 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 
 									<div className={styles.tableWrapper}>
 										<div style={{ overflowX: "auto", width: "100%" }}>
-<table className={styles.dataTable}>
-											<thead>
-												<tr>
-													<th
-														style={{ cursor: "pointer", userSelect: "none", width: "10%" }}
-														onClick={() => handleSort("pertemuanKe")}
-													>
-														Pert.{renderSortIcon("pertemuanKe")}
-													</th>
-													<th
-														style={{ cursor: "pointer", userSelect: "none", width: "20%" }}
-														onClick={() => handleSort("tanggalRaw")}
-													>
-														Tanggal{renderSortIcon("tanggalRaw")}
-													</th>
-													<th style={{ width: "12%" }}>Materi / Topik</th>
-													<th style={{ width: "18%" }}>Catatan KBM</th>
-													<th style={{ width: "15%" }}>Topik Tugas</th>
-													<th style={{ textAlign: "center", width: "10%" }}>Rata Nilai Tugas</th>
-													<th style={{ textAlign: "center", width: "10%" }}>Hadir</th>
-													<th
-														style={{ textAlign: "center", cursor: "pointer", userSelect: "none", width: "15%" }}
-														onClick={() => handleSort("status")}
-													>
-														Status{renderSortIcon("status")}
-													</th>
-												</tr>
-											</thead>
-											<tbody>
-												{paginatedSesi.length === 0 ? (
+											<table className={styles.dataTable}>
+												<thead>
 													<tr>
-														<td colSpan={6} className={styles.emptyTable}>
-															Tidak ada sesi yang cocok dengan pencarian.
-														</td>
-													</tr>
-												) : (
-													paginatedSesi.map((sesi: any) => (
-														<tr
-															key={sesi.id}
-															onClick={() => {
-																setSelectedSesiModal(sesi);
-																setIsNilaiModalOpen(true);
-															}}
-															style={{ cursor: "pointer" }}
-															className={styles.clickableRow}
+														<th
+															style={{ cursor: "pointer", userSelect: "none", width: "10%" }}
+															onClick={() => handleSort("pertemuanKe")}
 														>
-															<td className={styles.tdBold}>{String(sesi.pertemuanKe).padStart(2, "0")}</td>
-															<td className={styles.tdGray}>{sesi.tanggal}</td>
-															<td>
-																<div className={styles.topikTitle}>{sesi.topik}</div>
-															</td>
-															<td>
-																<div style={{ color: "#475569", fontSize: "0.875rem", lineHeight: "1.4" }}>
-																	{sesi.catatan}
-																</div>
-															</td>
-															<td>
-																<div className={styles.topikTitle} style={{ color: "#0f172a" }}>
-																	{sesi.tugas || "-"}
-																</div>
-															</td>
-															<td className={styles.tdBoldCenter} style={{ color: "#334155" }}>
-																{sesi.rataNilaiTugas !== null && sesi.rataNilaiTugas !== undefined ? sesi.rataNilaiTugas : "-"}
-															</td>
-															<td className={styles.tdBoldCenter}>
-																{sesi.hadir} <span className={styles.tdGray}>/{selectedItem.totalSiswa}</span>
-															</td>
-															<td style={{ textAlign: "center" }}>
-																<span
-																	className={sesi.status === "TERKIRIM" ? styles.badgeSuccess : styles.badgeWarning}
-																>
-																	{sesi.status}
-																</span>
+															Pert.{renderSortIcon("pertemuanKe")}
+														</th>
+														<th
+															style={{ cursor: "pointer", userSelect: "none", width: "20%" }}
+															onClick={() => handleSort("tanggalRaw")}
+														>
+															Tanggal{renderSortIcon("tanggalRaw")}
+														</th>
+														<th style={{ width: "12%" }}>Materi / Topik</th>
+														<th style={{ width: "18%" }}>Catatan KBM</th>
+														<th style={{ width: "15%" }}>Topik Tugas</th>
+														<th style={{ textAlign: "center", width: "10%" }}>Rata Nilai Tugas</th>
+														<th style={{ textAlign: "center", width: "10%" }}>Hadir</th>
+														<th
+															style={{ textAlign: "center", cursor: "pointer", userSelect: "none", width: "15%" }}
+															onClick={() => handleSort("status")}
+														>
+															Status{renderSortIcon("status")}
+														</th>
+													</tr>
+												</thead>
+												<tbody>
+													{paginatedSesi.length === 0 ? (
+														<tr>
+															<td colSpan={6} className={styles.emptyTable}>
+																Tidak ada sesi yang cocok dengan pencarian.
 															</td>
 														</tr>
-													))
-												)}
-											</tbody>
-										</table>
-</div>
+													) : (
+														paginatedSesi.map((sesi: any) => (
+															<tr
+																key={sesi.id}
+																onClick={() => {
+																	setSelectedSesiModal(sesi);
+																	setIsNilaiModalOpen(true);
+																}}
+																style={{ cursor: "pointer" }}
+																className={styles.clickableRow}
+															>
+																<td className={styles.tdBold}>{String(sesi.pertemuanKe).padStart(2, "0")}</td>
+																<td className={styles.tdGray}>{sesi.tanggal}</td>
+																<td>
+																	<div className={styles.topikTitle}>{sesi.topik}</div>
+																</td>
+																<td>
+																	<div style={{ color: "#475569", fontSize: "0.875rem", lineHeight: "1.4" }}>
+																		{sesi.catatan}
+																	</div>
+																</td>
+																<td>
+																	<div className={styles.topikTitle} style={{ color: "#0f172a" }}>
+																		{sesi.tugas || "-"}
+																	</div>
+																</td>
+																<td className={styles.tdBoldCenter} style={{ color: "#334155" }}>
+																	{sesi.rataNilaiTugas !== null && sesi.rataNilaiTugas !== undefined ? sesi.rataNilaiTugas : "-"}
+																</td>
+																<td className={styles.tdBoldCenter}>
+																	{sesi.hadir} <span className={styles.tdGray}>/{selectedItem.totalSiswa}</span>
+																</td>
+																<td style={{ textAlign: "center" }}>
+																	<span
+																		className={sesi.status === "TERKIRIM" ? styles.badgeSuccess : styles.badgeWarning}
+																	>
+																		{sesi.status}
+																	</span>
+																</td>
+															</tr>
+														))
+													)}
+												</tbody>
+											</table>
+										</div>
 									</div>
 
 									<div className={styles.paginationTable}>
@@ -1429,42 +1430,42 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 								<div style={{ fontSize: "0.875rem", color: "#64748b", marginBottom: "0.25rem" }}>Topik Tugas:</div>
 								<div style={{ fontWeight: 600, color: "#0f172a" }}>{selectedSesiModal.tugas || "-"}</div>
 							</div>
-							
+
 							<div style={{ maxHeight: "60vh", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "0.5rem" }}>
 								<div style={{ overflowX: "auto", width: "100%" }}>
-<table className={styles.dataTable} style={{ margin: 0, width: "100%" }}>
-									<thead style={{ position: "sticky", top: 0, backgroundColor: "#f1f5f9", zIndex: 1 }}>
-										<tr>
-											<th style={{ width: "10%", padding: "0.75rem", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>No</th>
-											<th style={{ width: "50%", padding: "0.75rem", textAlign: "left", borderBottom: "1px solid #e2e8f0" }}>Nama Siswa</th>
-											<th style={{ width: "20%", padding: "0.75rem", textAlign: "left", borderBottom: "1px solid #e2e8f0" }}>NISN</th>
-											<th style={{ width: "20%", padding: "0.75rem", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>Nilai</th>
-										</tr>
-									</thead>
-									<tbody>
-										{(() => {
-											const sortedSiswa = [...selectedItem.siswaList].sort((a: any, b: any) =>
-												a.nama.localeCompare(b.nama),
-											);
-
-											return sortedSiswa.map((siswa: any, idx: number) => {
-												const absen = selectedSesiModal.presensi?.find((p: any) => p.siswaId === siswa.id);
-												const nilai = absen?.nilaiTugas;
-												return (
-													<tr key={siswa.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-														<td style={{ padding: "0.75rem", textAlign: "center" }}>{idx + 1}</td>
-														<td style={{ padding: "0.75rem", fontWeight: 500, color: "#1e293b" }}>{siswa.nama}</td>
-														<td style={{ padding: "0.75rem", color: "#64748b" }}>{siswa.nisn}</td>
-														<td style={{ padding: "0.75rem", textAlign: "center", fontWeight: "bold", color: "#0f172a" }}>
-															{nilai !== null && nilai !== undefined ? nilai : "-"}
-														</td>
-													</tr>
+									<table className={styles.dataTable} style={{ margin: 0, width: "100%" }}>
+										<thead style={{ position: "sticky", top: 0, backgroundColor: "#f1f5f9", zIndex: 1 }}>
+											<tr>
+												<th style={{ width: "10%", padding: "0.75rem", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>No</th>
+												<th style={{ width: "50%", padding: "0.75rem", textAlign: "left", borderBottom: "1px solid #e2e8f0" }}>Nama Siswa</th>
+												<th style={{ width: "20%", padding: "0.75rem", textAlign: "left", borderBottom: "1px solid #e2e8f0" }}>NISN</th>
+												<th style={{ width: "20%", padding: "0.75rem", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>Nilai</th>
+											</tr>
+										</thead>
+										<tbody>
+											{(() => {
+												const sortedSiswa = [...selectedItem.siswaList].sort((a: any, b: any) =>
+													a.nama.localeCompare(b.nama),
 												);
-											});
-										})()}
-									</tbody>
-								</table>
-</div>
+
+												return sortedSiswa.map((siswa: any, idx: number) => {
+													const absen = selectedSesiModal.presensi?.find((p: any) => p.siswaId === siswa.id);
+													const nilai = absen?.nilaiTugas;
+													return (
+														<tr key={siswa.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+															<td style={{ padding: "0.75rem", textAlign: "center" }}>{idx + 1}</td>
+															<td style={{ padding: "0.75rem", fontWeight: 500, color: "#1e293b" }}>{siswa.nama}</td>
+															<td style={{ padding: "0.75rem", color: "#64748b" }}>{siswa.nisn}</td>
+															<td style={{ padding: "0.75rem", textAlign: "center", fontWeight: "bold", color: "#0f172a" }}>
+																{nilai !== null && nilai !== undefined ? nilai : "-"}
+															</td>
+														</tr>
+													);
+												});
+											})()}
+										</tbody>
+									</table>
+								</div>
 							</div>
 						</div>
 					</div>
