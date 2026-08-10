@@ -14,6 +14,8 @@ Sistem Jurnal Mengajar Elektronik dan Pemantauan Kinerja Akademik Terpadu untuk 
   - Skala kertas diubah dari A4 menjadi **Kertas F4 / Folio**.
   - Ditambahkan persentase angka pada baris grafik "Tren Kinerja Akademik" di ekspor PDF.
   - Daftar Guru dengan Jam Kosong kini otomatis dipisah ke halaman baru.
+- **Manajemen Jadwal:**
+  - Menghapus pembatasan otomatis (hardcode) pada Senin Jam ke-1 yang sebelumnya selalu diisi oleh "Upacara Bendera". Admin kini dapat menempatkan mata pelajaran lain di slot tersebut jika diperlukan.
 - **Perbaikan Zona Waktu & Presensi QR:**
   - Penambahan parameter `TZ=Asia/Jakarta` di Docker agar server mencatat waktu WIB secara akurat.
   - Sinkronisasi waktu di aplikasi klien (*frontend*) sehingga jadwal pengisian jurnal tidak meleset ke hari sebelumnya saat diakses pagi hari.

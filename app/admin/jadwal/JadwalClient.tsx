@@ -223,11 +223,6 @@ export default function JadwalClient({
 			return;
 		}
 
-		if (targetHari === "Senin" && targetJam === "1") {
-			alert("Sesi ini khusus untuk Upacara Bendera. Tidak dapat menempatkan jadwal ke sini.");
-			return;
-		}
-
 		setLoading(true);
 		const hasil = await simpanJadwalAction({
 			id: isCopyOperation ? "" : draggedJadwal.id,
@@ -258,16 +253,12 @@ export default function JadwalClient({
 		SLOT_WAKTU.forEach((slot) => {
 			const rowData: any = { "Sesi/Jam": slot.jam };
 			HARI.forEach((hari) => {
-				if (hari === "Senin" && slot.jam === "1") {
-					rowData[hari] = "UPACARA BENDERA";
-				} else {
-					const jadwal = jadwalKelasAktif.find(
-						(j) => j.hari === hari && (j.waktuMulai === slot.jam || j.jam === slot.jam),
-					);
-					rowData[hari] = jadwal
-						? `${jadwal.mapel.nama}\n(${jadwal.guru.user.nama})\nRuang: ${jadwal.ruang || "-"}`
-						: "-";
-				}
+				const jadwal = jadwalKelasAktif.find(
+					(j) => j.hari === hari && (j.waktuMulai === slot.jam || j.jam === slot.jam),
+				);
+				rowData[hari] = jadwal
+					? `${jadwal.mapel.nama}\n(${jadwal.guru.user.nama})\nRuang: ${jadwal.ruang || "-"}`
+					: "-";
 			});
 			excelData.push(rowData);
 		});
@@ -476,23 +467,7 @@ export default function JadwalClient({
 									<div style={{ fontSize: "8pt", fontWeight: "normal", color: "#4b5563" }}>{WAKTU_JAM[idx]}</div>
 								</td>
 								{HARI.map((hari) => {
-									if (hari === "Senin" && slot.jam === "1") {
-										return (
-											<td
-												key={`${hari}-${slot.jam}`}
-												style={{
-													border: "1px solid #000",
-													backgroundColor: "#bfdbfe",
-													textAlign: "center",
-													fontWeight: "bold",
-													padding: "4px",
-													verticalAlign: "middle",
-												}}
-											>
-												UPACARA BENDERA
-											</td>
-										);
-									}
+
 									const jadwalSlot = jadwalUntukKelasIni.find(
 										(j: any) => j.hari === hari && (j.waktuMulai === slot.jam || j.jam === slot.jam),
 									);
@@ -813,23 +788,7 @@ export default function JadwalClient({
 									</div>
 								</td>
 								{HARI.map((hari) => {
-									if (hari === "Senin" && slot.jam === "1") {
-										return (
-											<td key={`${hari}-${slot.jam}`}>
-												<div
-													className={`${styles.cardSlot} ${styles.cardBlue}`}
-													style={{ cursor: "not-allowed", justifyContent: "center", minHeight: "80px" }}
-												>
-													<div className={styles.mapelName} style={{ textAlign: "center", width: "100%" }}>
-														Upacara Bendera
-													</div>
-													<div style={{ fontSize: "0.75rem", textAlign: "center", color: "#1e40af", marginTop: "4px" }}>
-														(Wajib)
-													</div>
-												</div>
-											</td>
-										);
-									}
+
 
 									const jadwalSlot = jadwalKelasAktif.find(
 										(j) => j.hari === hari && (j.waktuMulai === slot.jam || j.jam === slot.jam),
