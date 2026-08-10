@@ -161,7 +161,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 						filename: `Laporan_Rekapitulasi_PDCA_${selectedSemester}_${selectedTahun}.pdf`,
 						image: { type: "jpeg", quality: 1 },
 						html2canvas: { scale: 2, useCORS: true },
-						jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+						jsPDF: { unit: "mm", format: [215, 330], orientation: "landscape" },
 						pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
 					};
 
@@ -203,8 +203,8 @@ export default function ReportClient({ user, dataRekap }: any) {
 					<div
 						id="pdf-report-container"
 						style={{
-							width: "297mm",
-							minHeight: "210mm",
+							width: "310mm",
+							minHeight: "215mm",
 							padding: "15mm",
 							boxSizing: "border-box",
 							backgroundColor: "#fff",
@@ -296,13 +296,17 @@ export default function ReportClient({ user, dataRekap }: any) {
 											<div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
 												<div style={{ display: "flex", gap: "2px", alignItems: "flex-end", height: "60px" }}>
 													<div
-														style={{ width: "15px", height: `${t.pctKehadiran}%`, backgroundColor: "#1e3a8a" }}
+														style={{ width: "15px", height: `${t.pctKehadiran}%`, backgroundColor: "#1e3a8a", position: "relative" }}
 														title="Kehadiran"
-													></div>
+													>
+														<span style={{ position: "absolute", top: "-12px", left: "50%", transform: "translateX(-50%)", fontSize: "7px", color: "#1e3a8a", fontWeight: "bold" }}>{t.pctKehadiran}%</span>
+													</div>
 													<div
-														style={{ width: "15px", height: `${t.pctJurnal}%`, backgroundColor: "#65a30d" }}
+														style={{ width: "15px", height: `${t.pctJurnal}%`, backgroundColor: "#65a30d", position: "relative" }}
 														title="Jurnal"
-													></div>
+													>
+														<span style={{ position: "absolute", top: "-12px", left: "50%", transform: "translateX(-50%)", fontSize: "7px", color: "#65a30d", fontWeight: "bold" }}>{t.pctJurnal}%</span>
+													</div>
 												</div>
 												<span style={{ fontSize: "8pt", marginTop: "4px" }}>{t.bulan}</span>
 											</div>
@@ -391,6 +395,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 						{/* TABEL GURU JAM KOSONG (PERIODIK) */}
 						{periodicGuruKosong.length > 0 && (
 							<>
+								<div className="html2pdf__page-break"></div>
 								<h3
 									style={{
 										fontSize: "12pt",

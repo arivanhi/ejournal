@@ -926,7 +926,7 @@
 /* === PDF A4 PRINT TEMPLATE === */
 .pdfA4Container {
 	background: white;
-	width: 210mm;
+	width: 195mm;
 	min-height: 297mm;
 	padding: 20mm;
 	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);

@@ -106,7 +106,7 @@ export default function PimpinanDashboardClient({
 				filename: pdfFilename,
 				image: { type: "jpeg", quality: 1 },
 				html2canvas: { scale: 2, useCORS: true },
-				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+				jsPDF: { unit: "mm", format: [215, 330], orientation: "portrait" },
 			};
 
 			await html2pdf().set(opt).from(element).save();
@@ -165,7 +165,7 @@ export default function PimpinanDashboardClient({
 				<div
 					id="pdf-harian-container"
 					style={{
-						width: "210mm",
+						width: "195mm",
 						minHeight: "297mm",
 						padding: "15mm",
 						boxSizing: "border-box",

@@ -144,7 +144,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 				filename: `Rekap_KBM_${selectedItem.mapelNama.replace(/\s+/g, "_")}_${selectedItem.kelasNama.replace(/\s+/g, "_")}.pdf`,
 				image: { type: "jpeg", quality: 1 },
 				html2canvas: { scale: 2, useCORS: true },
-				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+				jsPDF: { unit: "mm", format: [215, 330], orientation: "portrait" },
 			};
 
 			await html2pdf().set(opt).from(element).save();
@@ -190,7 +190,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 					filename: `Rekap_KBM_Multi_Guru.pdf`,
 					image: { type: "jpeg", quality: 1 },
 					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+					jsPDF: { unit: "mm", format: [215, 330], orientation: "portrait" },
 				};
 
 				await html2pdf().set(opt).from(element).save();
@@ -255,7 +255,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 					<div
 						id="pdf-monitoring-single"
 						style={{
-							width: "210mm",
+							width: "195mm",
 							minHeight: "297mm",
 							padding: "15mm",
 							boxSizing: "border-box",
@@ -467,7 +467,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 					<div
 						id="pdf-monitoring-bulk"
 						style={{
-							width: "210mm",
+							width: "195mm",
 							minHeight: "297mm",
 							padding: "15mm",
 							boxSizing: "border-box",
