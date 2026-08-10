@@ -624,9 +624,9 @@ export default function JadwalClient({
 							onChange={(e) => setFilterTingkat(e.target.value)}
 						>
 							<option value="Semua">Semua Tingkat</option>
-							<option value="X">Kelas X</option>
-							<option value="XI">Kelas XI</option>
-							<option value="XII">Kelas XII</option>
+							<option value="X-">Kelas X</option>
+							<option value="XI-">Kelas XI</option>
+							<option value="XII-">Kelas XII</option>
 						</select>
 					</div>
 

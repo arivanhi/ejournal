@@ -83,19 +83,7 @@ export async function aktifkanPresensiQR(jurnalId: string) {
 		const jurnal = await prisma.jurnalMengajar.findUnique({ where: { id: jurnalId } });
 		if (!jurnal) throw new Error("Jurnal tidak ditemukan");
 
-		let manualCode = "";
-
-		if (jurnal.qrToken) {
-			const parts = jurnal.qrToken.split("_");
-			if (parts.length >= 3) {
-				manualCode = parts[2];
-			} else {
-				manualCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-			}
-		} else {
-			manualCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-		}
-
+		const manualCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 		const token = `QR_${jurnalId}_${manualCode}_${Date.now()}`;
 
 		await prisma.jurnalMengajar.update({
