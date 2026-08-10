@@ -37,16 +37,19 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 	return chunks;
 }
 
-const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
+// ============================================================================
+// KOMPONEN PEMBANTU PDF (PAGINATION MANUAL - LANDSCAPE F4)
+// ============================================================================
+const PageContainer = ({ children }: { children: React.ReactNode }) => (
 	<div
 		style={{
 			width: "330mm",
-			height: "215mm",
+			height: "214mm", // PERBAIKAN: Dikurangi 1mm agar tidak micro-overflow
 			padding: "10mm 15mm",
 			boxSizing: "border-box",
 			display: "flex",
 			flexDirection: "column",
-			pageBreakAfter: isLast ? "auto" : "always",
+			// PERBAIKAN KUNCI: Dihapus pageBreakAfter agar tidak double page-break dengan div.html2pdf__page-break
 			backgroundColor: "white",
 			color: "black",
 			position: "relative",
@@ -60,6 +63,43 @@ const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast
 const PageFooter = ({ current, total }: { current: number; total: number }) => (
 	<div style={{ textAlign: "right", fontSize: "10pt", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid #e2e8f0" }}>
 		Halaman {current} dari {total}
+	</div>
+);
+
+const KopSurat = () => (
+	<div style={{ paddingBottom: "5px", backgroundColor: "white", marginBottom: "15px", flexShrink: 0, pageBreakInside: "avoid" }}>
+		<div
+			style={{
+				display: "flex",
+				alignItems: "center",
+				borderBottom: "3px solid black",
+				paddingBottom: "10px",
+				marginBottom: "2px",
+			}}
+		>
+			<img
+				src="/logo.jpg"
+				alt="Logo SMAN 2 Brebes"
+				style={{ width: "80px", height: "80px", objectFit: "contain", margin: "0 20px" }}
+			/>
+			<div style={{ flex: 1, textAlign: "center" }}>
+				<h1
+					style={{
+						margin: "0 0 4px 0",
+						fontSize: "20pt",
+						fontWeight: "bold",
+						color: "#000",
+						fontFamily: '"Times New Roman", Times, serif',
+					}}
+				>
+					SMA NEGERI 2 BREBES
+				</h1>
+				<p style={{ margin: "2px 0", fontSize: "10pt", color: "#000" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
+			</div>
+			<div style={{ width: "120px" }}></div>
+		</div>
+		<div style={{ borderBottom: "1px solid black" }}></div>
 	</div>
 );
 
@@ -159,7 +199,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 		setIsLoading(false);
 	};
 
-	// --- FUNGSI EXPORT PDF A4 LANDSCAPE ---
+	// --- FUNGSI EXPORT PDF A4 LANDSCAPE (MARGIN 0 & MANUAL PAGINATION) ---
 	const handleDownloadPdf = async () => {
 		if (!activeData) return;
 		if (!startDate || !endDate) {
@@ -184,32 +224,34 @@ export default function ReportClient({ user, dataRekap }: any) {
 				setPeriodicGuruKosong(result.guruKosong);
 			}
 
-			// Beri waktu React merender tabel baru
+			// Beri waktu React merender tabel baru di hidden div
 			setTimeout(async () => {
 				try {
 					const html2pdf = (await import("html2pdf.js")).default;
 					const element = document.getElementById("pdf-report-container");
 
 					const opt = {
-						margin: 10,
+						margin: 0,
 						filename: `Laporan_Rekapitulasi_PDCA_${selectedSemester}_${selectedTahun}.pdf`,
 						image: { type: "jpeg", quality: 1 },
 						html2canvas: { scale: 2, useCORS: true },
 						jsPDF: { unit: "mm", format: [215, 330], orientation: "landscape" },
-						pagebreak: { mode: ['css'] }
+						pagebreak: { mode: ['css', 'legacy'] }
 					};
 
 					await html2pdf().set(opt).from(element).save();
+					showToast("PDF berhasil diunduh!", "success");
 				} catch (err) {
 					console.error("Gagal html2pdf:", err);
+					showToast("Gagal memproses PDF.", "error");
 				} finally {
 					setIsDownloadingPdf(false);
 					setIsPdfModalOpen(false);
 				}
-			}, 500);
+			}, 800);
 		} catch (error) {
 			console.error("Gagal men-generate PDF:", error);
-			showToast("Terjadi kesalahan saat memproses laporan PDF.", "error");
+			showToast("Terjadi kesalahan saat mengambil data.", "error");
 			setIsDownloadingPdf(false);
 		}
 	};
@@ -234,7 +276,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 			{/* CONTAINER TERSEMBUNYI UNTUK EXPORT PDF A4 LANDSCAPE */}
 			{activeData && (
 				<div style={{ display: "none" }}>
-					<div id="pdf-report-container">
+					<div id="pdf-report-container" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 						{(() => {
 							const MAX_ROWS = 25;
 							const aksiChunks = chunkArray(activeData.pdca.doImplementasi, MAX_ROWS);
@@ -245,52 +287,20 @@ export default function ReportClient({ user, dataRekap }: any) {
 							const totalPages = 1 + aksiChunks.length + guruKosongChunks.length;
 							let pageCounter = 1;
 
-							const pdfHeader = (
-								<div
-									style={{
-										position: "relative",
-										textAlign: "center",
-										borderBottom: "3px solid #000",
-										paddingBottom: "15px",
-										marginBottom: "15px",
-									}}
-								>
-									<img
-										src="/logo.jpg"
-										alt="Logo SMAN 2 Brebes"
-										style={{
-											position: "absolute",
-											left: "10px",
-											top: "50%",
-											transform: "translateY(-50%)",
-											width: "80px",
-											height: "80px",
-											objectFit: "contain",
-										}}
-									/>
-									<h1
-										style={{
-											margin: "0 0 5px 0",
-											fontSize: "18pt",
-											fontWeight: "bold",
-											color: "#000",
-											fontFamily: '"Times New Roman", Times, serif',
-										}}
-									>
-										SMA NEGERI 2 BREBES
-									</h1>
-									<p style={{ margin: "2px 0", fontSize: "11pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-									<p style={{ margin: 0, fontSize: "11pt" }}>
-										Website: sman2brebes.sch.id - Email: smandabes@gmail.com
-									</p>
+							const SignatureBlock = () => (
+								<div style={{ textAlign: "right", marginTop: "20px", paddingBottom: "10px", pageBreakInside: "avoid" }}>
+									<p style={{ margin: 0, fontSize: "11pt" }}>Brebes, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
+									<p style={{ margin: "5px 0 50px 0", fontSize: "11pt" }}>Kepala Sekolah SMAN 2 Brebes</p>
+									<p style={{ margin: 0, fontSize: "11pt", fontWeight: "bold", textDecoration: "underline" }}>{user.nama}</p>
+									<p style={{ margin: 0, fontSize: "11pt" }}>NIP/NPP: {user.username || "-"}</p>
 								</div>
 							);
 
 							return (
 								<>
 									{/* HALAMAN 1: SUMMARY & ANALISA */}
-									<PageContainer isLast={false}>
-										{pdfHeader}
+									<PageContainer>
+										<KopSurat />
 										<div style={{ textAlign: "center", marginBottom: "20px" }}>
 											<h2 style={{ margin: 0, fontSize: "14pt", fontWeight: "bold", textTransform: "uppercase" }}>
 												LAPORAN REKAPITULASI - ANALISA PDCA
@@ -300,7 +310,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 											</p>
 											{startDate && endDate && (
 												<p style={{ margin: "5px 0", fontSize: "10pt", fontWeight: "bold" }}>
-													Periode: {new Date(startDate).toLocaleDateString("id-ID")} s.d. {new Date(endDate).toLocaleDateString("id-ID")}
+													Periode Laporan Jam Kosong: {new Date(startDate).toLocaleDateString("id-ID")} s.d. {new Date(endDate).toLocaleDateString("id-ID")}
 												</p>
 											)}
 										</div>
@@ -383,6 +393,9 @@ export default function ReportClient({ user, dataRekap }: any) {
 										<PageFooter current={pageCounter++} total={totalPages} />
 									</PageContainer>
 
+									{/* DIV PEMOTONG DIMASUKKAN KE DALAM KONDISIONAL MURNI */}
+									<div className="html2pdf__page-break"></div>
+
 									{/* HALAMAN 2+: Rencana Aksi */}
 									{aksiChunks.map((chunk: any[], chunkIdx: number) => {
 										const isLastAksi = chunkIdx === aksiChunks.length - 1;
@@ -390,9 +403,9 @@ export default function ReportClient({ user, dataRekap }: any) {
 										const isVeryLastPage = isLastAksi && !hasGuruKosong;
 
 										return (
-											<PageContainer key={`aksi-${chunkIdx}`} isLast={isVeryLastPage}>
-												{pdfHeader}
-												{chunkIdx === 0 && (
+											<div key={`aksi-${chunkIdx}`}>
+												<PageContainer>
+													<KopSurat />
 													<h3
 														style={{
 															fontSize: "12pt",
@@ -402,55 +415,52 @@ export default function ReportClient({ user, dataRekap }: any) {
 															marginBottom: "10px",
 														}}
 													>
-														Rencana Aksi (PDCA)
+														Rencana Aksi (PDCA) {chunkIdx > 0 ? "(Lanjutan)" : ""}
 													</h3>
-												)}
-												<table
-													style={{
-														width: "100%",
-														borderCollapse: "collapse",
-														fontSize: "10pt",
-														border: "1px solid #000",
-														marginBottom: "20px",
-													}}
-												>
-													<thead>
-														<tr style={{ backgroundColor: "#f1f5f9" }}>
-															<th style={{ border: "1px solid #000", padding: "6px", width: "15%" }}>Aspek</th>
-															<th style={{ border: "1px solid #000", padding: "6px", width: "35%" }}>Temuan Utama</th>
-															<th style={{ border: "1px solid #000", padding: "6px", width: "35%" }}>Rencana Aksi</th>
-															<th style={{ border: "1px solid #000", padding: "6px", width: "15%", textAlign: "center" }}>Status</th>
-														</tr>
-													</thead>
-													<tbody>
-														{chunk.length === 0 ? (
-															<tr>
-																<td colSpan={4} style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-																	Belum ada rencana aksi.
-																</td>
+													<table
+														style={{
+															width: "100%",
+															borderCollapse: "collapse",
+															fontSize: "9pt",
+															border: "1px solid #000",
+															marginBottom: "20px",
+														}}
+													>
+														<thead style={{ display: "table-header-group" }}>
+															<tr style={{ backgroundColor: "#f1f5f9" }}>
+																<th style={{ border: "1px solid #000", padding: "6px", width: "10%" }}>Aspek</th>
+																<th style={{ border: "1px solid #000", padding: "6px", width: "40%" }}>Temuan Utama</th>
+																<th style={{ border: "1px solid #000", padding: "6px", width: "40%" }}>Rencana Aksi</th>
+																<th style={{ border: "1px solid #000", padding: "6px", width: "10%", textAlign: "center" }}>Status</th>
 															</tr>
-														) : (
-															chunk.map((row: any, i: number) => (
-																<tr key={i}>
-																	<td style={{ border: "1px solid #000", padding: "6px" }}>{row.aspek}</td>
-																	<td style={{ border: "1px solid #000", padding: "6px" }}>{row.temuan}</td>
-																	<td style={{ border: "1px solid #000", padding: "6px" }}>{row.aksi}</td>
-																	<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{row.status}</td>
+														</thead>
+														<tbody>
+															{chunk.length === 0 ? (
+																<tr>
+																	<td colSpan={4} style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+																		Belum ada rencana aksi.
+																	</td>
 																</tr>
-															))
-														)}
-													</tbody>
-												</table>
-												
-												{isVeryLastPage && (
-													<div style={{ textAlign: "right", marginTop: "20px" }}>
-														<p style={{ margin: 0, fontSize: "11pt" }}>Kepala Sekolah SMAN 2 Brebes</p>
-														<p style={{ margin: "50px 0 0 0", fontSize: "11pt", fontWeight: "bold" }}>{user.nama}</p>
-														<p style={{ margin: 0, fontSize: "11pt" }}>NIP: {user.username}</p>
-													</div>
-												)}
-												<PageFooter current={pageCounter++} total={totalPages} />
-											</PageContainer>
+															) : (
+																chunk.map((row: any, i: number) => (
+																	<tr key={i} style={{ pageBreakInside: "avoid" }}>
+																		<td style={{ border: "1px solid #000", padding: "6px", fontWeight: "bold" }}>{row.aspek}</td>
+																		<td style={{ border: "1px solid #000", padding: "6px" }}>{row.temuan}</td>
+																		<td style={{ border: "1px solid #000", padding: "6px" }}>{row.aksi}</td>
+																		<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center", fontWeight: "bold", color: row.status === "Completed" ? "#10b981" : row.status === "In Progress" ? "#d97706" : "#ef4444" }}>
+																			{row.status}
+																		</td>
+																	</tr>
+																))
+															)}
+														</tbody>
+													</table>
+
+													{isVeryLastPage && <SignatureBlock />}
+													<PageFooter current={pageCounter++} total={totalPages} />
+												</PageContainer>
+												{!isVeryLastPage && <div className="html2pdf__page-break"></div>}
+											</div>
 										);
 									})}
 
@@ -459,9 +469,9 @@ export default function ReportClient({ user, dataRekap }: any) {
 										const isVeryLastPage = chunkIdx === guruKosongChunks.length - 1;
 
 										return (
-											<PageContainer key={`guru-${chunkIdx}`} isLast={isVeryLastPage}>
-												{pdfHeader}
-												{chunkIdx === 0 && (
+											<div key={`guru-${chunkIdx}`}>
+												<PageContainer>
+													<KopSurat />
 													<h3
 														style={{
 															fontSize: "12pt",
@@ -469,52 +479,54 @@ export default function ReportClient({ user, dataRekap }: any) {
 															borderBottom: "1px solid #000",
 															paddingBottom: "5px",
 															marginBottom: "10px",
-															marginTop: "20px",
 														}}
 													>
-														Daftar Guru dengan Jam Kosong (Tidak Mengisi Jurnal)
+														Daftar Guru dengan Jam Kosong {chunkIdx > 0 ? "(Lanjutan)" : ""}
 													</h3>
-												)}
-												<table
-													style={{
-														width: "100%",
-														borderCollapse: "collapse",
-														fontSize: "10pt",
-														border: "1px solid #000",
-														marginBottom: "20px",
-													}}
-												>
-													<thead>
-														<tr style={{ backgroundColor: "#f1f5f9" }}>
-															<th style={{ border: "1px solid #000", padding: "6px", width: "5%" }}>No</th>
-															<th style={{ border: "1px solid #000", padding: "6px", width: "25%" }}>Nama Guru</th>
-															<th style={{ border: "1px solid #000", padding: "6px", width: "20%" }}>Mata Pelajaran</th>
-															<th style={{ border: "1px solid #000", padding: "6px", width: "20%" }}>Kelas</th>
-															<th style={{ border: "1px solid #000", padding: "6px", width: "30%" }}>Tanggal Kosong</th>
-														</tr>
-													</thead>
-													<tbody>
-														{chunk.map((guru: any, i: number) => (
-															<tr key={i}>
-																<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{chunkIdx * MAX_ROWS + i + 1}</td>
-																<td style={{ border: "1px solid #000", padding: "6px" }}>{guru.nama}</td>
-																<td style={{ border: "1px solid #000", padding: "6px" }}>{guru.mapel}</td>
-																<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{guru.kelas}</td>
-																<td style={{ border: "1px solid #000", padding: "6px" }}>{guru.tanggal.join(", ")}</td>
+													<table
+														style={{
+															width: "100%",
+															borderCollapse: "collapse",
+															fontSize: "9pt",
+															border: "1px solid #000",
+															marginBottom: "20px",
+														}}
+													>
+														<thead style={{ display: "table-header-group" }}>
+															<tr style={{ backgroundColor: "#f1f5f9" }}>
+																<th style={{ border: "1px solid #000", padding: "6px", width: "5%", textAlign: "center" }}>No</th>
+																<th style={{ border: "1px solid #000", padding: "6px", width: "25%" }}>Nama Guru</th>
+																<th style={{ border: "1px solid #000", padding: "6px", width: "20%" }}>Mata Pelajaran</th>
+																<th style={{ border: "1px solid #000", padding: "6px", width: "15%", textAlign: "center" }}>Kelas</th>
+																<th style={{ border: "1px solid #000", padding: "6px", width: "35%" }}>Tanggal Kosong</th>
 															</tr>
-														))}
-													</tbody>
-												</table>
-												
-												{isVeryLastPage && (
-													<div style={{ textAlign: "right", marginTop: "20px" }}>
-														<p style={{ margin: 0, fontSize: "11pt" }}>Kepala Sekolah SMAN 2 Brebes</p>
-														<p style={{ margin: "50px 0 0 0", fontSize: "11pt", fontWeight: "bold" }}>{user.nama}</p>
-														<p style={{ margin: 0, fontSize: "11pt" }}>NIP: {user.username}</p>
-													</div>
-												)}
-												<PageFooter current={pageCounter++} total={totalPages} />
-											</PageContainer>
+														</thead>
+														<tbody>
+															{chunk.length === 0 ? (
+																<tr>
+																	<td colSpan={5} style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+																		Tidak ada data guru kosong pada periode terpilih.
+																	</td>
+																</tr>
+															) : (
+																chunk.map((guru: any, i: number) => (
+																	<tr key={i} style={{ pageBreakInside: "avoid" }}>
+																		<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{chunkIdx * MAX_ROWS + i + 1}</td>
+																		<td style={{ border: "1px solid #000", padding: "6px", fontWeight: "bold" }}>{guru.nama}</td>
+																		<td style={{ border: "1px solid #000", padding: "6px" }}>{guru.mapel}</td>
+																		<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{guru.kelas}</td>
+																		<td style={{ border: "1px solid #000", padding: "6px" }}>{guru.tanggal.join(", ")}</td>
+																	</tr>
+																))
+															)}
+														</tbody>
+													</table>
+
+													{isVeryLastPage && <SignatureBlock />}
+													<PageFooter current={pageCounter++} total={totalPages} />
+												</PageContainer>
+												{!isVeryLastPage && <div className="html2pdf__page-break"></div>}
+											</div>
 										);
 									})}
 								</>
@@ -550,7 +562,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 						<div className={styles.modalBody} style={{ textAlign: "center", padding: "2rem" }}>
 							<Printer size={48} color="#3b82f6" style={{ margin: "0 auto 1rem auto" }} />
 							<p style={{ fontSize: "1rem", color: "#334155", marginBottom: "1.5rem" }}>
-								Silakan pilih rentang tanggal untuk data Laporan Periodik:
+								Silakan pilih rentang tanggal untuk data Laporan Jam Kosong Guru:
 							</p>
 							<div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginBottom: "1rem" }}>
 								<div style={{ textAlign: "left" }}>
@@ -675,254 +687,249 @@ export default function ReportClient({ user, dataRekap }: any) {
 				</div>
 			)}
 
-			
-			
+			{/* === MAIN CONTENT (WEB UI) === */}
+			<div className={styles.dashboardContainer}>
+				{/* VIEW 1: SELECTION */}
+				{viewMode === "selection" && (
+					<div>
+						<div className={styles.sectionHeader}>
+							<h2 className={styles.sectionTitleBig}>Laporan Rekapitulasi</h2>
+							<p className={styles.sectionDate}>
+								Pilih periode akademik untuk melihat analisa rekapitulasi PDCA (Plan, Do, Check, Act).
+							</p>
+						</div>
 
-			<>
-				
-
-				<div className={styles.dashboardContainer}>
-					{/* VIEW 1: SELECTION */}
-					{viewMode === "selection" && (
-						<div>
-							<div className={styles.sectionHeader}>
-								<h2 className={styles.sectionTitleBig}>Laporan Rekapitulasi</h2>
-								<p className={styles.sectionDate}>
-									Pilih periode akademik untuk melihat analisa rekapitulasi PDCA (Plan, Do, Check, Act).
-								</p>
-							</div>
-
-							<div className={styles.selectionGrid}>
-								<div className={styles.filterCol}>
-									<div className={styles.filterCard}>
-										<h3 className={styles.filterLabel}>Tahun Ajaran</h3>
-										<div className={styles.stackButtons}>
-											{tahunList.map((tahun) => (
-												<button
-													key={tahun}
-													className={`${styles.selectBtn} ${selectedTahun === tahun ? styles.selectBtnActive : ""}`}
-													onClick={() => setSelectedTahun(tahun)}
-												>
-													{tahun}
-												</button>
-											))}
-										</div>
-									</div>
-									<div className={styles.filterCard}>
-										<h3 className={styles.filterLabel}>Semester</h3>
-										<div className={styles.rowButtons}>
-											{["Ganjil", "Genap"].map((sem) => (
-												<button
-													key={sem}
-													className={`${styles.selectBtn} ${selectedSemester === sem ? styles.selectBtnActive : ""}`}
-													onClick={() => setSelectedSemester(sem)}
-												>
-													{sem}
-												</button>
-											))}
-										</div>
+						<div className={styles.selectionGrid}>
+							<div className={styles.filterCol}>
+								<div className={styles.filterCard}>
+									<h3 className={styles.filterLabel}>Tahun Ajaran</h3>
+									<div className={styles.stackButtons}>
+										{tahunList.map((tahun) => (
+											<button
+												key={tahun}
+												className={`${styles.selectBtn} ${selectedTahun === tahun ? styles.selectBtnActive : ""}`}
+												onClick={() => setSelectedTahun(tahun)}
+											>
+												{tahun}
+											</button>
+										))}
 									</div>
 								</div>
+								<div className={styles.filterCard}>
+									<h3 className={styles.filterLabel}>Semester</h3>
+									<div className={styles.rowButtons}>
+										{["Ganjil", "Genap"].map((sem) => (
+											<button
+												key={sem}
+												className={`${styles.selectBtn} ${selectedSemester === sem ? styles.selectBtnActive : ""}`}
+												onClick={() => setSelectedSemester(sem)}
+											>
+												{sem}
+											</button>
+										))}
+									</div>
+								</div>
+							</div>
 
-								<div className={styles.heroCol}>
-									<div className={styles.heroCard}>
-										<span className={styles.badgeBlueLight}>📅 Periode Terpilih</span>
-										<h1 className={styles.heroTitle}>
-											Laporan PDCA Semester {selectedSemester} TA {selectedTahun}
-										</h1>
-										<div className={styles.heroStatsRow}>
-											<div className={styles.heroStatBox}>
-												<div className={styles.iconBoxLight}>
-													<UsersRound size={20} color="#0f172a" />
-												</div>
-												<div>
-													<div className={styles.statLabelSm}>Total Guru Terlibat</div>
-													<div className={styles.statValBig}>{activeData ? activeData.totalGuru : 0}</div>
-												</div>
+							<div className={styles.heroCol}>
+								<div className={styles.heroCard}>
+									<span className={styles.badgeBlueLight}>📅 Periode Terpilih</span>
+									<h1 className={styles.heroTitle}>
+										Laporan PDCA Semester {selectedSemester} TA {selectedTahun}
+									</h1>
+									<div className={styles.heroStatsRow}>
+										<div className={styles.heroStatBox}>
+											<div className={styles.iconBoxLight}>
+												<UsersRound size={20} color="#0f172a" />
 											</div>
-											<div className={styles.heroStatBox}>
-												<div className={styles.iconBoxLight}>
-													<GraduationCap size={20} color="#0f172a" />
-												</div>
-												<div>
-													<div className={styles.statLabelSm}>Total Siswa Dipantau</div>
-													<div className={styles.statValBig}>{activeData ? activeData.totalSiswa : 0}</div>
-												</div>
+											<div>
+												<div className={styles.statLabelSm}>Total Guru Terlibat</div>
+												<div className={styles.statValBig}>{activeData ? activeData.totalGuru : 0}</div>
 											</div>
 										</div>
-
-										<button
-											className={styles.btnPrimaryLg}
-											onClick={() => setViewMode("detail")}
-											disabled={!activeData}
-										>
-											Buka Analisa &rarr;
-										</button>
+										<div className={styles.heroStatBox}>
+											<div className={styles.iconBoxLight}>
+												<GraduationCap size={20} color="#0f172a" />
+											</div>
+											<div>
+												<div className={styles.statLabelSm}>Total Siswa Dipantau</div>
+												<div className={styles.statValBig}>{activeData ? activeData.totalSiswa : 0}</div>
+											</div>
+										</div>
 									</div>
+
+									<button
+										className={styles.btnPrimaryLg}
+										onClick={() => setViewMode("detail")}
+										disabled={!activeData}
+									>
+										Buka Analisa &rarr;
+									</button>
 								</div>
 							</div>
 						</div>
-					)}
+					</div>
+				)}
 
-					{/* VIEW 2: DETAIL ANALISA */}
-					{viewMode === "detail" && activeData && (
-						<div>
-							<div className={styles.detailTopbar}>
-								<div>
-									<button className={styles.btnBack} onClick={() => setViewMode("selection")}>
-										<ArrowLeft size={16} />
-									</button>
-									<div>
-										<h2 className={styles.detailTitleMain}>Laporan Rekapitulasi - Analisa PDCA</h2>
-										<p className={styles.detailSubText}>
-											Semester {selectedSemester} TA {selectedTahun}
-										</p>
-									</div>
-								</div>
-								<button className={styles.btnPrint} onClick={() => setIsPdfModalOpen(true)}>
-									<Download size={20} /> Ekspor ke PDF
+				{/* VIEW 2: DETAIL ANALISA */}
+				{viewMode === "detail" && activeData && (
+					<div>
+						<div className={styles.detailTopbar}>
+							<div>
+								<button className={styles.btnBack} onClick={() => setViewMode("selection")}>
+									<ArrowLeft size={16} />
 								</button>
-							</div>
-
-							<div className={styles.threeGrid}>
-								<div className={styles.statCard}>
-									<h3 className={styles.cardHeaderTitle}>
-										<AlertTriangle size={18} color="#eab308" /> Guru Jam Kosong Terbanyak
-									</h3>
-									<div className={styles.listWrapper}>
-										{activeData.topGuru.length === 0 ? (
-											<p style={{ fontSize: "0.875rem", color: "#64748b" }}>Belum ada data terekam.</p>
-										) : (
-											activeData.topGuru.map((guru: any, idx: number) => (
-												<div key={idx} className={styles.listItem}>
-													<div className={styles.listNumBlue}>{idx + 1}</div>
-													<div className={styles.listTextGroup}>
-														<div className={styles.listName}>{guru.nama}</div>
-														<div className={styles.listSub}>{guru.mapel} - {guru.kelas}</div>
-													</div>
-													<div className={styles.listValueRed}>{guru.jamKosong} Jam Kosong</div>
-												</div>
-											))
-										)}
-									</div>
-								</div>
-
-								<div className={styles.statCard}>
-									<h3 className={styles.cardHeaderTitle}>
-										<UserX size={18} color="#eab308" /> Absensi Siswa Tertinggi
-									</h3>
-									<div className={styles.listWrapper}>
-										{activeData.topKelas.length === 0 ? (
-											<p style={{ fontSize: "0.875rem", color: "#64748b" }}>Belum ada data terekam.</p>
-										) : (
-											activeData.topKelas.map((kelas: any, idx: number) => (
-												<div key={idx} className={styles.listItem}>
-													<div className={styles.listCircleGray}>{kelas.nama.split(" ")[0]}</div>
-													<div className={styles.listTextGroup}>
-														<div className={styles.listName}>Kelas {kelas.nama}</div>
-													</div>
-													<div className={styles.badgeRedSoft}>{kelas.alpha}% Alpha</div>
-												</div>
-											))
-										)}
-									</div>
-								</div>
-
-								<div className={styles.statCard}>
-									<h3 className={styles.cardHeaderTitle}>
-										<PieChart size={18} color="#0f172a" /> Distribusi Kehadiran
-									</h3>
-									<div className={styles.chartContainer}>
-										<div className={styles.donutChart} style={{ background: getGradientString() }}>
-											<div className={styles.donutHole}></div>
-										</div>
-										<div className={styles.legendWrapper}>
-											<div className={styles.legendItem}>
-												<div className={styles.dotNavy} style={{ backgroundColor: "#10b981" }}></div> Hadir (
-												{activeData.distribusi.hadir}%)
-											</div>
-											<div className={styles.legendItem}>
-												<div className={styles.dotYellow} style={{ backgroundColor: "#fef08a" }}></div> Izin (
-												{activeData.distribusi.izin}%)
-											</div>
-											<div className={styles.legendItem}>
-												<div className={styles.dotRed} style={{ backgroundColor: "#f59e0b" }}></div> Sakit (
-												{activeData.distribusi.sakit}%)
-											</div>
-											<div className={styles.legendItem}>
-												<div className={styles.dotRed} style={{ backgroundColor: "#ef4444" }}></div> Alpha (
-												{activeData.distribusi.alpha}%)
-											</div>
-										</div>
-									</div>
+								<div>
+									<h2 className={styles.detailTitleMain}>Laporan Rekapitulasi - Analisa PDCA</h2>
+									<p className={styles.detailSubText}>
+										Semester {selectedSemester} TA {selectedTahun}
+									</p>
 								</div>
 							</div>
+							<button className={styles.btnPrint} onClick={() => setIsPdfModalOpen(true)}>
+								<Download size={20} /> Ekspor ke PDF
+							</button>
+						</div>
 
-							<div className={styles.fullCard}>
-								<div className={styles.chartHeader}>
-									<h3 className={styles.cardHeaderTitle}>
-										<FileBarChart size={18} /> Tren Kinerja Akademik Bulanan
-									</h3>
-									<div className={styles.legendWrapperRow}>
-										<div className={styles.legendItem}>
-											<div className={styles.dotNavy}></div> Kehadiran Siswa
-										</div>
-										<div className={styles.legendItem}>
-											<div className={styles.dotOlive}></div> Pengisian Jurnal
-										</div>
-									</div>
-								</div>
-								<div className={styles.barChartContainer}>
-									{activeData.trenKinerja.length === 0 ? (
-										<p style={{ textAlign: "center", color: "#64748b", margin: "2rem auto" }}>
-											Belum ada data jurnal terekam.
-										</p>
+						<div className={styles.threeGrid}>
+							<div className={styles.statCard}>
+								<h3 className={styles.cardHeaderTitle}>
+									<AlertTriangle size={18} color="#eab308" /> Guru Jam Kosong Terbanyak
+								</h3>
+								<div className={styles.listWrapper}>
+									{activeData.topGuru.length === 0 ? (
+										<p style={{ fontSize: "0.875rem", color: "#64748b" }}>Belum ada data terekam.</p>
 									) : (
-										activeData.trenKinerja.map((data: any, idx: number) => (
-											<div key={idx} className={styles.barGroup}>
-												<div className={styles.bars}>
-													<div
-														className={styles.barNavy}
-														style={{ height: `${data.pctKehadiran}%`, position: "relative" }}
-														title={`Kehadiran: ${data.pctKehadiran}%`}
-													>
-														<span style={{ position: "absolute", top: "-18px", left: "50%", transform: "translateX(-50%)", fontSize: "10px", color: "#1e3a8a", fontWeight: "bold" }}>{data.pctKehadiran}%</span>
-													</div>
-													<div
-														className={styles.barOlive}
-														style={{ height: `${data.pctJurnal}%`, position: "relative" }}
-														title={`Jurnal: ${data.pctJurnal}%`}
-													>
-														<span style={{ position: "absolute", top: "-18px", left: "50%", transform: "translateX(-50%)", fontSize: "10px", color: "#65a30d", fontWeight: "bold" }}>{data.pctJurnal}%</span>
-													</div>
+										activeData.topGuru.map((guru: any, idx: number) => (
+											<div key={idx} className={styles.listItem}>
+												<div className={styles.listNumBlue}>{idx + 1}</div>
+												<div className={styles.listTextGroup}>
+													<div className={styles.listName}>{guru.nama}</div>
+													<div className={styles.listSub}>{guru.mapel} - {guru.kelas}</div>
 												</div>
-												<div className={styles.barLabel}>{data.bulan}</div>
+												<div className={styles.listValueRed}>{guru.jamKosong} Jam Kosong</div>
 											</div>
 										))
 									)}
 								</div>
 							</div>
 
-							<div className={styles.bottomGrid}>
-								<div className={styles.tableCard}>
-									<div
-										style={{
-											display: "flex",
-											justifyContent: "space-between",
-											alignItems: "center",
-											marginBottom: "1rem",
-										}}
-									>
-										<h3 className={styles.cardHeaderTitle} style={{ margin: 0 }}>
-											<BookOpen size={18} /> Rencana & Tindak Lanjut (PDCA)
-										</h3>
-										<button className={styles.btnOutlineSm} onClick={() => handleOpenAksiModal()}>
-											+ Tambah Aksi
-										</button>
-									</div>
+							<div className={styles.statCard}>
+								<h3 className={styles.cardHeaderTitle}>
+									<UserX size={18} color="#eab308" /> Absensi Siswa Tertinggi
+								</h3>
+								<div className={styles.listWrapper}>
+									{activeData.topKelas.length === 0 ? (
+										<p style={{ fontSize: "0.875rem", color: "#64748b" }}>Belum ada data terekam.</p>
+									) : (
+										activeData.topKelas.map((kelas: any, idx: number) => (
+											<div key={idx} className={styles.listItem}>
+												<div className={styles.listCircleGray}>{kelas.nama.split(" ")[0]}</div>
+												<div className={styles.listTextGroup}>
+													<div className={styles.listName}>Kelas {kelas.nama}</div>
+												</div>
+												<div className={styles.badgeRedSoft}>{kelas.alpha}% Alpha</div>
+											</div>
+										))
+									)}
+								</div>
+							</div>
 
-									<div style={{ overflowX: "auto", width: "100%" }}>
-<table className={styles.pdcaTable}>
+							<div className={styles.statCard}>
+								<h3 className={styles.cardHeaderTitle}>
+									<PieChart size={18} color="#0f172a" /> Distribusi Kehadiran
+								</h3>
+								<div className={styles.chartContainer}>
+									<div className={styles.donutChart} style={{ background: getGradientString() }}>
+										<div className={styles.donutHole}></div>
+									</div>
+									<div className={styles.legendWrapper}>
+										<div className={styles.legendItem}>
+											<div className={styles.dotNavy} style={{ backgroundColor: "#10b981" }}></div> Hadir (
+											{activeData.distribusi.hadir}%)
+										</div>
+										<div className={styles.legendItem}>
+											<div className={styles.dotYellow} style={{ backgroundColor: "#fef08a" }}></div> Izin (
+											{activeData.distribusi.izin}%)
+										</div>
+										<div className={styles.legendItem}>
+											<div className={styles.dotRed} style={{ backgroundColor: "#f59e0b" }}></div> Sakit (
+											{activeData.distribusi.sakit}%)
+										</div>
+										<div className={styles.legendItem}>
+											<div className={styles.dotRed} style={{ backgroundColor: "#ef4444" }}></div> Alpha (
+											{activeData.distribusi.alpha}%)
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<div className={styles.fullCard}>
+							<div className={styles.chartHeader}>
+								<h3 className={styles.cardHeaderTitle}>
+									<FileBarChart size={18} /> Tren Kinerja Akademik Bulanan
+								</h3>
+								<div className={styles.legendWrapperRow}>
+									<div className={styles.legendItem}>
+										<div className={styles.dotNavy}></div> Kehadiran Siswa
+									</div>
+									<div className={styles.legendItem}>
+										<div className={styles.dotOlive}></div> Pengisian Jurnal
+									</div>
+								</div>
+							</div>
+							<div className={styles.barChartContainer}>
+								{activeData.trenKinerja.length === 0 ? (
+									<p style={{ textAlign: "center", color: "#64748b", margin: "2rem auto" }}>
+										Belum ada data jurnal terekam.
+									</p>
+								) : (
+									activeData.trenKinerja.map((data: any, idx: number) => (
+										<div key={idx} className={styles.barGroup}>
+											<div className={styles.bars}>
+												<div
+													className={styles.barNavy}
+													style={{ height: `${data.pctKehadiran}%`, position: "relative" }}
+													title={`Kehadiran: ${data.pctKehadiran}%`}
+												>
+													<span style={{ position: "absolute", top: "-18px", left: "50%", transform: "translateX(-50%)", fontSize: "10px", color: "#1e3a8a", fontWeight: "bold" }}>{data.pctKehadiran}%</span>
+												</div>
+												<div
+													className={styles.barOlive}
+													style={{ height: `${data.pctJurnal}%`, position: "relative" }}
+													title={`Jurnal: ${data.pctJurnal}%`}
+												>
+													<span style={{ position: "absolute", top: "-18px", left: "50%", transform: "translateX(-50%)", fontSize: "10px", color: "#65a30d", fontWeight: "bold" }}>{data.pctJurnal}%</span>
+												</div>
+											</div>
+											<div className={styles.barLabel}>{data.bulan}</div>
+										</div>
+									))
+								)}
+							</div>
+						</div>
+
+						<div className={styles.bottomGrid}>
+							<div className={styles.tableCard}>
+								<div
+									style={{
+										display: "flex",
+										justifyContent: "space-between",
+										alignItems: "center",
+										marginBottom: "1rem",
+									}}
+								>
+									<h3 className={styles.cardHeaderTitle} style={{ margin: 0 }}>
+										<BookOpen size={18} /> Rencana & Tindak Lanjut (PDCA)
+									</h3>
+									<button className={styles.btnOutlineSm} onClick={() => handleOpenAksiModal()}>
+										+ Tambah Aksi
+									</button>
+								</div>
+
+								<div style={{ overflowX: "auto", width: "100%" }}>
+									<table className={styles.pdcaTable}>
 										<thead>
 											<tr>
 												<th>Aspek</th>
@@ -968,31 +975,30 @@ export default function ReportClient({ user, dataRekap }: any) {
 											)}
 										</tbody>
 									</table>
-</div>
-								</div>
-
-								<div className={styles.recommendationBox}>
-									<h3 className={styles.recomTitle}>
-										<Lightbulb size={18} color="#facc15" /> Analisa & Rekomendasi Kepala Sekolah
-									</h3>
-									<div className={styles.recomText}>
-										{activeData.pdca.actRekomendasi ? (
-											activeData.pdca.actRekomendasi
-												.split("\n")
-												.map((paragraph: string, i: number) => <p key={i}>{paragraph}</p>)
-										) : (
-											<p>Belum ada rekomendasi.</p>
-										)}
-									</div>
-									<button className={styles.btnUpdate} onClick={handleOpenRecomModal}>
-										<Edit3 size={16} /> Update Catatan
-									</button>
 								</div>
 							</div>
+
+							<div className={styles.recommendationBox}>
+								<h3 className={styles.recomTitle}>
+									<Lightbulb size={18} color="#facc15" /> Analisa & Rekomendasi Kepala Sekolah
+								</h3>
+								<div className={styles.recomText}>
+									{activeData.pdca.actRekomendasi ? (
+										activeData.pdca.actRekomendasi
+											.split("\n")
+											.map((paragraph: string, i: number) => <p key={i}>{paragraph}</p>)
+									) : (
+										<p>Belum ada rekomendasi.</p>
+									)}
+								</div>
+								<button className={styles.btnUpdate} onClick={handleOpenRecomModal}>
+									<Edit3 size={16} /> Update Catatan
+								</button>
+							</div>
 						</div>
-					)}
-				</div>
-			</>
+					</div>
+				)}
+			</div>
 		</>
 	);
 }

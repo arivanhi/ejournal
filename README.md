@@ -9,11 +9,17 @@ Sistem Jurnal Mengajar Elektronik dan Pemantauan Kinerja Akademik Terpadu untuk 
   - Perbaikan tata letak (*layout*) pada akun **Guru** dan **Kepala Sekolah (Pimpinan)** agar menyesuaikan layar HP.
   - Kartu Ringkasan (Card Grid), Tabel Riwayat, dan Tabel Jurnal kini rapi di layar kecil (menggunakan *horizontal scroll* pada tabel).
   - *Top Bar* dan *Sidebar Menu* disesuaikan untuk navigasi sentuh.
+  - Mengembalikan struktur tabel antarmuka Web UI pada halaman Guru dan Pimpinan agar tidak berbenturan dengan format tabel PDF. Fitur sorting kolom (klik untuk mengurutkan) berfungsi kembali dengan normal.
+  - Penyesuaian whitespace pada view detail presensi agar tabel lebih proporsional (rata tengah dan tidak memakan terlalu banyak ruang kosong di layar lebar).
 - **Export PDF Optimal (Format Kertas F4):**
   - Margin pada seluruh fitur unduhan PDF (Laporan Rekapitulasi, Monitoring, Kehadiran, Jurnal, dan Dashboard) telah diperbaiki sehingga tidak terpotong di sebelah kanan.
   - Skala kertas diubah dari A4 menjadi **Kertas F4 / Folio**.
   - Ditambahkan persentase angka pada baris grafik "Tren Kinerja Akademik" di ekspor PDF.
   - Daftar Guru dengan Jam Kosong kini otomatis dipisah ke halaman baru.
+  - Manual Pagination: Menerapkan algoritma pemotongan data otomatis (maksimal 20-25 baris per halaman) untuk menjamin baris tabel tidak terbelah dua saat melewati batas bawah kertas.
+  - Anti-Potong (Avoid Break): Memperbaiki layout Kop Surat menggunakan Flexbox dan instruksi CSS pageBreakInside: "avoid". Kop surat dijamin selalu rata tengah, presisi, dan tidak terpotong margin otomatis.
+  - Penomoran Halaman: Ditambahkan fitur penomoran halaman dinamis ("Halaman X dari Y") pada footer di setiap dokumen PDF yang diekspor.
+  - Format Kertas Akurat: Kalibrasi ukuran kertas absolut pada Container CSS. A4 Portrait (untuk Jurnal/Kehadiran/Monitoring) dan F4/Folio Landscape (untuk Laporan Rekapitulasi PDCA Pimpinan).
 - **Manajemen Jadwal:**
   - Menghapus pembatasan otomatis (hardcode) pada Senin Jam ke-1 yang sebelumnya selalu diisi oleh "Upacara Bendera". Admin kini dapat menempatkan mata pelajaran lain di slot tersebut jika diperlukan.
 - **Perbaikan Zona Waktu & Presensi QR:**
@@ -21,7 +27,6 @@ Sistem Jurnal Mengajar Elektronik dan Pemantauan Kinerja Akademik Terpadu untuk 
   - Sinkronisasi waktu di aplikasi klien (*frontend*) sehingga jadwal pengisian jurnal tidak meleset ke hari sebelumnya saat diakses pagi hari.
   - Perubahan aturan QR Presensi: QR dapat dibuka kapan saja di tanggal jadwal yang sama (00:00 - 23:59).
   - Fitur penutupan otomatis QR Presensi diundur dari jam 16:00 menjadi **jam 20:00 (8 Malam)**.
-
 ---
 
 ## 🚀 Panduan Instalasi & Update (Server)
