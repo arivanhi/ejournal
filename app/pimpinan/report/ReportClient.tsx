@@ -117,6 +117,8 @@ export default function ReportClient({ user, dataRekap }: any) {
 	const [toastType, setToastType] = useState<"success" | "error">("success");
 	const [isLoading, setIsLoading] = useState(false);
 	const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+	const [currentPagePdca, setCurrentPagePdca] = useState(1);
+	const itemsPerPage = 15;
 
 	const [startDate, setStartDate] = useState<string>("");
 	const [endDate, setEndDate] = useState<string>("");
@@ -947,7 +949,12 @@ export default function ReportClient({ user, dataRekap }: any) {
 													</td>
 												</tr>
 											) : (
-												activeData.pdca.doImplementasi.map((row: any, i: number) => (
+												(() => {
+													const totalItems = activeData.pdca.doImplementasi.length;
+													const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+													const startIndex = (currentPagePdca - 1) * itemsPerPage;
+													const paginatedData = activeData.pdca.doImplementasi.slice(startIndex, startIndex + itemsPerPage);
+													return paginatedData.map((row: any, i: number) => (
 													<tr key={i}>
 														<td className={styles.tdBold}>{row.aspek}</td>
 														<td>{row.temuan}</td>
@@ -971,11 +978,37 @@ export default function ReportClient({ user, dataRekap }: any) {
 															</button>
 														</td>
 													</tr>
-												))
+												));
+												})()
 											)}
 										</tbody>
 									</table>
 								</div>
+
+								{/* PAGINATION UI PDCA */}
+								{activeData.pdca.doImplementasi.length > 0 && (
+									<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", padding: "1rem", backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
+										<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
+											Menampilkan {(currentPagePdca - 1) * itemsPerPage + 1}-{Math.min(currentPagePdca * itemsPerPage, activeData.pdca.doImplementasi.length)} dari {activeData.pdca.doImplementasi.length} data
+										</span>
+										<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+											<button
+												disabled={currentPagePdca === 1}
+												onClick={() => setCurrentPagePdca(currentPagePdca - 1)}
+												style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPagePdca === 1 ? "#f1f5f9" : "white", color: currentPagePdca === 1 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPagePdca === 1 ? "not-allowed" : "pointer" }}
+											>
+												Prev
+											</button>
+											<button
+												disabled={currentPagePdca >= Math.ceil(activeData.pdca.doImplementasi.length / itemsPerPage)}
+												onClick={() => setCurrentPagePdca(currentPagePdca + 1)}
+												style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPagePdca >= Math.ceil(activeData.pdca.doImplementasi.length / itemsPerPage) ? "#f1f5f9" : "white", color: currentPagePdca >= Math.ceil(activeData.pdca.doImplementasi.length / itemsPerPage) ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPagePdca >= Math.ceil(activeData.pdca.doImplementasi.length / itemsPerPage) ? "not-allowed" : "pointer" }}
+											>
+												Next
+											</button>
+										</div>
+									</div>
+								)}
 							</div>
 
 							<div className={styles.recommendationBox}>

@@ -85,8 +85,15 @@ export default function DataSiswaClient({
 			siswa.user?.nama?.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			siswa.nisn.includes(searchQuery) ||
 			siswa.nis.includes(searchQuery),
-		// Placeholder status (asumsi semua aktif saat ini, bisa disesuaikan jika db punya field status)
 	);
+
+	// Pagination Logic
+	const [currentPage, setCurrentPage] = useState(1);
+	const itemsPerPage = 15;
+	const totalItems = filteredSiswa.length;
+	const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+	const startIndex = (currentPage - 1) * itemsPerPage;
+	const paginatedSiswa = filteredSiswa.slice(startIndex, startIndex + itemsPerPage);
 
 	// --- LOGIKA CENTANG ---
 	const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -260,14 +267,14 @@ export default function DataSiswaClient({
 								</tr>
 							</thead>
 							<tbody>
-								{filteredSiswa.length === 0 ? (
+								{paginatedSiswa.length === 0 ? (
 									<tr>
 										<td colSpan={6} style={{ textAlign: "center", padding: "3rem", color: "#64748b" }}>
 											Tidak ada siswa di kelas ini.
 										</td>
 									</tr>
 								) : (
-									filteredSiswa.map((siswa) => {
+									paginatedSiswa.map((siswa) => {
 										const namaSiswa = siswa.user?.nama || "Siswa";
 										const initials = namaSiswa.substring(0, 2).toUpperCase();
 										return (

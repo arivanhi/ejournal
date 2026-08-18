@@ -108,7 +108,7 @@ export default function PimpinanDashboardClient({
 }: any) {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [currentPage, setCurrentPage] = useState(1);
-	const itemsPerPage = 10;
+	const itemsPerPage = 15;
 
 	const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 	const [isDownloading, setIsDownloading] = useState(false);

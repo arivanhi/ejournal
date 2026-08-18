@@ -115,6 +115,10 @@ export default function RiwayatClient({
 	const [selectedTahunId, setSelectedTahunId] = useState<string>(tahunAjaranList.find((t) => t.isActive)?.id || "");
 	const [activeJadwal, setActiveJadwal] = useState<any>(null);
 	const [activeTab, setActiveTab] = useState<"rekap" | "jurnal" | "analisa" | "tugas">("rekap");
+	const [currentPageRekap, setCurrentPageRekap] = useState(1);
+	const [currentPageJurnal, setCurrentPageJurnal] = useState(1);
+	const [currentPageTugas, setCurrentPageTugas] = useState(1);
+	const itemsPerPage = 15;
 
 	const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 	const [isDownloading, setIsDownloading] = useState(false);
@@ -917,7 +921,8 @@ export default function RiwayatClient({
 
 							{/* --- TAB 1: REKAP SISWA --- */}
 							{activeTab === "rekap" && (
-								<div style={{ overflowX: "auto", width: "100%" }}>
+								<>
+									<div style={{ overflowX: "auto", width: "100%" }}>
 									<table className={styles.tableStyle}>
 										<thead>
 											<tr>
@@ -936,8 +941,13 @@ export default function RiwayatClient({
 													const nameB = b.siswa?.user?.nama || "";
 													return nameA.localeCompare(nameB);
 												});
+												
+												const totalItems = sortedSiswa.length;
+												const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+												const startIndex = (currentPageRekap - 1) * itemsPerPage;
+												const paginatedSiswa = sortedSiswa.slice(startIndex, startIndex + itemsPerPage);
 
-												return sortedSiswa.map((rs: any) => {
+												return paginatedSiswa.map((rs: any) => {
 													const siswa = rs.siswa;
 													const rekap = getRekapSiswa(siswa.id, activeJadwal.jurnal);
 
@@ -978,6 +988,30 @@ export default function RiwayatClient({
 										</tbody>
 									</table>
 								</div>
+								
+								{/* PAGINATION UI REKAP */}
+								<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", padding: "1rem", backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
+									<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
+										Menampilkan {activeJadwal.kelas?.riwayatSiswa && activeJadwal.kelas.riwayatSiswa.length > 0 ? (currentPageRekap - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPageRekap * itemsPerPage, (activeJadwal.kelas?.riwayatSiswa || []).length)} dari {(activeJadwal.kelas?.riwayatSiswa || []).length} data
+									</span>
+									<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+										<button
+											disabled={currentPageRekap === 1}
+											onClick={() => setCurrentPageRekap(currentPageRekap - 1)}
+											style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPageRekap === 1 ? "#f1f5f9" : "white", color: currentPageRekap === 1 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPageRekap === 1 ? "not-allowed" : "pointer" }}
+										>
+											Prev
+										</button>
+										<button
+											disabled={currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0}
+											onClick={() => setCurrentPageRekap(currentPageRekap + 1)}
+											style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0 ? "#f1f5f9" : "white", color: currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0 ? "not-allowed" : "pointer" }}
+										>
+											Next
+										</button>
+									</div>
+								</div>
+								</>
 							)}
 
 							{/* --- TAB: TUGAS HARIAN --- */}
@@ -992,9 +1026,15 @@ export default function RiwayatClient({
 												</div>
 											);
 										}
-										return [...jurnalTugas]
-											.sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime())
-											.map((jurnalItem: any, index: number) => {
+										const sortedTugas = [...jurnalTugas].sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
+										const totalItems = sortedTugas.length;
+										const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+										const startIndex = (currentPageTugas - 1) * itemsPerPage;
+										const paginatedTugas = sortedTugas.slice(startIndex, startIndex + itemsPerPage);
+										
+										return (
+											<>
+												{paginatedTugas.map((jurnalItem: any, index: number) => {
 												const tglFormatted = new Date(jurnalItem.tanggal).toLocaleDateString("id-ID", {
 													weekday: "long",
 													year: "numeric",
@@ -1019,7 +1059,31 @@ export default function RiwayatClient({
 														</div>
 													</div>
 												);
-											});
+											})}
+												{/* PAGINATION UI TUGAS */}
+												<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", padding: "1rem", backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
+													<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
+														Menampilkan {jurnalTugas.length > 0 ? (currentPageTugas - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPageTugas * itemsPerPage, jurnalTugas.length)} dari {jurnalTugas.length} data
+													</span>
+													<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+														<button
+															disabled={currentPageTugas === 1}
+															onClick={() => setCurrentPageTugas(currentPageTugas - 1)}
+															style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPageTugas === 1 ? "#f1f5f9" : "white", color: currentPageTugas === 1 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPageTugas === 1 ? "not-allowed" : "pointer" }}
+														>
+															Prev
+														</button>
+														<button
+															disabled={currentPageTugas >= Math.ceil(jurnalTugas.length / itemsPerPage) || jurnalTugas.length === 0}
+															onClick={() => setCurrentPageTugas(currentPageTugas + 1)}
+															style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPageTugas >= Math.ceil(jurnalTugas.length / itemsPerPage) || jurnalTugas.length === 0 ? "#f1f5f9" : "white", color: currentPageTugas >= Math.ceil(jurnalTugas.length / itemsPerPage) || jurnalTugas.length === 0 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPageTugas >= Math.ceil(jurnalTugas.length / itemsPerPage) || jurnalTugas.length === 0 ? "not-allowed" : "pointer" }}
+														>
+															Next
+														</button>
+													</div>
+												</div>
+											</>
+										);
 									})()}
 								</div>
 							)}
@@ -1032,9 +1096,16 @@ export default function RiwayatClient({
 											Belum ada rekam jejak jurnal untuk kelas ini.
 										</div>
 									) : (
-										[...activeJadwal.jurnal]
-											.sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime())
-											.map((jurnalItem: any, index: number) => {
+										(() => {
+											const sortedJurnal = [...activeJadwal.jurnal].sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+											const totalItems = sortedJurnal.length;
+											const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+											const startIndex = (currentPageJurnal - 1) * itemsPerPage;
+											const paginatedJurnal = sortedJurnal.slice(startIndex, startIndex + itemsPerPage);
+											
+											return (
+												<>
+													{paginatedJurnal.map((jurnalItem: any, index: number) => {
 												const tglFormatted = new Date(jurnalItem.tanggal).toLocaleDateString("id-ID", {
 													weekday: "long",
 													year: "numeric",
@@ -1084,7 +1155,32 @@ export default function RiwayatClient({
 														</div>
 													</div>
 												);
-											})
+											})}
+													{/* PAGINATION UI JURNAL */}
+													<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", padding: "1rem", backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
+														<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
+															Menampilkan {activeJadwal.jurnal && activeJadwal.jurnal.length > 0 ? (currentPageJurnal - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPageJurnal * itemsPerPage, (activeJadwal.jurnal || []).length)} dari {(activeJadwal.jurnal || []).length} data
+														</span>
+														<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+															<button
+																disabled={currentPageJurnal === 1}
+																onClick={() => setCurrentPageJurnal(currentPageJurnal - 1)}
+																style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPageJurnal === 1 ? "#f1f5f9" : "white", color: currentPageJurnal === 1 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPageJurnal === 1 ? "not-allowed" : "pointer" }}
+															>
+																Prev
+															</button>
+															<button
+																disabled={currentPageJurnal >= Math.ceil((activeJadwal.jurnal || []).length / itemsPerPage) || (activeJadwal.jurnal || []).length === 0}
+																onClick={() => setCurrentPageJurnal(currentPageJurnal + 1)}
+																style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPageJurnal >= Math.ceil((activeJadwal.jurnal || []).length / itemsPerPage) || (activeJadwal.jurnal || []).length === 0 ? "#f1f5f9" : "white", color: currentPageJurnal >= Math.ceil((activeJadwal.jurnal || []).length / itemsPerPage) || (activeJadwal.jurnal || []).length === 0 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPageJurnal >= Math.ceil((activeJadwal.jurnal || []).length / itemsPerPage) || (activeJadwal.jurnal || []).length === 0 ? "not-allowed" : "pointer" }}
+															>
+																Next
+															</button>
+														</div>
+													</div>
+												</>
+											);
+										})()
 									)}
 								</div>
 							)}

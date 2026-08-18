@@ -114,9 +114,12 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 	const cardsPerPage = 6;
 
 	const [searchTopik, setSearchTopik] = useState("");
+	const [filterGuru, setFilterGuru] = useState<string>("Semua Guru");
+	const [startDate, setStartDate] = useState<string>("");
+	const [endDate, setEndDate] = useState<string>("");
 	const [sortConfig, setSortConfig] = useState({ key: "pertemuanKe", direction: "asc" });
 	const [currentPage, setCurrentPage] = useState(1);
-	const itemsPerPage = 5;
+	const itemsPerPage = 15;
 
 	// State Modal PDF (Single)
 	const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
@@ -152,12 +155,14 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 		setSortConfig({ key, direction });
 	};
 
-	const filteredData = dataMonitoring.filter(
-		(item: any) =>
+	const filteredData = dataMonitoring.filter((item: any) => {
+		const matchesSearch = 
 			item.mapelNama.toLowerCase().includes(searchTerm.toLowerCase()) ||
 			item.guruNama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			item.kelasNama.toLowerCase().includes(searchTerm.toLowerCase()),
-	);
+			item.kelasNama.toLowerCase().includes(searchTerm.toLowerCase());
+		const matchesGuru = filterGuru === "Semua Guru" || item.guruNama === filterGuru;
+		return matchesSearch && matchesGuru;
+	});
 
 	const totalCardPages = Math.max(1, Math.ceil(filteredData.length / cardsPerPage));
 	const paginatedCards = filteredData.slice((currentCardPage - 1) * cardsPerPage, currentCardPage * cardsPerPage);
@@ -240,15 +245,44 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 
 		setIsDownloadingPdf(true);
 
+		let filterStart = 0;
+		let filterEnd = Infinity;
+		if (startDate && endDate) {
+			const start = new Date(startDate);
+			start.setHours(0, 0, 0, 0);
+			filterStart = start.getTime();
+
+			const end = new Date(endDate);
+			end.setHours(23, 59, 59, 999);
+			filterEnd = end.getTime();
+		}
+
 		const groupedData = selectedExportGurus.map((guruName) => {
-			const itemsGuru = dataMonitoring.filter((item: any) => item.guruNama === guruName);
+			// Deep copy itemsGuru untuk memfilter riwayat tanpa mengubah state aslinya
+			const itemsGuruRaw = dataMonitoring.filter((item: any) => item.guruNama === guruName);
+			
+			const itemsGuru = itemsGuruRaw.map((item: any) => {
+				const filteredRiwayat = (item.riwayat || []).filter((r: any) => {
+					if (!startDate || !endDate) return true;
+					return r.tanggalRaw >= filterStart && r.tanggalRaw <= filterEnd;
+				});
+				
+				return { ...item, riwayat: filteredRiwayat };
+			}).filter((item: any) => item.riwayat.length > 0); // Opsional: hilangkan mapel yang riwayatnya kosong di periode ini
+
 			return {
 				guruNama: guruName,
-				guruNpp: itemsGuru[0]?.guruNpp || "-",
-				tahunAjaranNama: itemsGuru[0]?.tahunAjaranNama || "-",
+				guruNpp: itemsGuru[0]?.guruNpp || itemsGuruRaw[0]?.guruNpp || "-",
+				tahunAjaranNama: itemsGuru[0]?.tahunAjaranNama || itemsGuruRaw[0]?.tahunAjaranNama || "-",
 				items: itemsGuru,
 			};
-		});
+		}).filter(group => group.items.length > 0); // Hilangkan guru jika tidak ada data sama sekali di periode ini
+
+		if (groupedData.length === 0) {
+			showToast("Tidak ada data jurnal yang sesuai dengan filter yang dipilih.");
+			setIsDownloadingPdf(false);
+			return;
+		}
 
 		setPdfGurusData(groupedData);
 
@@ -651,6 +685,31 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 						</div>
 						<div className={styles.modalBody}>
 							<p style={{ fontSize: "0.875rem", color: "#374151", marginBottom: "1rem" }}>
+								Tentukan periode rekapitulasi (Opsional, jika kosong maka akan mencetak seluruh data semester):
+							</p>
+
+							<div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
+								<div style={{ flex: 1 }}>
+									<label style={{ display: "block", fontSize: "0.875rem", color: "#64748b", marginBottom: "0.5rem" }}>Dari Tanggal</label>
+									<input
+										type="date"
+										style={{ width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid #e2e8f0", outline: "none" }}
+										value={startDate}
+										onChange={(e) => setStartDate(e.target.value)}
+									/>
+								</div>
+								<div style={{ flex: 1 }}>
+									<label style={{ display: "block", fontSize: "0.875rem", color: "#64748b", marginBottom: "0.5rem" }}>Sampai Tanggal</label>
+									<input
+										type="date"
+										style={{ width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid #e2e8f0", outline: "none" }}
+										value={endDate}
+										onChange={(e) => setEndDate(e.target.value)}
+									/>
+								</div>
+							</div>
+
+							<p style={{ fontSize: "0.875rem", color: "#374151", marginBottom: "1rem" }}>
 								Pilih nama guru yang ingin direkap KBM-nya (dijadikan satu file PDF bersampul):
 							</p>
 
@@ -789,9 +848,20 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 										onChange={(e) => setSearchTerm(e.target.value)}
 									/>
 								</div>
-								<button className={styles.btnOutline}>
-									<Filter size={16} /> Filter
-								</button>
+								<select
+									className={styles.searchInput}
+									style={{ backgroundColor: "white", borderRadius: "0.5rem", border: "1px solid #e2e8f0", padding: "0.5rem 1rem", cursor: "pointer", height: "100%", width: "max-content", minWidth: "150px", flexShrink: 0, fontSize: "0.875rem" }}
+									value={filterGuru}
+									onChange={(e) => {
+										setFilterGuru(e.target.value);
+										setCurrentCardPage(1);
+									}}
+								>
+									<option value="Semua Guru">Semua Guru</option>
+									{uniqueGurus.map((guru, idx) => (
+										<option key={idx} value={guru}>{guru}</option>
+									))}
+								</select>
 
 								{/* TOMBOL EXPORT MULTI GURU */}
 								<button

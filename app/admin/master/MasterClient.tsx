@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
 	Plus,
 	Users,
@@ -135,6 +135,11 @@ export default function MasterClient({
 	const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
 	const [selectedTahunAjarId, setSelectedTahunAjarId] = useState("");
 	const [mappedMapelIds, setMappedMapelIds] = useState<string[]>([]);
+	const [currentPage, setCurrentPage] = useState(1);
+	const itemsPerPage = 15;
+	useEffect(() => {
+		setCurrentPage(1);
+	}, [activeTab, searchQuery, filterKelas, filterStatusGuru]);
 
 	// --- FILTER & LOGIKA DATA ---
 	const uniqueClasses = Array.from(new Set(initialSiswa.map((s) => s.kelasSkarang)))
@@ -227,6 +232,25 @@ export default function MasterClient({
 	const sortedKelas = [...filteredKelas].sort((a, b) => {
 		return a.nama < b.nama ? (sortOrder === "asc" ? -1 : 1) : a.nama > b.nama ? (sortOrder === "asc" ? 1 : -1) : 0;
 	});
+
+	// Pagination Logic
+	const totalItems =
+		activeTab === "siswa"
+			? sortedSiswa.length
+			: activeTab === "guru"
+				? sortedGuru.length
+				: activeTab === "mapel"
+					? sortedMapel.length
+					: activeTab === "tahunAjar"
+						? sortedTahunAjar.length
+						: sortedKelas.length;
+	const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+	const startIndex = (currentPage - 1) * itemsPerPage;
+	const paginatedSiswa = sortedSiswa.slice(startIndex, startIndex + itemsPerPage);
+	const paginatedGuru = sortedGuru.slice(startIndex, startIndex + itemsPerPage);
+	const paginatedMapel = sortedMapel.slice(startIndex, startIndex + itemsPerPage);
+	const paginatedTahunAjar = sortedTahunAjar.slice(startIndex, startIndex + itemsPerPage);
+	const paginatedKelas = sortedKelas.slice(startIndex, startIndex + itemsPerPage);
 
 	const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (e.target.checked) {
@@ -736,14 +760,14 @@ export default function MasterClient({
 							<tbody>
 								{/* RENDER TAHUN AJAR */}
 								{activeTab === "tahunAjar" &&
-									(sortedTahunAjar.length === 0 ? (
+									(paginatedTahunAjar.length === 0 ? (
 										<tr>
 											<td colSpan={4} style={{ textAlign: "center", color: "#6b7280", padding: "2rem" }}>
 												Tidak ada data Tahun Ajaran.
 											</td>
 										</tr>
 									) : (
-										sortedTahunAjar.map((tahun) => (
+										paginatedTahunAjar.map((tahun) => (
 											<tr key={tahun.id}>
 												<td>
 													<input
@@ -793,14 +817,14 @@ export default function MasterClient({
 
 								{/* RENDER KELAS */}
 								{activeTab === "kelas" &&
-									(sortedKelas.length === 0 ? (
+									(paginatedKelas.length === 0 ? (
 										<tr>
 											<td colSpan={3} style={{ textAlign: "center", color: "#6b7280", padding: "2rem" }}>
 												Tidak ada data kelas ditemukan.
 											</td>
 										</tr>
 									) : (
-										sortedKelas.map((kelas) => (
+										paginatedKelas.map((kelas) => (
 											<tr key={kelas.id}>
 												<td>
 													<input
@@ -828,14 +852,14 @@ export default function MasterClient({
 
 								{/* RENDER SISWA */}
 								{activeTab === "siswa" &&
-									(sortedSiswa.length === 0 ? (
+									(paginatedSiswa.length === 0 ? (
 										<tr>
 											<td colSpan={6} style={{ textAlign: "center", color: "#6b7280", padding: "2rem" }}>
 												Tidak ada data siswa ditemukan.
 											</td>
 										</tr>
 									) : (
-										sortedSiswa.map((siswa) => (
+										paginatedSiswa.map((siswa) => (
 											<tr key={siswa.id}>
 												<td>
 													<input
@@ -884,14 +908,14 @@ export default function MasterClient({
 
 								{/* RENDER GURU */}
 								{activeTab === "guru" &&
-									(sortedGuru.length === 0 ? (
+									(paginatedGuru.length === 0 ? (
 										<tr>
 											<td colSpan={6} style={{ textAlign: "center", color: "#6b7280", padding: "2rem" }}>
 												Tidak ada data staf ditemukan.
 											</td>
 										</tr>
 									) : (
-										sortedGuru.map((guru) => (
+										paginatedGuru.map((guru) => (
 											<tr key={guru.id}>
 												<td>
 													<input
@@ -934,14 +958,14 @@ export default function MasterClient({
 
 								{/* RENDER MAPEL */}
 								{activeTab === "mapel" &&
-									(sortedMapel.length === 0 ? (
+									(paginatedMapel.length === 0 ? (
 										<tr>
 											<td colSpan={4} style={{ textAlign: "center", color: "#6b7280", padding: "2rem" }}>
 												Tidak ada data mata pelajaran ditemukan.
 											</td>
 										</tr>
 									) : (
-										sortedMapel.map((mapel) => (
+										paginatedMapel.map((mapel) => (
 											<tr key={mapel.id}>
 												<td>
 													<input
@@ -969,6 +993,38 @@ export default function MasterClient({
 									))}
 							</tbody>
 						</table>
+					</div>
+
+					{/* PAGINATION UI */}
+					<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", padding: "1rem", backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
+						<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
+							Menampilkan {totalItems === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + itemsPerPage, totalItems)} dari {totalItems} data
+						</span>
+						<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+							<button
+								disabled={currentPage === 1}
+								onClick={() => setCurrentPage(currentPage - 1)}
+								style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPage === 1 ? "#f1f5f9" : "white", color: currentPage === 1 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPage === 1 ? "not-allowed" : "pointer" }}
+							>
+								Prev
+							</button>
+							{Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+								<button
+									key={p}
+									onClick={() => setCurrentPage(p)}
+									style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPage === p ? "#1e3a8a" : "white", color: currentPage === p ? "white" : "#334155", border: "1px solid", borderColor: currentPage === p ? "#1e3a8a" : "#e2e8f0", cursor: "pointer" }}
+								>
+									{p}
+								</button>
+							))}
+							<button
+								disabled={currentPage === totalPages}
+								onClick={() => setCurrentPage(currentPage + 1)}
+								style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPage === totalPages ? "#f1f5f9" : "white", color: currentPage === totalPages ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPage === totalPages ? "not-allowed" : "pointer" }}
+							>
+								Next
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>

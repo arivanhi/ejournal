@@ -112,21 +112,28 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 	const [selectedTahun, setSelectedTahun] = useState<string>("");
 	const [selectedSemester, setSelectedSemester] = useState<string>("");
 
+	const [filterGuru, setFilterGuru] = useState<string>("Semua Guru");
+	const [filterKelas, setFilterKelas] = useState<string>("Semua Kelas");
+	const [startDate, setStartDate] = useState<string>("");
+	const [endDate, setEndDate] = useState<string>("");
+
 	const [currentCardPage, setCurrentCardPage] = useState(1);
 	const cardsPerPage = 6;
 
 	const [searchTopik, setSearchTopik] = useState("");
 	const [sortConfig, setSortConfig] = useState({ key: "pertemuanKe", direction: "asc" });
 	const [currentTablePage, setCurrentTablePage] = useState(1);
-	const tableRowsPerPage = 5;
+	const tableRowsPerPage = 15;
 
 	// State PDF Modal
 	const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 	const [isBulkExportModalOpen, setIsBulkExportModalOpen] = useState(false);
 	const [selectedExportItems, setSelectedExportItems] = useState<string[]>([]);
+	const [selectedExportGurus, setSelectedExportGurus] = useState<string[]>([]);
 
 	// State Modal Nilai
 	const [isNilaiModalOpen, setIsNilaiModalOpen] = useState(false);
+	const [currentModalPage, setCurrentModalPage] = useState(1);
 	const [selectedSesiModal, setSelectedSesiModal] = useState<any>(null);
 
 	const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
@@ -186,12 +193,18 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 		return "";
 	};
 
+	const uniqueGurus = useMemo(() => Array.from(new Set(riwayatData.map((item: any) => item.guruNama))).sort(), [riwayatData]);
+	const uniqueKelas = useMemo(() => Array.from(new Set(riwayatData.map((item: any) => item.kelasNama))).sort(), [riwayatData]);
+
 	const filteredData = useMemo(() => {
 		return riwayatData.filter((item: any) => {
 			const targetFormat = `${selectedTahun} ${selectedSemester}`.toLowerCase();
-			return item.tahunAjaranAsli.toLowerCase().includes(targetFormat);
+			const matchesSemester = item.tahunAjaranAsli.toLowerCase().includes(targetFormat);
+			const matchesGuru = filterGuru === "Semua Guru" || item.guruNama === filterGuru;
+			const matchesKelas = filterKelas === "Semua Kelas" || item.kelasNama === filterKelas;
+			return matchesSemester && matchesGuru && matchesKelas;
 		});
-	}, [riwayatData, selectedTahun, selectedSemester]);
+	}, [riwayatData, selectedTahun, selectedSemester, filterGuru, filterKelas]);
 
 	const totalCardPages = Math.max(1, Math.ceil(filteredData.length / cardsPerPage));
 	const paginatedCards = filteredData.slice((currentCardPage - 1) * cardsPerPage, currentCardPage * cardsPerPage);
@@ -233,16 +246,102 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 		});
 	}, [selectedItem]);
 
-	const handleToggleExportItem = (itemId: string) => {
-		setSelectedExportItems((prev) => (prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]));
+	const handleToggleExportGuru = (guru: string) => {
+		setSelectedExportGurus((prev) => (prev.includes(guru) ? prev.filter((g) => g !== guru) : [...prev, guru]));
 	};
 
-	const handleToggleAllExport = () => {
-		if (selectedExportItems.length === filteredData.length) {
-			setSelectedExportItems([]);
+	const handleToggleAllExportGurus = () => {
+		if (selectedExportGurus.length === uniqueGurus.length) {
+			setSelectedExportGurus([]);
 		} else {
-			setSelectedExportItems(filteredData.map((item: any) => item.id));
+			setSelectedExportGurus([...uniqueGurus]);
 		}
+	};
+
+	// --- FUNGSI EXPORT PDF BULK MULTI-GURU ---
+	const executeBulkPdfExport = async () => {
+		if (selectedExportGurus.length === 0) {
+			showToast("Pilih setidaknya satu guru untuk diekspor.");
+			return;
+		}
+
+		setIsDownloadingPdf(true);
+
+		let filterStart = 0;
+		let filterEnd = Infinity;
+		if (startDate && endDate) {
+			const start = new Date(startDate);
+			start.setHours(0, 0, 0, 0);
+			filterStart = start.getTime();
+
+			const end = new Date(endDate);
+			end.setHours(23, 59, 59, 999);
+			filterEnd = end.getTime();
+		}
+
+		// Ambil semua item dari filteredData yang sesuai dengan guru terpilih
+		const baseItems = filteredData.filter((item: any) => selectedExportGurus.includes(item.guruNama));
+
+		const processedItems = baseItems.map((item: any) => {
+			// 1. Saring sesi
+			const filteredSesi = (item.detailSesi || []).filter((s: any) => {
+				if (!startDate || !endDate) return true;
+				return s.tanggalRaw >= filterStart && s.tanggalRaw <= filterEnd;
+			});
+
+			// 2. Rekalkulasi absensi H/S/I/A dari siswaList
+			const newSiswaList = (item.siswaList || []).map((siswa: any) => {
+				let H = 0, S = 0, I = 0, A = 0;
+				// Iterasi hanya di filteredSesi
+				filteredSesi.forEach((sesi: any) => {
+					// cari absen siswa ini di sesi.presensi
+					const pr = (sesi.presensi || []).find((p: any) => p.siswaId === siswa.id);
+					if (pr) {
+						if (pr.status === "H") H++;
+						else if (pr.status === "S") S++;
+						else if (pr.status === "I") I++;
+						else if (pr.status === "A") A++;
+					}
+				});
+				return { ...siswa, H, S, I, A };
+			});
+
+			return { ...item, detailSesi: filteredSesi, siswaList: newSiswaList };
+		}).filter((item: any) => item.detailSesi.length > 0);
+
+		if (processedItems.length === 0) {
+			showToast("Tidak ada data jurnal yang sesuai dengan filter yang dipilih.");
+			setIsDownloadingPdf(false);
+			return;
+		}
+
+		setPdfItemsData(processedItems);
+
+		setTimeout(async () => {
+			try {
+				const html2pdf = (await import("html2pdf.js")).default;
+				const element = document.getElementById("pdf-jurnal-content");
+
+				const opt = {
+					margin: 0,
+					filename: `Rekap_Jurnal_Mengajar_Multi_Guru.pdf`,
+					image: { type: "jpeg", quality: 1 },
+					html2canvas: { scale: 2, useCORS: true },
+					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+					pagebreak: { mode: ['css'] }
+				};
+
+				await html2pdf().set(opt).from(element).save();
+				showToast("PDF berhasil diunduh!");
+			} catch (error) {
+				console.error("Gagal men-generate PDF:", error);
+				showToast("Terjadi kesalahan saat memproses PDF!");
+			} finally {
+				setIsDownloadingPdf(false);
+				setIsBulkExportModalOpen(false);
+				setPdfItemsData([]);
+			}
+		}, 800);
 	};
 
 	// --- FUNGSI EXPORT PDF (MARGIN 0, PAGINATION MANUAL) ---
@@ -398,6 +497,11 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 														<div style={{ textAlign: "center" }}>
 															<p style={{ fontSize: "12pt", marginBottom: "0.5rem" }}><strong>TAHUN PELAJARAN:</strong></p>
 															<p style={{ fontSize: "14pt", fontWeight: 700 }}>{dataItem.tahunAjaranAsli}</p>
+															{startDate && endDate && (
+																<p style={{ fontSize: "12pt", fontWeight: 500, marginTop: "0.5rem", color: "#475569" }}>
+																	Periode: {new Date(startDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })} s/d {new Date(endDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })}
+																</p>
+															)}
 														</div>
 
 														<div style={{ marginTop: "3rem", textAlign: "center", borderTop: "2px solid #0a2540", paddingTop: "1.5rem", width: "60%", margin: "3rem auto 0 auto" }}>
@@ -667,7 +771,32 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 						</div>
 						<div style={{ padding: "2rem" }}>
 							<p style={{ fontSize: "0.875rem", color: "#374151", marginBottom: "1rem" }}>
-								Pilih jurnal mata pelajaran yang ingin diekspor ke dalam satu file PDF:
+								Tentukan periode rekapitulasi (Opsional, jika kosong maka akan mencetak seluruh data semester):
+							</p>
+
+							<div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
+								<div style={{ flex: 1 }}>
+									<label style={{ display: "block", fontSize: "0.875rem", color: "#64748b", marginBottom: "0.5rem" }}>Dari Tanggal</label>
+									<input
+										type="date"
+										style={{ width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid #e2e8f0", outline: "none" }}
+										value={startDate}
+										onChange={(e) => setStartDate(e.target.value)}
+									/>
+								</div>
+								<div style={{ flex: 1 }}>
+									<label style={{ display: "block", fontSize: "0.875rem", color: "#64748b", marginBottom: "0.5rem" }}>Sampai Tanggal</label>
+									<input
+										type="date"
+										style={{ width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid #e2e8f0", outline: "none" }}
+										value={endDate}
+										onChange={(e) => setEndDate(e.target.value)}
+									/>
+								</div>
+							</div>
+
+							<p style={{ fontSize: "0.875rem", color: "#374151", marginBottom: "1rem" }}>
+								Pilih guru yang ingin diekspor jurnalnya:
 							</p>
 
 							<div
@@ -691,15 +820,15 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 								>
 									<input
 										type="checkbox"
-										checked={selectedExportItems.length === filteredData.length && filteredData.length > 0}
-										onChange={handleToggleAllExport}
+										checked={selectedExportGurus.length === uniqueGurus.length && uniqueGurus.length > 0}
+										onChange={handleToggleAllExportGurus}
 										style={{ marginRight: "0.75rem", width: "16px", height: "16px" }}
 									/>
-									<span style={{ fontWeight: 600 }}>Pilih Semua ({filteredData.length})</span>
+									<span style={{ fontWeight: 600 }}>Pilih Semua Guru</span>
 								</label>
-								{filteredData.map((item: any) => (
+								{uniqueGurus.map((guru) => (
 									<label
-										key={item.id}
+										key={guru}
 										style={{
 											display: "flex",
 											alignItems: "center",
@@ -710,16 +839,11 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 									>
 										<input
 											type="checkbox"
-											checked={selectedExportItems.includes(item.id)}
-											onChange={() => handleToggleExportItem(item.id)}
+											checked={selectedExportGurus.includes(guru)}
+											onChange={() => handleToggleExportGuru(guru)}
 											style={{ marginRight: "0.75rem", width: "16px", height: "16px" }}
 										/>
-										<div style={{ display: "flex", flexDirection: "column" }}>
-											<span style={{ fontWeight: 500 }}>
-												{item.mapelNama} - {item.kelasNama}
-											</span>
-											<span style={{ fontSize: "0.75rem", color: "#64748b" }}>Guru: {item.guruNama}</span>
-										</div>
+										<span>{guru}</span>
 									</label>
 								))}
 							</div>
@@ -730,11 +854,8 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 								</button>
 								<button
 									className={styles.btnPrimaryDark}
-									disabled={isDownloadingPdf || selectedExportItems.length === 0}
-									onClick={() => {
-										const itemsToExport = filteredData.filter((k: any) => selectedExportItems.includes(k.id));
-										executePdfExport(itemsToExport, `Buku_Jurnal_Mengajar_Massal.pdf`);
-									}}
+									disabled={isDownloadingPdf || selectedExportGurus.length === 0}
+									onClick={executeBulkPdfExport}
 									style={{
 										display: "flex",
 										alignItems: "center",
@@ -818,8 +939,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 								<p className={styles.sectionDate}>Pilih periode akademik untuk melihat riwayat jurnal mengajar.</p>
 							</div>
 							<br></br>
-							<div className={styles.headerButtons}>
-								<button
+							<div className={styles.headerButtons}>								<button
 									className={styles.btnPrimaryDark}
 									onClick={() => {
 										setIsBulkExportModalOpen(true);
@@ -871,6 +991,38 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 										</button>
 									))}
 								</div>
+							</div>
+							<div className={styles.filterGroup}>
+								<h4 className={styles.filterLabel}>Guru</h4>
+								<select
+									style={{ backgroundColor: "white", borderRadius: "0.5rem", border: "1px solid #e2e8f0", padding: "0.5rem 1rem", cursor: "pointer", height: "36px", width: "100%", fontSize: "0.875rem", outline: "none" }}
+									value={filterGuru}
+									onChange={(e) => {
+										setFilterGuru(e.target.value);
+										setCurrentCardPage(1);
+									}}
+								>
+									<option value="Semua Guru">Semua Guru</option>
+									{uniqueGurus.map((guru, idx) => (
+										<option key={idx} value={guru}>{guru}</option>
+									))}
+								</select>
+							</div>
+							<div className={styles.filterGroup}>
+								<h4 className={styles.filterLabel}>Kelas</h4>
+								<select
+									style={{ backgroundColor: "white", borderRadius: "0.5rem", border: "1px solid #e2e8f0", padding: "0.5rem 1rem", cursor: "pointer", height: "36px", width: "100%", fontSize: "0.875rem", outline: "none" }}
+									value={filterKelas}
+									onChange={(e) => {
+										setFilterKelas(e.target.value);
+										setCurrentCardPage(1);
+									}}
+								>
+									<option value="Semua Kelas">Semua Kelas</option>
+									{uniqueKelas.map((kelas, idx) => (
+										<option key={idx} value={kelas}>{kelas}</option>
+									))}
+								</select>
 							</div>
 						</div>
 
@@ -1111,6 +1263,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 															key={sesi.id}
 															onClick={() => {
 																setSelectedSesiModal(sesi);
+																setCurrentModalPage(1);
 																setIsNilaiModalOpen(true);
 															}}
 															style={{ cursor: "pointer" }}
@@ -1218,8 +1371,13 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 												const sortedSiswa = [...selectedItem.siswaList].sort((a: any, b: any) =>
 													a.nama.localeCompare(b.nama),
 												);
+												
+												const itemsPerPage = 15;
+												const totalItems = sortedSiswa.length;
+												const startIndex = (currentModalPage - 1) * itemsPerPage;
+												const paginatedSiswa = sortedSiswa.slice(startIndex, startIndex + itemsPerPage);
 
-												return sortedSiswa.map((siswa: any, idx: number) => {
+												return paginatedSiswa.map((siswa: any, idx: number) => {
 													const absen = selectedSesiModal.presensi?.find((p: any) => p.siswaId === siswa.id);
 													const nilai = absen?.nilaiTugas;
 													return (
@@ -1236,6 +1394,29 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 											})()}
 										</tbody>
 									</table>
+								</div>
+							</div>
+
+							{/* PAGINATION UI MODAL */}
+							<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", padding: "1rem", backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
+								<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
+									Menampilkan {selectedItem.siswaList && selectedItem.siswaList.length > 0 ? (currentModalPage - 1) * 15 + 1 : 0}-{Math.min(currentModalPage * 15, selectedItem.siswaList.length)} dari {selectedItem.siswaList.length} data
+								</span>
+								<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+									<button
+										disabled={currentModalPage === 1}
+										onClick={() => setCurrentModalPage(currentModalPage - 1)}
+										style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentModalPage === 1 ? "#f1f5f9" : "white", color: currentModalPage === 1 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentModalPage === 1 ? "not-allowed" : "pointer" }}
+									>
+										Prev
+									</button>
+									<button
+										disabled={currentModalPage >= Math.ceil(selectedItem.siswaList.length / 15) || selectedItem.siswaList.length === 0}
+										onClick={() => setCurrentModalPage(currentModalPage + 1)}
+										style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentModalPage >= Math.ceil(selectedItem.siswaList.length / 15) || selectedItem.siswaList.length === 0 ? "#f1f5f9" : "white", color: currentModalPage >= Math.ceil(selectedItem.siswaList.length / 15) || selectedItem.siswaList.length === 0 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentModalPage >= Math.ceil(selectedItem.siswaList.length / 15) || selectedItem.siswaList.length === 0 ? "not-allowed" : "pointer" }}
+									>
+										Next
+									</button>
 								</div>
 							</div>
 						</div>

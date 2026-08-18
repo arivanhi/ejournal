@@ -109,8 +109,13 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 	const [activeTab, setActiveTab] = useState<"presensi" | "jadwal">("presensi");
 	const [searchTermCard, setSearchTermCard] = useState("");
 	const [searchSiswa, setSearchSiswa] = useState("");
+	const [filterTingkat, setFilterTingkat] = useState<string>("Semua Tingkat");
+	const [startDate, setStartDate] = useState<string>("");
+	const [endDate, setEndDate] = useState<string>("");
 
 	const [currentPage, setCurrentPage] = useState(1);
+	const [currentSiswaPage, setCurrentSiswaPage] = useState(1);
+	const itemsPerPage = 15;
 	const cardsPerPage = 6;
 
 	// State Download Single Kelas (dari halaman Detail)
@@ -139,7 +144,11 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 		setSearchSiswa("");
 	};
 
-	const filteredKelas = dataKelas.filter((k: any) => k.nama.toLowerCase().includes(searchTermCard.toLowerCase()));
+	const filteredKelas = dataKelas.filter((k: any) => {
+		const matchesSearch = k.nama.toLowerCase().includes(searchTermCard.toLowerCase());
+		const matchesTingkat = filterTingkat === "Semua Tingkat" || k.nama.startsWith(filterTingkat + "-");
+		return matchesSearch && matchesTingkat;
+	});
 	const totalPages = Math.max(1, Math.ceil(filteredKelas.length / cardsPerPage));
 	const paginatedKelas = filteredKelas.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage);
 
@@ -300,6 +309,11 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 															KELAS {kelasData.nama}
 														</h1>
 														<p style={{ fontSize: "12pt", fontWeight: 600 }}>Tahun Ajaran {tahunAjaran?.nama || "Aktif"}</p>
+														{startDate && endDate && (
+															<p style={{ fontSize: "11pt", fontWeight: 500, marginTop: "0.5rem", color: "#475569" }}>
+																Periode: {new Date(startDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })} s/d {new Date(endDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })}
+															</p>
+														)}
 
 														<div style={{ margin: "4rem 0", display: "flex", justifyContent: "center" }}>
 															<img
@@ -452,6 +466,31 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 						</div>
 						<div className={styles.modalBody}>
 							<p style={{ fontSize: "0.875rem", color: "#374151", marginBottom: "1rem" }}>
+								Tentukan periode rekapitulasi kehadiran (Opsional, jika kosong maka akan mengambil rekap 1 semester berjalan):
+							</p>
+
+							<div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
+								<div style={{ flex: 1 }}>
+									<label style={{ display: "block", fontSize: "0.875rem", color: "#64748b", marginBottom: "0.5rem" }}>Dari Tanggal</label>
+									<input
+										type="date"
+										style={{ width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid #e2e8f0", outline: "none" }}
+										value={startDate}
+										onChange={(e) => setStartDate(e.target.value)}
+									/>
+								</div>
+								<div style={{ flex: 1 }}>
+									<label style={{ display: "block", fontSize: "0.875rem", color: "#64748b", marginBottom: "0.5rem" }}>Sampai Tanggal</label>
+									<input
+										type="date"
+										style={{ width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid #e2e8f0", outline: "none" }}
+										value={endDate}
+										onChange={(e) => setEndDate(e.target.value)}
+									/>
+								</div>
+							</div>
+
+							<p style={{ fontSize: "0.875rem", color: "#374151", marginBottom: "1rem" }}>
 								Pilih kelas yang ingin disertakan dalam satu file PDF:
 							</p>
 
@@ -505,8 +544,41 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 								<button
 									className={styles.btnPrimaryDark}
 									disabled={isDownloadingPdf || selectedExportClasses.length === 0}
-									onClick={() => {
-										const classesToExport = dataKelas.filter((k: any) => selectedExportClasses.includes(k.id));
+									onClick={async () => {
+										let classesToExport = dataKelas.filter((k: any) => selectedExportClasses.includes(k.id));
+										
+										if (startDate && endDate) {
+											setIsDownloadingPdf(true);
+											try {
+												const res = await fetch("/api/kehadiran/export", {
+													method: "POST",
+													headers: { "Content-Type": "application/json" },
+													body: JSON.stringify({
+														startDate,
+														endDate,
+														kelasIds: selectedExportClasses,
+														tahunAjaranId: tahunAjaran?.id
+													})
+												});
+												const json = await res.json();
+												
+												if (json.useClientData) {
+													// Use default classesToExport
+												} else if (json.classesToExport) {
+													classesToExport = json.classesToExport;
+												} else {
+													showToast("Gagal mengambil data periode dari server");
+													setIsDownloadingPdf(false);
+													return;
+												}
+											} catch (e) {
+												showToast("Terjadi kesalahan jaringan");
+												setIsDownloadingPdf(false);
+												return;
+											}
+											setIsDownloadingPdf(false);
+										}
+
 										executePdfExport(classesToExport, `Rekap_Kehadiran_Multi_Kelas.pdf`);
 									}}
 								>
@@ -567,6 +639,20 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 								</p>
 							</div>
 							<div className={styles.headerButtons}>
+								<select
+									style={{ backgroundColor: "white", borderRadius: "0.5rem", border: "1px solid #e2e8f0", padding: "0.5rem 1rem", cursor: "pointer", height: "100%", width: "max-content", minWidth: "140px", flexShrink: 0, fontSize: "0.875rem" }}
+									value={filterTingkat}
+									onChange={(e) => {
+										setFilterTingkat(e.target.value);
+										setCurrentPage(1);
+									}}
+								>
+									<option value="Semua Tingkat">Semua Tingkat</option>
+									<option value="X">Kelas X</option>
+									<option value="XI">Kelas XI</option>
+									<option value="XII">Kelas XII</option>
+								</select>
+
 								<div className={styles.searchBoxCard}>
 									<Search size={16} className={styles.searchIcon} />
 									<input
@@ -818,7 +904,10 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 																</td>
 															</tr>
 														) : (
-															filteredSiswa.map((siswa: any, index: number) => {
+															(() => {
+																const startIndex = (currentSiswaPage - 1) * itemsPerPage;
+																const paginatedSiswa = filteredSiswa.slice(startIndex, startIndex + itemsPerPage);
+																return paginatedSiswa.map((siswa: any, index: number) => {
 																let statusBadge = <span className={styles.badgeNeutral}>Belum Ada</span>;
 																if (siswa.statusHariIni === "H")
 																	statusBadge = <span className={styles.badgeGreenLight}>Hadir</span>;
@@ -850,11 +939,37 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 																		<td>{statusBadge}</td>
 																	</tr>
 																);
-															})
+															});
+														})()
 														)}
 													</tbody>
 												</table>
 											</div>
+
+											{/* PAGINATION UI */}
+											{filteredSiswa.length > 0 && (
+												<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", padding: "1rem", backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
+													<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
+														Menampilkan {(currentSiswaPage - 1) * itemsPerPage + 1}-{Math.min(currentSiswaPage * itemsPerPage, filteredSiswa.length)} dari {filteredSiswa.length} data
+													</span>
+													<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+														<button
+															disabled={currentSiswaPage === 1}
+															onClick={() => setCurrentSiswaPage(currentSiswaPage - 1)}
+															style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentSiswaPage === 1 ? "#f1f5f9" : "white", color: currentSiswaPage === 1 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentSiswaPage === 1 ? "not-allowed" : "pointer" }}
+														>
+															Prev
+														</button>
+														<button
+															disabled={currentSiswaPage >= Math.ceil(filteredSiswa.length / itemsPerPage)}
+															onClick={() => setCurrentSiswaPage(currentSiswaPage + 1)}
+															style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentSiswaPage >= Math.ceil(filteredSiswa.length / itemsPerPage) ? "#f1f5f9" : "white", color: currentSiswaPage >= Math.ceil(filteredSiswa.length / itemsPerPage) ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentSiswaPage >= Math.ceil(filteredSiswa.length / itemsPerPage) ? "not-allowed" : "pointer" }}
+														>
+															Next
+														</button>
+													</div>
+												</div>
+											)}
 										</div>
 									</div>
 								)}

@@ -140,6 +140,14 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 		return matchGuru && matchMapel && matchKelas;
 	});
 
+	// Pagination Logic
+	const [currentPage, setCurrentPage] = useState(1);
+	const itemsPerPage = 15;
+	const totalItems = filteredPemetaan.length;
+	const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+	const startIndex = (currentPage - 1) * itemsPerPage;
+	const paginatedPemetaan = filteredPemetaan.slice(startIndex, startIndex + itemsPerPage);
+
 	return (
 		<div className={styles.pageContainer}>
 			<div className={styles.pageHeader}>
@@ -371,14 +379,14 @@ export default function MapelClient({ guruList, mapelList, kelasList, daftarPeme
 							</tr>
 						</thead>
 						<tbody>
-							{filteredPemetaan.length === 0 ? (
+							{paginatedPemetaan.length === 0 ? (
 								<tr>
 									<td colSpan={2} style={{ textAlign: "center", padding: "2rem" }}>
 										Tidak ada data pemetaan yang cocok dengan filter.
 									</td>
 								</tr>
 							) : (
-								filteredPemetaan.map((item, index) => (
+								paginatedPemetaan.map((item, index) => (
 									<tr key={index}>
 										{/* INFO GURU (Diposisikan selalu di atas / align-top) */}
 										<td style={{ verticalAlign: "top", paddingTop: "1.25rem" }}>
