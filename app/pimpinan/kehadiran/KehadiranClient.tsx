@@ -920,7 +920,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 
 																return (
 																	<tr key={siswa.id}>
-																		<td style={{ textAlign: "center" }}>{index + 1}</td>
+																		<td style={{ textAlign: "center" }}>{startIndex + index + 1}</td>
 																		<td style={{ fontWeight: 600, color: "#0f172a" }}>{siswa.nama}</td>
 																		<td style={{ color: "#64748b" }}>{siswa.nisn || "-"}</td>
 																		<td style={{ textAlign: "center", fontWeight: 700, color: "#10b981", backgroundColor: "#f8fafc" }}>

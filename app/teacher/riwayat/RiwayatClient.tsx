@@ -1045,7 +1045,7 @@ export default function RiwayatClient({
 												return (
 													<div key={jurnalItem.id} className={styles.jurnalLogCard}>
 														<div className={styles.jurnalLogHeader}>
-															<div className={styles.jurnalLogTitle}>Tugas {index + 1}: {jurnalItem.tugas}</div>
+															<div className={styles.jurnalLogTitle}>Tugas {startIndex + index + 1}: {jurnalItem.tugas}</div>
 															<div className={styles.jurnalLogDate}>
 																<Calendar size={14} /> {tglFormatted}
 															</div>
@@ -1122,7 +1122,7 @@ export default function RiwayatClient({
 												return (
 													<div key={jurnalItem.id} className={styles.jurnalLogCard}>
 														<div className={styles.jurnalLogHeader}>
-															<div className={styles.jurnalLogTitle}>Pertemuan Ke-{index + 1}</div>
+															<div className={styles.jurnalLogTitle}>Pertemuan Ke-{startIndex + index + 1}</div>
 															<div className={styles.jurnalLogDate}>
 																<Calendar size={14} /> {tglFormatted}
 															</div>

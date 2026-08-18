@@ -1382,7 +1382,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 													const nilai = absen?.nilaiTugas;
 													return (
 														<tr key={siswa.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-															<td style={{ padding: "0.75rem", textAlign: "center" }}>{idx + 1}</td>
+															<td style={{ padding: "0.75rem", textAlign: "center" }}>{startIndex + idx + 1}</td>
 															<td style={{ padding: "0.75rem", fontWeight: 500, color: "#1e293b" }}>{siswa.nama}</td>
 															<td style={{ padding: "0.75rem", color: "#64748b" }}>{siswa.nisn}</td>
 															<td style={{ padding: "0.75rem", textAlign: "center", fontWeight: "bold", color: "#0f172a" }}>

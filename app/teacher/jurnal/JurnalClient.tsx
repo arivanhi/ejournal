@@ -944,7 +944,7 @@ export default function JurnalClient({
 
 													return (
 														<tr key={jurnalItem.id}>
-															<td style={{ fontWeight: 500 }}>{index + 1}</td>
+															<td style={{ fontWeight: 500 }}>{startIndex + index + 1}</td>
 															<td style={{ fontWeight: 600, color: "#0f172a" }}>{tglFormatted}</td>
 															<td style={{ color: "#475569" }}>
 																<div style={{ fontWeight: 600, color: "#1e293b" }}>
@@ -1423,7 +1423,7 @@ export default function JurnalClient({
 
 												return (
 													<tr key={siswa.id}>
-														<td>{index + 1}</td>
+														<td>{startIndex + index + 1}</td>
 														<td style={{ fontWeight: 500 }}>{siswa.nis}</td>
 														<td style={{ fontWeight: 600, color: "#0f172a" }}>{siswa.user?.nama || "Nama Siswa"}</td>
 														<td>{siswa.jenisKelamin === "L" ? "L" : "P"}</td>
