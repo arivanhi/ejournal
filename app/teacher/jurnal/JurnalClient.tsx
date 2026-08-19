@@ -188,6 +188,7 @@ export default function JurnalClient({
 	const [isModalIzinOpen, setIsModalIzinOpen] = useState(false);
 	const [currentSiswaIzin, setCurrentSiswaIzin] = useState<{ id: string; nama: string } | null>(null);
 	const [inputAlasan, setInputAlasan] = useState("");
+	const [search, setSearch] = useState("");
 
 	const [isDownloading, setIsDownloading] = useState(false);
 
@@ -477,10 +478,7 @@ export default function JurnalClient({
 		setViewMode("presensi");
 	};
 
-	// ============================================================================
-	// LOGIKA PERHITUNGAN HALAMAN MANUAL (CHUNKING PDF)
-	// ============================================================================
-	const MAX_ROWS = 20; // PERBAIKAN: Max 20 Data agar tidak terlalu padat ke bawah
+	const MAX_ROWS = 20;
 	const chunkArray = (arr: any[], size: number) => {
 		if (!arr || arr.length === 0) return [[]];
 		const res = [];
@@ -488,7 +486,6 @@ export default function JurnalClient({
 		return res;
 	};
 
-	// --- FUNGSI EXPORT PDF ---
 	const handleDownloadPdf = async () => {
 		setIsDownloading(true);
 		try {
@@ -1130,27 +1127,13 @@ export default function JurnalClient({
 							<span style={{ fontWeight: 600, color: "#0f172a" }}>Detail Presensi</span>
 						</div>
 
-						<div
-							style={{
-								display: "flex",
-								justifyContent: "space-between",
-								alignItems: "flex-end",
-								marginBottom: "1.5rem",
-							}}
-						>
+						{/* PERBAIKAN 1: BUNGKUS HEADER PRESENSI DENGAN CLASS CSS AGAR RESPONSIVE */}
+						<div className={styles.presensiHeader}>
 							<div>
-								<h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem", color: "#0f172a" }}>
+								<h2 className={styles.presensiTitle}>
 									Presensi Manual - {activeJadwal.mapel.nama} {activeJadwal.kelas.nama}
 								</h2>
-								<div
-									style={{
-										color: "#64748b",
-										fontSize: "0.875rem",
-										display: "flex",
-										alignItems: "center",
-										gap: "0.5rem",
-									}}
-								>
+								<div className={styles.presensiSubtitle}>
 									<CalendarDays size={16} />
 									{new Date(activeJurnal.tanggal).toLocaleDateString("id-ID", {
 										weekday: "long",
@@ -1162,8 +1145,7 @@ export default function JurnalClient({
 								</div>
 							</div>
 							<button
-								className={styles.btnOutlineFull}
-								style={{ width: "auto", margin: 0, padding: "0.5rem 1rem", backgroundColor: "white" }}
+								className={`${styles.btnOutlineFull} ${styles.btnExportMobile}`}
 								onClick={handleDownloadPdf}
 								disabled={isDownloading}
 							>
@@ -1172,62 +1154,51 @@ export default function JurnalClient({
 							</button>
 						</div>
 
+						{/* PERBAIKAN 2: REFACTOR STATS GRID DENGAN CSS CLASS */}
 						<div className={styles.statsGrid}>
-							<div
-								className={styles.summaryCard}
-								style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
-							>
-								<div style={{ backgroundColor: "#e0f2fe", padding: "0.75rem", borderRadius: "50%" }}>
+							<div className={styles.summaryCard}>
+								<div className={styles.iconCircleBlue}>
 									<Users size={24} color="#3b82f6" />
 								</div>
-								<div>
-									<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Total Siswa</div>
-									<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#0f172a" }}>
+								<div className={styles.statTextContainer}>
+									<div className={styles.statLabel}>Total Siswa</div>
+									<div className={styles.statValueBlue}>
 										{activeJadwal.kelas?.riwayatSiswa?.length || 0}
 									</div>
 								</div>
 							</div>
-							<div
-								className={styles.summaryCard}
-								style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
-							>
-								<div style={{ backgroundColor: "#d1fae5", padding: "0.75rem", borderRadius: "50%" }}>
+							<div className={styles.summaryCard}>
+								<div className={styles.iconCircleGreen}>
 									<CheckCircle2 size={24} color="#10b981" />
 								</div>
-								<div>
-									<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Hadir</div>
-									<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#10b981" }}>
+								<div className={styles.statTextContainer}>
+									<div className={styles.statLabel}>Hadir</div>
+									<div className={styles.statValueGreen}>
 										{activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H")
 											.length || 0}
 									</div>
 								</div>
 							</div>
-							<div
-								className={styles.summaryCard}
-								style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
-							>
-								<div style={{ backgroundColor: "#fef3c7", padding: "0.75rem", borderRadius: "50%" }}>
+							<div className={styles.summaryCard}>
+								<div className={styles.iconCircleYellow}>
 									<Clock size={24} color="#f59e0b" />
 								</div>
-								<div>
-									<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Izin/Sakit</div>
-									<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#f59e0b" }}>
+								<div className={styles.statTextContainer}>
+									<div className={styles.statLabel}>Izin/Sakit</div>
+									<div className={styles.statValueYellow}>
 										{activeJadwal.kelas?.riwayatSiswa?.filter(
 											(rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
 										).length || 0}
 									</div>
 								</div>
 							</div>
-							<div
-								className={styles.summaryCard}
-								style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
-							>
-								<div style={{ backgroundColor: "#fee2e2", padding: "0.75rem", borderRadius: "50%" }}>
+							<div className={styles.summaryCard}>
+								<div className={styles.iconCircleRed}>
 									<X size={24} color="#ef4444" />
 								</div>
-								<div>
-									<div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Alpha/Belum</div>
-									<div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#ef4444" }}>
+								<div className={styles.statTextContainer}>
+									<div className={styles.statLabel}>Alpha/Belum</div>
+									<div className={styles.statValueRed}>
 										{(activeJadwal.kelas?.riwayatSiswa?.length || 0) -
 											(activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H")
 												.length || 0) -
@@ -1240,41 +1211,23 @@ export default function JurnalClient({
 						</div>
 
 						<div className={styles.tableCard}>
-							<div
-								className={styles.tableToolbar}
-								style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-							>
-								<div style={{ fontWeight: 700, color: "#0f172a" }}>Daftar Kehadiran</div>
-								<div style={{ display: "flex", gap: "1rem" }}>
-									<div style={{ position: "relative", width: "250px" }}>
-										<Search
-											size={16}
-											style={{
-												position: "absolute",
-												left: "0.75rem",
-												top: "50%",
-												transform: "translateY(-50%)",
-												color: "#94a3b8",
-											}}
-										/>
+							{/* PERBAIKAN 3: REFACTOR TABLE TOOLBAR & SEARCH BAR */}
+							<div className={styles.tableToolbar}>
+								<div className={styles.tableTitle}>Daftar Kehadiran</div>
+								<div className={styles.searchWrapper}>
+									<div className={styles.searchContainer}>
+										<Search size={16} className={styles.searchIcon} />
 										<input
 											type="text"
 											placeholder="Cari nama siswa..."
-											style={{
-												width: "100%",
-												padding: "0.5rem 1rem 0.5rem 2.25rem",
-												borderRadius: "0.5rem",
-												border: "1px solid #cbd5e1",
-												fontSize: "0.875rem",
-												outline: "none",
-											}}
+											value={search}
+											onChange={(e) => setSearch(e.target.value)}
+											className={styles.searchInput}
 										/>
 									</div>
 								</div>
 							</div>
 							<div style={{ overflowX: "auto", width: "100%" }}>
-
-								{/* PERBAIKAN: TABEL WEB UI DIKEMBALIKAN KE BENTUK ASLI */}
 								<table className={styles.tableStyle}>
 									<thead>
 										<tr>
@@ -1373,6 +1326,16 @@ export default function JurnalClient({
 										{(() => {
 											let sortedData = [...activeJadwal.kelas.riwayatSiswa];
 
+											// Gunakan fungsi filter di sini
+											if (search) {
+												sortedData = sortedData.filter((rs: any) => {
+													const searchTerm = search.toLowerCase();
+													const namaMatch = (rs.siswa.user?.nama || "").toLowerCase().includes(searchTerm);
+													const nisMatch = (rs.siswa.nis || "").toLowerCase().includes(searchTerm);
+													return namaMatch || nisMatch;
+												});
+											}
+
 											sortedData.sort((a, b) => {
 												let valA: any = "";
 												let valB: any = "";
@@ -1409,6 +1372,16 @@ export default function JurnalClient({
 											const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 											const startIndex = (currentPageRekap - 1) * itemsPerPage;
 											const paginatedData = sortedData.slice(startIndex, startIndex + itemsPerPage);
+
+											if (totalItems === 0) {
+												return (
+													<tr>
+														<td colSpan={7} style={{ textAlign: "center", padding: "3rem", color: "#64748b", fontStyle: "italic" }}>
+															Tidak ada siswa yang cocok dengan pencarian "{search}".
+														</td>
+													</tr>
+												);
+											}
 
 											return paginatedData.map((rs: any, index: number) => {
 												const siswa = rs.siswa;
@@ -1549,7 +1522,6 @@ export default function JurnalClient({
 									let sortedData = [...activeJadwal.kelas.riwayatSiswa];
 									sortedData.sort((a, b) => (a.siswa.user?.nama || "").localeCompare(b.siswa.user?.nama || ""));
 
-									// PERBAIKAN: Max baris per tabel PDF sekarang diatur 20
 									const siswaChunks = chunkArray(sortedData, MAX_ROWS);
 									const totalPages = siswaChunks.length;
 

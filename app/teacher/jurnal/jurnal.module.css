@@ -18,6 +18,7 @@
 	top: 0;
 	height: 100vh;
 }
+
 .sidebarHeader {
 	padding: 1.5rem;
 	display: flex;
@@ -25,6 +26,7 @@
 	gap: 1rem;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 .logoWrapper {
 	width: 40px;
 	height: 40px;
@@ -35,21 +37,25 @@
 	justify-content: center;
 	overflow: hidden;
 }
+
 .logoImage {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
 }
+
 .schoolName {
 	font-weight: 700;
 	font-size: 1.125rem;
 	line-height: 1.2;
 }
+
 .portalName {
 	font-size: 0.75rem;
 	color: #9ca3af;
 	font-weight: 400;
 }
+
 .menuContainer {
 	padding: 1.5rem 0;
 	display: flex;
@@ -57,6 +63,7 @@
 	flex: 1;
 	overflow-y: auto;
 }
+
 .menuItem {
 	display: flex;
 	align-items: center;
@@ -69,15 +76,18 @@
 	transition: 0.2s;
 	border-left: 3px solid transparent;
 }
+
 .menuItem:hover {
 	background-color: rgba(255, 255, 255, 0.05);
 	color: white;
 }
+
 .menuItemActive {
 	background-color: rgba(255, 255, 255, 0.1);
 	color: white;
 	border-left-color: #fef08a;
 }
+
 .menuSection {
 	padding: 1.5rem 1.5rem 0.5rem 1.5rem;
 	font-size: 0.7rem;
@@ -86,10 +96,12 @@
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
 }
+
 .sidebarFooter {
 	padding: 1.5rem;
 	border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 .logoutBtn {
 	display: flex;
 	align-items: center;
@@ -102,6 +114,7 @@
 	border: none;
 	padding: 0;
 }
+
 .logoutBtn:hover {
 	color: white;
 }
@@ -113,6 +126,7 @@
 	flex-direction: column;
 	max-width: calc(100vw - 260px);
 }
+
 .topbar {
 	background-color: #ffffff;
 	padding: 1rem 2rem;
@@ -124,18 +138,21 @@
 	top: 0;
 	z-index: 10;
 }
+
 .greeting {
 	font-size: 1.125rem;
 	font-weight: 700;
 	color: #0a2540;
 	margin: 0;
 }
+
 .topbarActions {
 	display: flex;
 	align-items: center;
 	gap: 1.25rem;
 	color: #4b5563;
 }
+
 .profileAvatar {
 	width: 36px;
 	height: 36px;
@@ -143,7 +160,6 @@
 	border-radius: 50%;
 }
 
-/* PERBAIKAN 1: Hapus max-width agar rata kanan-kiri penuhi layar */
 .dashboardContainer {
 	padding: 2rem;
 	display: flex;
@@ -159,16 +175,19 @@
 	align-items: flex-start;
 	margin-bottom: 2rem;
 }
+
 .pageTitle {
 	font-size: 1.75rem;
 	font-weight: 700;
 	color: #0a2540;
 	margin-bottom: 0.35rem;
 }
+
 .pageSubtitle {
 	color: #64748b;
 	font-size: 0.875rem;
 }
+
 .filterSelect {
 	padding: 0.5rem 1rem;
 	border-radius: 0.5rem;
@@ -179,6 +198,7 @@
 	background: white;
 	cursor: pointer;
 }
+
 .emptyStateContainer {
 	padding: 3rem;
 	text-align: center;
@@ -188,12 +208,12 @@
 	border: 1px dashed #cbd5e1;
 }
 
-/* PERBAIKAN 2: Penyesuaian Grid & Kartu */
 .cardGrid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
 	gap: 1.5rem;
 }
+
 .jurnalCard {
 	background: white;
 	border-radius: 0.75rem;
@@ -209,23 +229,24 @@
 	transition: 0.2s;
 	min-height: 220px;
 }
+
 .jurnalCard:hover {
 	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 	transform: translateY(-3px);
 }
 
-/* Status Colors */
 .statusBelum {
 	border-left-color: #ef4444;
 }
+
 .statusSelesai {
 	border-left-color: #10b981;
 }
+
 .statusBerlangsung {
 	border-left-color: #f59e0b;
 }
 
-/* Hapus position absolute pada badgeStatus dan tambahkan margin-top */
 .badgeStatus {
 	padding: 0.25rem 0.6rem;
 	border-radius: 9999px;
@@ -235,28 +256,31 @@
 	letter-spacing: 0.05em;
 	display: inline-block;
 	width: fit-content;
-	margin-top: 0.35rem; /* Memberi jarak antara teks kelas dan badge */
+	margin-top: 0.35rem;
 }
+
 .badgeBelum {
 	background-color: #fee2e2;
 	color: #b91c1c;
 }
+
 .badgeSelesai {
 	background-color: #d1fae5;
 	color: #047857;
 }
+
 .badgeBerlangsung {
 	background-color: #fef3c7;
 	color: #b45309;
 }
 
-/* Hapus padding-right: 6rem yang sebelumnya dipakai agar tidak tergencet */
 .cardHeader {
 	display: flex;
 	align-items: flex-start;
 	gap: 1rem;
 	margin-bottom: 0.5rem;
 }
+
 .iconBox {
 	width: 42px;
 	height: 42px;
@@ -268,6 +292,7 @@
 	flex-shrink: 0;
 	color: #0a2540;
 }
+
 .mapelTitle {
 	font-size: 1.15rem;
 	font-weight: 700;
@@ -275,6 +300,7 @@
 	line-height: 1.3;
 	margin-bottom: 0.25rem;
 }
+
 .mapelSubtitle {
 	font-size: 0.875rem;
 	color: #64748b;
@@ -289,6 +315,7 @@
 	color: #475569;
 	margin-top: 0.25rem;
 }
+
 .infoRow {
 	display: flex;
 	align-items: center;
@@ -307,9 +334,11 @@
 	cursor: pointer;
 	transition: 0.2s;
 }
+
 .btnPrimaryFull:hover {
 	background-color: #1e3a8a;
 }
+
 .btnOutlineFull {
 	width: 100%;
 	background-color: transparent;
@@ -322,11 +351,11 @@
 	cursor: pointer;
 	transition: 0.2s;
 }
+
 .btnOutlineFull:hover {
 	background-color: #f1f5f9;
 }
 
-/* === BUTTON BACK === */
 .btnBack {
 	background: none;
 	border: none;
@@ -341,6 +370,7 @@
 	padding: 0;
 	transition: 0.2s;
 }
+
 .btnBack:hover {
 	color: #0a2540;
 }
@@ -352,6 +382,7 @@
 	gap: 2rem;
 	align-items: start;
 }
+
 .formSection {
 	background: white;
 	padding: 2rem;
@@ -360,6 +391,7 @@
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 	position: relative;
 }
+
 .formTitle {
 	font-size: 1.35rem;
 	font-weight: 800;
@@ -371,6 +403,7 @@
 	flex-wrap: wrap;
 	padding-right: 8rem;
 }
+
 .formMeta {
 	font-size: 0.875rem;
 	color: #64748b;
@@ -379,9 +412,11 @@
 	margin-bottom: 0.5rem;
 	font-weight: 500;
 }
+
 .formGroup {
 	margin-bottom: 1.5rem;
 }
+
 .formLabel {
 	display: block;
 	font-size: 0.875rem;
@@ -389,6 +424,7 @@
 	color: #334155;
 	margin-bottom: 0.5rem;
 }
+
 .formInput,
 .formTextarea {
 	width: 100%;
@@ -401,12 +437,14 @@
 	background: #f8fafc;
 	transition: 0.2s;
 }
+
 .formInput:focus,
 .formTextarea:focus {
 	border-color: #3b82f6;
 	background: white;
 	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
+
 .formTextarea {
 	min-height: 120px;
 	resize: vertical;
@@ -419,128 +457,121 @@
 	position: sticky;
 	top: 100px;
 }
+
+/* === VIEW 3: DETAIL PRESENSI (REFACTOR RESPONSIVE) === */
+.presensiHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	margin-bottom: 1.5rem;
+	gap: 1rem;
+}
+
+.presensiTitle {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: #0f172a;
+	margin-bottom: 0.5rem;
+}
+
+.presensiSubtitle {
+	color: #64748b;
+	font-size: 0.875rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.btnExportMobile {
+	width: auto;
+	margin: 0;
+	padding: 0.5rem 1rem;
+	background-color: white;
+}
+
 .summaryCard {
 	background: white;
-	padding: 1.5rem;
+	padding: 1.25rem;
 	border-radius: 0.75rem;
 	border: 1px solid #e2e8f0;
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-.summaryHeader {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: 1.25rem;
-	font-weight: 700;
-	color: #0f172a;
-	font-size: 0.95rem;
-}
-.summaryLink {
-	font-size: 0.75rem;
-	color: #3b82f6;
-	text-decoration: none;
-	cursor: pointer;
-	font-weight: 600;
 	display: flex;
 	align-items: center;
-}
-.summaryLinkDisabled {
-	font-size: 0.75rem;
-	color: #94a3b8;
-	font-weight: 600;
-	display: flex;
-	align-items: center;
-	cursor: not-allowed;
-}
-.summaryStats {
-	display: flex;
 	gap: 1rem;
-	margin-bottom: 1.5rem;
-}
-.statTotal {
-	flex: 1;
-	background: #f1f5f9;
-	border: 1px solid #e2e8f0;
-	border-radius: 0.5rem;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	padding: 1.25rem 0;
-}
-.statTotalNum {
-	font-size: 2.25rem;
-	font-weight: 800;
-	color: #0f172a;
-	line-height: 1;
-}
-.statTotalLabel {
-	font-size: 0.65rem;
-	font-weight: 700;
-	color: #64748b;
-	text-transform: uppercase;
-	margin-top: 0.5rem;
-	letter-spacing: 0.05em;
-}
-.statBreakdown {
-	flex: 1.2;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	gap: 0.4rem;
-}
-.statRow {
-	display: flex;
-	justify-content: space-between;
-	font-size: 0.75rem;
-	font-weight: 600;
-	padding: 0.35rem 0.5rem;
-	border-radius: 0.25rem;
-}
-.statHadir {
-	background: #d1fae5;
-	color: #047857;
-}
-.statIzin {
-	background: #fef3c7;
-	color: #b45309;
-}
-.statAlpha {
-	background: #fee2e2;
-	color: #b91c1c;
-}
-.btnQR {
-	width: 100%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 0.5rem;
-	background: #ffffff;
-	border: 1px solid #cbd5e1;
-	color: #0f172a;
-	padding: 0.75rem;
-	border-radius: 0.5rem;
-	font-weight: 600;
-	font-size: 0.875rem;
-	cursor: pointer;
-	transition: 0.2s;
-}
-.btnQR:hover {
-	background: #f1f5f9;
-}
-.btnQRActive {
-	border-color: transparent !important;
-}
-.formFooter {
-	display: flex;
-	justify-content: flex-end;
-	gap: 1rem;
-	padding-top: 1.5rem;
-	border-top: 1px solid #e2e8f0;
-	margin-top: 2rem;
 }
 
-/* === VIEW 3: DETAIL PRESENSI === */
+/* Icon Bulat di View 3 */
+.iconCircleBlue {
+	background-color: #e0f2fe;
+	padding: 0.75rem;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.iconCircleGreen {
+	background-color: #d1fae5;
+	padding: 0.75rem;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.iconCircleYellow {
+	background-color: #fef3c7;
+	padding: 0.75rem;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.iconCircleRed {
+	background-color: #fee2e2;
+	padding: 0.75rem;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.statTextContainer {
+	display: flex;
+	flex-direction: column;
+}
+
+.statLabel {
+	font-size: 0.75rem;
+	color: #64748b;
+	font-weight: 600;
+}
+
+.statValueBlue {
+	font-weight: 800;
+	font-size: 1.5rem;
+	color: #0f172a;
+}
+
+.statValueGreen {
+	font-weight: 800;
+	font-size: 1.5rem;
+	color: #10b981;
+}
+
+.statValueYellow {
+	font-weight: 800;
+	font-size: 1.5rem;
+	color: #f59e0b;
+}
+
+.statValueRed {
+	font-weight: 800;
+	font-size: 1.5rem;
+	color: #ef4444;
+}
+
 .tableCard {
 	background: white;
 	padding: 0;
@@ -549,6 +580,7 @@
 	overflow: hidden;
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
+
 .tableToolbar {
 	padding: 1.25rem 1.5rem;
 	display: flex;
@@ -557,12 +589,52 @@
 	border-bottom: 1px solid #e2e8f0;
 	background: #ffffff;
 }
+
+.tableTitle {
+	font-weight: 700;
+	color: #0f172a;
+	font-size: 1.1rem;
+}
+
+.searchWrapper {
+	display: flex;
+	gap: 1rem;
+}
+
+.searchContainer {
+	position: relative;
+	width: 250px;
+}
+
+.searchIcon {
+	position: absolute;
+	left: 0.75rem;
+	top: 50%;
+	transform: translateY(-50%);
+	color: #94a3b8;
+}
+
+.searchInput {
+	width: 100%;
+	padding: 0.5rem 1rem 0.5rem 2.25rem;
+	border-radius: 0.5rem;
+	border: 1px solid #cbd5e1;
+	font-size: 0.875rem;
+	outline: none;
+	box-sizing: border-box;
+}
+
+.searchInput:focus {
+	border-color: #3b82f6;
+}
+
 .tableStyle {
 	width: 100%;
 	border-collapse: collapse;
 	text-align: left;
 	font-size: 0.875rem;
 }
+
 .tableStyle th {
 	background-color: #f8fafc;
 	padding: 0.875rem 1.5rem;
@@ -573,15 +645,18 @@
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
 }
+
 .tableStyle td {
 	padding: 1rem 1.5rem;
 	border-bottom: 1px solid #e2e8f0;
 	color: #334155;
 	vertical-align: middle;
 }
+
 .tableStyle tr:hover td {
 	background-color: #f8fafc;
 }
+
 .tableStyle tr:last-child td {
 	border-bottom: none;
 }
@@ -601,29 +676,31 @@
 	z-index: 9999;
 	animation: fadeIn 0.2s ease-out;
 }
+
 .modalContent {
 	background: white;
 	width: 400px;
 	max-width: 90%;
 	border-radius: 1rem;
 	padding: 2rem;
-	box-shadow:
-		0 20px 25px -5px rgba(0, 0, 0, 0.1),
-		0 10px 10px -5px rgba(0, 0, 0, 0.04);
+	box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 	animation: slideUp 0.2s ease-out;
 }
+
 .modalTitle {
 	font-size: 1.25rem;
 	font-weight: 800;
 	color: #0f172a;
 	margin-bottom: 0.75rem;
 }
+
 .modalMessage {
 	font-size: 0.875rem;
 	color: #475569;
 	line-height: 1.5;
 	margin-bottom: 2rem;
 }
+
 .modalActions {
 	display: flex;
 	justify-content: flex-end;
@@ -634,15 +711,18 @@
 	from {
 		opacity: 0;
 	}
+
 	to {
 		opacity: 1;
 	}
 }
+
 @keyframes slideUp {
 	from {
 		opacity: 0;
 		transform: translateY(10px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateY(0);
@@ -660,6 +740,7 @@
 	gap: 0.75rem;
 	pointer-events: none;
 }
+
 .toast {
 	background: white;
 	border-radius: 0.5rem;
@@ -667,22 +748,21 @@
 	display: flex;
 	align-items: center;
 	gap: 0.75rem;
-	box-shadow:
-		0 10px 15px -3px rgba(0, 0, 0, 0.1),
-		0 4px 6px -2px rgba(0, 0, 0, 0.05);
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 	border-left: 4px solid;
-	animation:
-		slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-		fadeOut 0.5s ease-in forwards 3s;
+	animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1), fadeOut 0.5s ease-in forwards 3s;
 	pointer-events: auto;
 	min-width: 250px;
 }
+
 .toastSuccess {
 	border-left-color: #10b981;
 }
+
 .toastError {
 	border-left-color: #ef4444;
 }
+
 .toastText {
 	font-size: 0.875rem;
 	font-weight: 600;
@@ -694,11 +774,13 @@
 		transform: translateX(100%);
 		opacity: 0;
 	}
+
 	to {
 		transform: translateX(0);
 		opacity: 1;
 	}
 }
+
 @keyframes fadeOut {
 	to {
 		opacity: 0;
@@ -706,7 +788,7 @@
 	}
 }
 
-/* Responsive Grids for Forms and Stats */
+/* === RESPONSIVE UTAMA === */
 .formGrid {
 	display: grid;
 	grid-template-columns: 1fr;
@@ -737,5 +819,74 @@
 @media (min-width: 1024px) {
 	.statsGrid {
 		grid-template-columns: repeat(4, 1fr);
+	}
+}
+
+/* ==========================================================================
+   RESPONSIVE KHUSUS MOBILE (FIX VIEW 3)
+   ========================================================================== */
+@media (max-width: 768px) {
+	.dashboardContainer {
+		padding: 1rem;
+		width: 100%;
+		box-sizing: border-box;
+		overflow-x: hidden;
+	}
+
+	/* Fix Header Presensi (Tidak tergencet) */
+	.presensiHeader {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.btnExportMobile {
+		width: 100%;
+		justify-content: center;
+	}
+
+	/* Fix Summary Cards (Ikon di atas, Text di bawah) */
+	.summaryCard {
+		flex-direction: column;
+		text-align: center;
+		padding: 1rem;
+		gap: 0.5rem;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.statTextContainer {
+		align-items: center;
+	}
+
+	.summaryCard>div:first-child {
+		margin-bottom: 0.5rem;
+	}
+
+	/* Fix Table Toolbar & Search Bar (Full Width) */
+	.tableToolbar {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 1rem;
+		padding: 1rem;
+	}
+
+	.searchWrapper {
+		width: 100%;
+	}
+
+	.searchContainer {
+		width: 100%;
+	}
+
+	/* Tabel tidak merusak layout */
+	.tableCard {
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+	}
+
+	.tableStyle {
+		min-width: 700px;
+		/* Force table to scroll instead of squishing */
 	}
 }

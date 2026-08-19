@@ -5,6 +5,7 @@
 	background-color: #f8fafc;
 	font-family: "Inter", sans-serif;
 }
+
 .sidebar {
 	width: 260px;
 	background-color: #0a2540;
@@ -17,6 +18,7 @@
 	height: 100vh;
 	z-index: 20;
 }
+
 .sidebarHeader {
 	padding: 1.5rem;
 	display: flex;
@@ -24,6 +26,7 @@
 	gap: 1rem;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 .logoWrapper {
 	width: 40px;
 	height: 40px;
@@ -34,21 +37,25 @@
 	justify-content: center;
 	overflow: hidden;
 }
+
 .logoImage {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
 }
+
 .schoolName {
 	font-weight: 700;
 	font-size: 1.125rem;
 	line-height: 1.2;
 }
+
 .portalName {
 	font-size: 0.75rem;
 	color: #9ca3af;
 	font-weight: 400;
 }
+
 .menuContainer {
 	padding: 1.5rem 0;
 	display: flex;
@@ -56,6 +63,7 @@
 	flex: 1;
 	overflow-y: auto;
 }
+
 .menuItem {
 	display: flex;
 	align-items: center;
@@ -68,15 +76,18 @@
 	transition: 0.2s;
 	border-left: 3px solid transparent;
 }
+
 .menuItem:hover {
 	background-color: rgba(255, 255, 255, 0.05);
 	color: white;
 }
+
 .menuItemActive {
 	background-color: rgba(255, 255, 255, 0.1);
 	color: white;
 	border-left-color: #fef08a;
 }
+
 .menuSection {
 	padding: 1.5rem 1.5rem 0.5rem 1.5rem;
 	font-size: 0.7rem;
@@ -85,10 +96,12 @@
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
 }
+
 .sidebarFooter {
 	padding: 1.5rem;
 	border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 .logoutBtn {
 	display: flex;
 	align-items: center;
@@ -101,12 +114,14 @@
 	border: none;
 	padding: 0;
 }
+
 .mainContent {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
 	max-width: calc(100vw - 260px);
 }
+
 .topbar {
 	background-color: #ffffff;
 	padding: 1rem 2rem;
@@ -118,24 +133,28 @@
 	top: 0;
 	z-index: 10;
 }
+
 .greeting {
 	font-size: 1rem;
 	font-weight: 700;
 	color: #0a2540;
 	margin: 0;
 }
+
 .topbarActions {
 	display: flex;
 	align-items: center;
 	gap: 1.25rem;
 	color: #4b5563;
 }
+
 .profileAvatar {
 	width: 36px;
 	height: 36px;
 	background-color: #e5e7eb;
 	border-radius: 50%;
 }
+
 .dashboardContainer {
 	padding: 2rem;
 	display: flex;
@@ -150,6 +169,7 @@
 	color: #0f172a;
 	margin-bottom: 0.35rem;
 }
+
 .pageSubtitle {
 	color: #64748b;
 	font-size: 0.875rem;
@@ -163,6 +183,7 @@
 	justify-content: center;
 	min-height: 60vh;
 }
+
 .emptyStateCard {
 	background: white;
 	padding: 4rem 3rem;
@@ -173,6 +194,7 @@
 	max-width: 450px;
 	width: 100%;
 }
+
 .emptyIconCircle {
 	width: 120px;
 	height: 120px;
@@ -185,18 +207,21 @@
 	color: #0f172a;
 	border: 12px solid #e2e8f0;
 }
+
 .emptyTitle {
 	font-size: 1.25rem;
 	font-weight: 700;
 	color: #0f172a;
 	margin-bottom: 0.75rem;
 }
+
 .emptyDesc {
 	color: #64748b;
 	font-size: 0.875rem;
 	margin-bottom: 2rem;
 	line-height: 1.5;
 }
+
 .btnPrimary {
 	background-color: #0f172a;
 	color: white;
@@ -212,6 +237,7 @@
 	text-decoration: none;
 	transition: 0.2s;
 }
+
 .btnPrimary:hover {
 	background-color: #1e293b;
 }
@@ -222,6 +248,7 @@
 	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 	gap: 1.5rem;
 }
+
 .qrCard {
 	background: white;
 	border-radius: 0.75rem;
@@ -230,16 +257,19 @@
 	border: 1px solid #e2e8f0;
 	transition: 0.2s;
 }
+
 .qrCard:hover {
 	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 	transform: translateY(-2px);
 }
+
 .qrCardHeader {
 	display: flex;
 	justify-content: space-between;
 	align-items: flex-start;
 	margin-bottom: 1rem;
 }
+
 .badgeActive {
 	background-color: #d1fae5;
 	color: #047857;
@@ -252,6 +282,7 @@
 	align-items: center;
 	gap: 0.25rem;
 }
+
 .pulseDot {
 	width: 6px;
 	height: 6px;
@@ -260,26 +291,31 @@
 	box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
 	animation: pulse 1.5s infinite;
 }
+
 @keyframes pulse {
 	70% {
 		box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
 	}
+
 	100% {
 		box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
 	}
 }
+
 .iconTop {
 	color: #3b82f6;
 	background: #eff6ff;
 	padding: 0.5rem;
 	border-radius: 0.5rem;
 }
+
 .qrCardTitle {
 	font-size: 1.25rem;
 	font-weight: 700;
 	color: #0f172a;
 	margin-bottom: 1rem;
 }
+
 .qrCardInfo {
 	display: flex;
 	flex-direction: column;
@@ -288,11 +324,13 @@
 	color: #475569;
 	margin-bottom: 1.5rem;
 }
+
 .qrCardInfoItem {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
 }
+
 .btnFull {
 	width: 100%;
 	display: flex;
@@ -306,17 +344,20 @@
 	align-items: flex-start;
 	margin-bottom: 2rem;
 }
+
 .detailTitleGroup {
 	display: flex;
 	align-items: center;
 	gap: 1rem;
 	margin-bottom: 0.5rem;
 }
+
 .detailTitle {
 	font-size: 1.75rem;
 	font-weight: 800;
 	color: #0f172a;
 }
+
 .badgeProgress {
 	background-color: #d1fae5;
 	color: #047857;
@@ -328,6 +369,7 @@
 	align-items: center;
 	gap: 0.35rem;
 }
+
 .detailMeta {
 	color: #64748b;
 	font-size: 0.875rem;
@@ -335,11 +377,13 @@
 	align-items: center;
 	gap: 1rem;
 }
+
 .detailMeta span {
 	display: flex;
 	align-items: center;
 	gap: 0.35rem;
 }
+
 .btnDanger {
 	background-color: #ef4444;
 	color: white;
@@ -354,6 +398,7 @@
 	gap: 0.5rem;
 	transition: 0.2s;
 }
+
 .btnDanger:hover {
 	background-color: #dc2626;
 }
@@ -377,17 +422,20 @@
 	flex-direction: column;
 	align-items: center;
 }
+
 .qrInstructionTitle {
 	font-size: 1.5rem;
 	font-weight: 800;
 	color: #0f172a;
 	margin-bottom: 0.5rem;
 }
+
 .qrInstructionSub {
 	color: #64748b;
 	font-size: 0.875rem;
 	margin-bottom: 2.5rem;
 }
+
 .qrImageContainer {
 	padding: 1.5rem;
 	border: 2px solid #e2e8f0;
@@ -397,6 +445,7 @@
 	display: inline-block;
 	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
+
 .qrImage {
 	width: 250px;
 	height: 250px;
@@ -409,6 +458,7 @@
 	margin: 0 auto 2rem auto;
 	text-align: left;
 }
+
 .progressHeader {
 	display: flex;
 	justify-content: space-between;
@@ -417,12 +467,14 @@
 	color: #0f172a;
 	margin-bottom: 0.5rem;
 }
+
 .progressTrack {
 	height: 8px;
 	background: #e2e8f0;
 	border-radius: 999px;
 	overflow: hidden;
 }
+
 .progressBar {
 	height: 100%;
 	background: #0f172a;
@@ -435,6 +487,7 @@
 	display: inline-block;
 	text-align: center;
 }
+
 .manualCodeLabel {
 	font-size: 0.75rem;
 	font-weight: 600;
@@ -443,6 +496,7 @@
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
 }
+
 .manualCodeValue {
 	background: #eff6ff;
 	color: #1e3a8a;
@@ -460,6 +514,7 @@
 	flex-direction: column;
 	gap: 1.5rem;
 }
+
 .sideCard {
 	background: white;
 	border-radius: 1rem;
@@ -467,6 +522,7 @@
 	border: 1px solid #e2e8f0;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
+
 .sideCardTitle {
 	font-size: 1rem;
 	font-weight: 700;
@@ -476,6 +532,7 @@
 	justify-content: space-between;
 	align-items: center;
 }
+
 .badgeLive {
 	background: #eff6ff;
 	color: #3b82f6;
@@ -493,6 +550,7 @@
 	gap: 1.5rem;
 	margin-bottom: 1.5rem;
 }
+
 .circleStat {
 	width: 80px;
 	height: 80px;
@@ -506,20 +564,24 @@
 	font-weight: 800;
 	color: #0f172a;
 }
+
 .statNumbers {
 	display: flex;
 	flex-direction: column;
 }
+
 .statFraction {
 	font-size: 1.5rem;
 	font-weight: 800;
 	color: #0f172a;
 }
+
 .statFraction small {
 	font-size: 1rem;
 	color: #64748b;
 	font-weight: 600;
 }
+
 .statLabel {
 	font-size: 0.75rem;
 	color: #64748b;
@@ -532,6 +594,7 @@
 	border-radius: 0.5rem;
 	padding: 1rem;
 }
+
 .alertHeader {
 	font-size: 0.8rem;
 	font-weight: 700;
@@ -541,6 +604,7 @@
 	gap: 0.35rem;
 	margin-bottom: 0.5rem;
 }
+
 .alertList {
 	display: flex;
 	flex-direction: column;
@@ -558,11 +622,13 @@
 	flex-direction: column;
 	gap: 1rem;
 }
+
 .scanItem {
 	display: flex;
 	align-items: center;
 	gap: 1rem;
 }
+
 .scanAvatar {
 	width: 40px;
 	height: 40px;
@@ -576,31 +642,37 @@
 	font-size: 0.875rem;
 	flex-shrink: 0;
 }
+
 .scanAvatarImage {
 	width: 100%;
 	height: 100%;
 	border-radius: 50%;
 	object-fit: cover;
 }
+
 .scanInfo {
 	flex: 1;
 }
+
 .scanName {
 	font-size: 0.875rem;
 	font-weight: 700;
 	color: #0f172a;
 	margin-bottom: 0.1rem;
 }
+
 .scanNis {
 	font-size: 0.75rem;
 	color: #64748b;
 }
+
 .scanTime {
 	text-align: right;
 	font-size: 0.75rem;
 	font-weight: 600;
 	color: #10b981;
 }
+
 .scanTimeSub {
 	display: block;
 	font-size: 0.65rem;
@@ -623,6 +695,7 @@
 	padding: 0;
 	transition: 0.2s;
 }
+
 .btnBack:hover {
 	color: #0a2540;
 }
@@ -642,6 +715,7 @@
 	z-index: 9999;
 	animation: fadeIn 0.2s ease-out;
 }
+
 .modalContent {
 	background: white;
 	width: 400px;
@@ -653,23 +727,27 @@
 		0 10px 10px -5px rgba(0, 0, 0, 0.04);
 	animation: slideUp 0.2s ease-out;
 }
+
 .modalTitle {
 	font-size: 1.25rem;
 	font-weight: 800;
 	color: #0f172a;
 	margin-bottom: 0.75rem;
 }
+
 .modalMessage {
 	font-size: 0.875rem;
 	color: #475569;
 	line-height: 1.5;
 	margin-bottom: 2rem;
 }
+
 .modalActions {
 	display: flex;
 	justify-content: flex-end;
 	gap: 1rem;
 }
+
 .btnOutlineFull {
 	width: auto;
 	background-color: transparent;
@@ -682,6 +760,7 @@
 	cursor: pointer;
 	transition: 0.2s;
 }
+
 .btnOutlineFull:hover {
 	background-color: #f1f5f9;
 }
@@ -697,6 +776,7 @@
 	gap: 0.75rem;
 	pointer-events: none;
 }
+
 .toast {
 	background: white;
 	border-radius: 0.5rem;
@@ -714,12 +794,15 @@
 	pointer-events: auto;
 	min-width: 250px;
 }
+
 .toastSuccess {
 	border-left-color: #10b981;
 }
+
 .toastError {
 	border-left-color: #ef4444;
 }
+
 .toastText {
 	font-size: 0.875rem;
 	font-weight: 600;
@@ -730,33 +813,134 @@
 	from {
 		opacity: 0;
 	}
+
 	to {
 		opacity: 1;
 	}
 }
+
 @keyframes slideUp {
 	from {
 		opacity: 0;
 		transform: translateY(10px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateY(0);
 	}
 }
+
 @keyframes slideInRight {
 	from {
 		transform: translateX(100%);
 		opacity: 0;
 	}
+
 	to {
 		transform: translateX(0);
 		opacity: 1;
 	}
 }
+
 @keyframes fadeOut {
 	to {
 		opacity: 0;
 		transform: translateY(-10px);
+	}
+}
+
+/* ==========================================================================
+   RESPONSIVE MOBILE & TABLET (MEDIA QUERIES)
+   ========================================================================== */
+
+/* Batas Layar Tablet */
+@media (max-width: 1024px) {
+	.liveLayout {
+		grid-template-columns: 1fr;
+		/* Mematahkan 2 kolom (QR & Stats) menjadi atas-bawah */
+	}
+
+	.mainContent {
+		max-width: 100vw;
+		width: 100%;
+	}
+}
+
+/* Batas Layar Smartphone */
+@media (max-width: 768px) {
+	.dashboardContainer {
+		padding: 1rem;
+		/* Mengurangi padding luar agar ruang konten lebih lega */
+		width: 100%;
+		box-sizing: border-box;
+		overflow-x: hidden;
+	}
+
+	/* Merapikan Header (Judul Kelas & Tombol Tutup Presensi) */
+	.headerDetail {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 1rem;
+	}
+
+	.detailTitleGroup {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.5rem;
+	}
+
+	.detailTitle {
+		font-size: 1.35rem;
+		/* Menyesuaikan ukuran judul agar tidak terpotong */
+	}
+
+	/* Membiarkan info waktu, lokasi, dan tanggal turun baris jika layar sempit */
+	.detailMeta {
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	/* Tombol Tutup Presensi dibuat Full-Width agar mudah ditekan */
+	.btnDanger {
+		width: 100%;
+		justify-content: center;
+	}
+
+	/* Merapikan area QR Code */
+	.qrDisplayBox {
+		padding: 1.5rem 1rem;
+	}
+
+	.qrInstructionTitle {
+		font-size: 1.25rem;
+	}
+
+	.qrImageContainer {
+		padding: 1rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.qrImage {
+		width: 200px;
+		/* Diperkecil sedikit agar tidak overflow di HP kecil */
+		height: 200px;
+	}
+
+	/* Merapikan Kartu Statistik "Siswa Hadir" */
+	.statRow {
+		gap: 1rem;
+	}
+
+	.circleStat {
+		width: 60px;
+		height: 60px;
+		font-size: 1rem;
+		border-width: 6px;
+	}
+
+	/* Merapikan tampilan saat belum ada sesi aktif */
+	.emptyStateCard {
+		padding: 2rem 1.5rem;
 	}
 }
