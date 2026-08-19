@@ -1,3 +1,4 @@
+// app/admin/riwayat/ClientUI.tsx
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -32,12 +33,11 @@ import { signOut } from "next-auth/react";
 // KOMPONEN PEMBANTU PDF (PAGINATION MANUAL)
 // ============================================================================
 
-// 1. Container Halaman (Ukuran pasti A4 agar tidak digeser oleh html2pdf)
 const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
 	<div
 		style={{
 			width: "210mm",
-			height: "296mm", // Sedikit di bawah 297mm untuk mencegah terpicunya halaman kosong ekstra
+			height: "296mm",
 			padding: "15mm 20mm",
 			boxSizing: "border-box",
 			display: "flex",
@@ -46,21 +46,19 @@ const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast
 			backgroundColor: "white",
 			color: "black",
 			position: "relative",
-			overflow: "hidden" // Menjaga elemen agar mutlak berada di dalam kertas
+			overflow: "hidden"
 		}}
 	>
 		{children}
 	</div>
 );
 
-// 2. Footer Penomoran Halaman
 const PageFooter = ({ current, total }: { current: number; total: number }) => (
 	<div style={{ textAlign: "right", fontSize: "10pt", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid #e2e8f0" }}>
 		Halaman {current} dari {total}
 	</div>
 );
 
-// 3. Kop Surat Paten
 const KopSurat = () => (
 	<div style={{ paddingBottom: "5px", backgroundColor: "white", marginBottom: "15px", flexShrink: 0 }}>
 		<div
@@ -229,13 +227,11 @@ export default function RiwayatClient({
 	const jurnalChunks = chunkArray(jurnalForPdf, MAX_ROWS);
 	const siswaChunks = chunkArray(sortedSiswa, MAX_ROWS);
 
-	// Perhitungan Total Halaman untuk Footer
 	const pagesBabA = jurnalForPdf.length === 0 ? 1 : jurnalChunks.length;
 	const pagesBabB = siswaChunks.length;
 	const pagesBabC = 1;
 	const pagesBabD = jurnalTugas.length === 0 ? 1 : siswaChunks.length;
 
-	// Total = Cover(1) + Bab A + Bab B + Bab C + Bab D
 	const totalPdfPages = 1 + pagesBabA + pagesBabB + pagesBabC + pagesBabD;
 
 	const handleDownloadPdf = async () => {
@@ -247,12 +243,12 @@ export default function RiwayatClient({
 			const element = document.getElementById("pdf-portofolio-content");
 
 			const opt = {
-				margin: 0, // Margin diset 0 karena kita sudah mengatur padding mutlak di komponen <PageContainer>
+				margin: 0,
 				filename: `Riwayat_Jurnal_${activeJadwal.tahunAjaran.nama}_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}.pdf`,
 				image: { type: "jpeg", quality: 1 },
 				html2canvas: { scale: 2, useCORS: true },
 				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-				pagebreak: { mode: ['css'] } // Mengaktifkan page-break berdasarkan CSS dari <PageContainer>
+				pagebreak: { mode: ['css'] }
 			};
 
 			await html2pdf().set(opt).from(element).save();
@@ -287,7 +283,9 @@ export default function RiwayatClient({
 							<h4 style={{ fontSize: "1rem", fontWeight: "bold", marginBottom: "1rem", color: "#0f172a" }}>
 								Filter Jangka Waktu Laporan:
 							</h4>
-							<div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
+
+							{/* PERBAIKAN: Menggunakan className agar otomatis flex-col di Mobile */}
+							<div className={styles.datePickerWrapper}>
 								<div style={{ flex: 1 }}>
 									<label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "#64748b", marginBottom: "0.5rem" }}>
 										Tanggal Mulai
@@ -396,7 +394,7 @@ export default function RiwayatClient({
 										<PageFooter current={1} total={totalPdfPages} />
 									</PageContainer>
 
-									{/* --- HALAMAN BAB A: JURNAL MENGAJAR (MAX 25 BARIS PER HALAMAN) --- */}
+									{/* --- HALAMAN BAB A: JURNAL MENGAJAR --- */}
 									{jurnalForPdf.length === 0 ? (
 										<PageContainer>
 											<KopSurat />
@@ -467,7 +465,7 @@ export default function RiwayatClient({
 										})
 									)}
 
-									{/* --- HALAMAN BAB B: REKAP KEHADIRAN (MAX 25 BARIS PER HALAMAN) --- */}
+									{/* --- HALAMAN BAB B: REKAP KEHADIRAN --- */}
 									{siswaChunks.map((chunk, chunkIdx) => {
 										const pageNum = 1 + pagesBabA + (chunkIdx + 1);
 										return (
@@ -522,7 +520,7 @@ export default function RiwayatClient({
 										);
 									})}
 
-									{/* --- HALAMAN BAB C: ANALISA KBM (1 HALAMAN FULL) --- */}
+									{/* --- HALAMAN BAB C: ANALISA KBM --- */}
 									{(() => {
 										const pageNumC = 1 + pagesBabA + pagesBabB + 1;
 										const totalSiswaKls = activeJadwal.kelas.riwayatSiswa.length;
@@ -619,7 +617,7 @@ export default function RiwayatClient({
 										);
 									})()}
 
-									{/* --- HALAMAN BAB D: REKAP NILAI TUGAS (MAX 25 BARIS PER HALAMAN) --- */}
+									{/* --- HALAMAN BAB D: REKAP NILAI TUGAS --- */}
 									{jurnalTugas.length === 0 ? (
 										<PageContainer isLast={true}>
 											<KopSurat />
@@ -731,6 +729,7 @@ export default function RiwayatClient({
 							Arsip jurnal dan presensi dari tahun ajaran dan semester sebelumnya.
 						</p>
 
+						{/* PERBAIKAN: Pembungkus yang lebih dinamis untuk filter */}
 						<div className={styles.filterBox}>
 							<div className={styles.filterGroup}>
 								<label className={styles.filterLabel}>Tahun Ajaran / Semester</label>
@@ -746,7 +745,8 @@ export default function RiwayatClient({
 									))}
 								</select>
 							</div>
-							<button className={styles.btnPrimary} style={{ height: "42px", marginTop: "1.2rem" }}>
+							{/* Diberikan className btnFilter untuk kontrol via CSS */}
+							<button className={`${styles.btnPrimary} ${styles.btnFilter}`}>
 								<Filter size={16} /> Terapkan Filter
 							</button>
 						</div>
@@ -814,26 +814,18 @@ export default function RiwayatClient({
 				{/* === VIEW 2: DETAIL STATISTIK === */}
 				{viewMode === "detail" && activeJadwal && (
 					<div>
-						<div
-							style={{
-								display: "flex",
-								justifyContent: "space-between",
-								alignItems: "flex-start",
-								marginBottom: "1.5rem",
-							}}
-						>
-							<div>
+						{/* PERBAIKAN: Menggunakan class khusus agar turun baris saat layar HP sempit */}
+						<div className={styles.detailHeaderWrapper}>
+							<div className={styles.detailTitleBox}>
 								<div className={styles.breadcrumb}>
 									Riwayat &gt; <span>{activeJadwal.mapel.nama}</span>
 								</div>
-								<h1 className={styles.pageTitle} style={{ fontSize: "2rem" }}>
-									{activeJadwal.mapel.nama}
-								</h1>
+								<h1 className={styles.pageTitle}>{activeJadwal.mapel.nama}</h1>
 								<p className={styles.pageSubtitle} style={{ marginBottom: 0 }}>
 									{activeJadwal.kelas.nama} &bull; {activeJadwal.tahunAjaran.nama}
 								</p>
 							</div>
-							<div style={{ display: "flex", gap: "1rem" }}>
+							<div className={styles.detailActionBox}>
 								<button className={styles.btnOutline} onClick={() => setViewMode("list")}>
 									<ArrowLeft size={16} /> Kembali
 								</button>
@@ -891,6 +883,7 @@ export default function RiwayatClient({
 									borderBottom: "1px solid #e2e8f0",
 								}}
 							>
+								{/* PERBAIKAN: Tabs Container yang rapi dan scrollable */}
 								<div className={styles.tabsContainer}>
 									<button
 										className={`${styles.tabBtn} ${activeTab === "rekap" ? styles.tabActive : ""}`}
@@ -923,94 +916,94 @@ export default function RiwayatClient({
 							{activeTab === "rekap" && (
 								<>
 									<div style={{ overflowX: "auto", width: "100%" }}>
-									<table className={styles.tableStyle}>
-										<thead>
-											<tr>
-												<th style={{ width: "25%" }}>Nama Siswa</th>
-												<th style={{ width: "15%" }}>NIS</th>
-												<th style={{ width: "20%" }}>Detail Kehadiran (H/I/S/A)</th>
-												<th style={{ width: "15%" }}>Persentase</th>
-												<th style={{ width: "10%", textAlign: "center" }}>Nilai Tugas</th>
-												<th style={{ width: "15%" }}>Status</th>
-											</tr>
-										</thead>
-										<tbody>
-											{(() => {
-												const sortedSiswa = [...activeJadwal.kelas.riwayatSiswa].sort((a: any, b: any) => {
-													const nameA = a.siswa?.user?.nama || "";
-													const nameB = b.siswa?.user?.nama || "";
-													return nameA.localeCompare(nameB);
-												});
-												
-												const totalItems = sortedSiswa.length;
-												const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-												const startIndex = (currentPageRekap - 1) * itemsPerPage;
-												const paginatedSiswa = sortedSiswa.slice(startIndex, startIndex + itemsPerPage);
+										<table className={styles.tableStyle}>
+											<thead>
+												<tr>
+													<th style={{ width: "25%" }}>Nama Siswa</th>
+													<th style={{ width: "15%" }}>NIS</th>
+													<th style={{ width: "20%" }}>Detail Kehadiran (H/I/S/A)</th>
+													<th style={{ width: "15%" }}>Persentase</th>
+													<th style={{ width: "10%", textAlign: "center" }}>Nilai Tugas</th>
+													<th style={{ width: "15%" }}>Status</th>
+												</tr>
+											</thead>
+											<tbody>
+												{(() => {
+													const sortedSiswa = [...activeJadwal.kelas.riwayatSiswa].sort((a: any, b: any) => {
+														const nameA = a.siswa?.user?.nama || "";
+														const nameB = b.siswa?.user?.nama || "";
+														return nameA.localeCompare(nameB);
+													});
 
-												return paginatedSiswa.map((rs: any) => {
-													const siswa = rs.siswa;
-													const rekap = getRekapSiswa(siswa.id, activeJadwal.jurnal);
+													const totalItems = sortedSiswa.length;
+													const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+													const startIndex = (currentPageRekap - 1) * itemsPerPage;
+													const paginatedSiswa = sortedSiswa.slice(startIndex, startIndex + itemsPerPage);
 
-													let barColor = "#0f172a";
-													if (rekap.persentase < 90 && rekap.persentase >= 75) barColor = "#f59e0b";
+													return paginatedSiswa.map((rs: any) => {
+														const siswa = rs.siswa;
+														const rekap = getRekapSiswa(siswa.id, activeJadwal.jurnal);
 
-													return (
-														<tr key={siswa.id}>
-															<td style={{ fontWeight: 700, color: "#0f172a" }}>{siswa.user?.nama}</td>
-															<td>{siswa.nis}</td>
-															<td style={{ fontWeight: 600 }}>
-																<span style={{ color: "#10b981" }}>H: {rekap.H}</span> &nbsp;|&nbsp;
-																<span style={{ color: "#f59e0b" }}>I: {rekap.I}</span> &nbsp;|&nbsp;
-																<span style={{ color: "#f59e0b" }}>S: {rekap.S}</span> &nbsp;|&nbsp;
-																<span style={{ color: "#ef4444" }}>A: {rekap.A}</span>
-															</td>
-															<td>
-																<div className={styles.progressWrapper}>
-																	<div className={styles.progressTrack}>
-																		<div
-																			className={styles.progressBar}
-																			style={{ width: `${rekap.persentase}%`, backgroundColor: barColor }}
-																		></div>
+														let barColor = "#0f172a";
+														if (rekap.persentase < 90 && rekap.persentase >= 75) barColor = "#f59e0b";
+
+														return (
+															<tr key={siswa.id}>
+																<td style={{ fontWeight: 700, color: "#0f172a" }}>{siswa.user?.nama}</td>
+																<td>{siswa.nis}</td>
+																<td style={{ fontWeight: 600 }}>
+																	<span style={{ color: "#10b981" }}>H: {rekap.H}</span> &nbsp;|&nbsp;
+																	<span style={{ color: "#f59e0b" }}>I: {rekap.I}</span> &nbsp;|&nbsp;
+																	<span style={{ color: "#f59e0b" }}>S: {rekap.S}</span> &nbsp;|&nbsp;
+																	<span style={{ color: "#ef4444" }}>A: {rekap.A}</span>
+																</td>
+																<td>
+																	<div className={styles.progressWrapper}>
+																		<div className={styles.progressTrack}>
+																			<div
+																				className={styles.progressBar}
+																				style={{ width: `${rekap.persentase}%`, backgroundColor: barColor }}
+																			></div>
+																		</div>
+																		<span className={styles.progressText}>{rekap.persentase}%</span>
 																	</div>
-																	<span className={styles.progressText}>{rekap.persentase}%</span>
-																</div>
-															</td>
-															<td style={{ textAlign: "center", fontWeight: 600 }}>
-																{rekap.countTugas > 0 ? rekap.rataNilai : "-"}
-															</td>
-															<td>
-																<span className={`${styles.badgeStatus} ${rekap.statusClass}`}>{rekap.statusText}</span>
-															</td>
-														</tr>
-													);
-												});
-											})()}
-										</tbody>
-									</table>
-								</div>
-								
-								{/* PAGINATION UI REKAP */}
-								<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", padding: "1rem", backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
-									<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
-										Menampilkan {activeJadwal.kelas?.riwayatSiswa && activeJadwal.kelas.riwayatSiswa.length > 0 ? (currentPageRekap - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPageRekap * itemsPerPage, (activeJadwal.kelas?.riwayatSiswa || []).length)} dari {(activeJadwal.kelas?.riwayatSiswa || []).length} data
-									</span>
-									<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
-										<button
-											disabled={currentPageRekap === 1}
-											onClick={() => setCurrentPageRekap(currentPageRekap - 1)}
-											style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPageRekap === 1 ? "#f1f5f9" : "white", color: currentPageRekap === 1 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPageRekap === 1 ? "not-allowed" : "pointer" }}
-										>
-											Prev
-										</button>
-										<button
-											disabled={currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0}
-											onClick={() => setCurrentPageRekap(currentPageRekap + 1)}
-											style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0 ? "#f1f5f9" : "white", color: currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0 ? "not-allowed" : "pointer" }}
-										>
-											Next
-										</button>
+																</td>
+																<td style={{ textAlign: "center", fontWeight: 600 }}>
+																	{rekap.countTugas > 0 ? rekap.rataNilai : "-"}
+																</td>
+																<td>
+																	<span className={`${styles.badgeStatus} ${rekap.statusClass}`}>{rekap.statusText}</span>
+																</td>
+															</tr>
+														);
+													});
+												})()}
+											</tbody>
+										</table>
 									</div>
-								</div>
+
+									{/* PAGINATION UI REKAP */}
+									<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", padding: "1rem", backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
+										<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
+											Menampilkan {activeJadwal.kelas?.riwayatSiswa && activeJadwal.kelas.riwayatSiswa.length > 0 ? (currentPageRekap - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPageRekap * itemsPerPage, (activeJadwal.kelas?.riwayatSiswa || []).length)} dari {(activeJadwal.kelas?.riwayatSiswa || []).length} data
+										</span>
+										<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+											<button
+												disabled={currentPageRekap === 1}
+												onClick={() => setCurrentPageRekap(currentPageRekap - 1)}
+												style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPageRekap === 1 ? "#f1f5f9" : "white", color: currentPageRekap === 1 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPageRekap === 1 ? "not-allowed" : "pointer" }}
+											>
+												Prev
+											</button>
+											<button
+												disabled={currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0}
+												onClick={() => setCurrentPageRekap(currentPageRekap + 1)}
+												style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0 ? "#f1f5f9" : "white", color: currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0 ? "not-allowed" : "pointer" }}
+											>
+												Next
+											</button>
+										</div>
+									</div>
 								</>
 							)}
 
@@ -1031,35 +1024,35 @@ export default function RiwayatClient({
 										const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 										const startIndex = (currentPageTugas - 1) * itemsPerPage;
 										const paginatedTugas = sortedTugas.slice(startIndex, startIndex + itemsPerPage);
-										
+
 										return (
 											<>
 												{paginatedTugas.map((jurnalItem: any, index: number) => {
-												const tglFormatted = new Date(jurnalItem.tanggal).toLocaleDateString("id-ID", {
-													weekday: "long",
-													year: "numeric",
-													month: "long",
-													day: "numeric",
-												});
+													const tglFormatted = new Date(jurnalItem.tanggal).toLocaleDateString("id-ID", {
+														weekday: "long",
+														year: "numeric",
+														month: "long",
+														day: "numeric",
+													});
 
-												return (
-													<div key={jurnalItem.id} className={styles.jurnalLogCard}>
-														<div className={styles.jurnalLogHeader}>
-															<div className={styles.jurnalLogTitle}>Tugas {startIndex + index + 1}: {jurnalItem.tugas}</div>
-															<div className={styles.jurnalLogDate}>
-																<Calendar size={14} /> {tglFormatted}
+													return (
+														<div key={jurnalItem.id} className={styles.jurnalLogCard}>
+															<div className={styles.jurnalLogHeader}>
+																<div className={styles.jurnalLogTitle}>Tugas {startIndex + index + 1}: {jurnalItem.tugas}</div>
+																<div className={styles.jurnalLogDate}>
+																	<Calendar size={14} /> {tglFormatted}
+																</div>
+															</div>
+
+															<div className={styles.jurnalLogBody}>
+																<div style={{ display: "flex", gap: "0.5rem", alignItems: "baseline" }}>
+																	<strong style={{ color: "#0f172a" }}>Topik Pembelajaran:</strong>
+																	<span style={{ color: "#334155" }}>{jurnalItem.materiBab || "-"}</span>
+																</div>
 															</div>
 														</div>
-
-														<div className={styles.jurnalLogBody}>
-															<div style={{ display: "flex", gap: "0.5rem", alignItems: "baseline" }}>
-																<strong style={{ color: "#0f172a" }}>Topik Pembelajaran:</strong>
-																<span style={{ color: "#334155" }}>{jurnalItem.materiBab || "-"}</span>
-															</div>
-														</div>
-													</div>
-												);
-											})}
+													);
+												})}
 												{/* PAGINATION UI TUGAS */}
 												<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", padding: "1rem", backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
 													<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
@@ -1102,60 +1095,60 @@ export default function RiwayatClient({
 											const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 											const startIndex = (currentPageJurnal - 1) * itemsPerPage;
 											const paginatedJurnal = sortedJurnal.slice(startIndex, startIndex + itemsPerPage);
-											
+
 											return (
 												<>
 													{paginatedJurnal.map((jurnalItem: any, index: number) => {
-												const tglFormatted = new Date(jurnalItem.tanggal).toLocaleDateString("id-ID", {
-													weekday: "long",
-													year: "numeric",
-													month: "long",
-													day: "numeric",
-												});
+														const tglFormatted = new Date(jurnalItem.tanggal).toLocaleDateString("id-ID", {
+															weekday: "long",
+															year: "numeric",
+															month: "long",
+															day: "numeric",
+														});
 
-												const totalKls = activeJadwal.kelas.riwayatSiswa.length;
-												const h = jurnalItem.presensi?.filter((p: any) => p.status === "H").length || 0;
-												const is =
-													jurnalItem.presensi?.filter((p: any) => p.status === "I" || p.status === "S").length || 0;
-												const a = totalKls - h - is;
+														const totalKls = activeJadwal.kelas.riwayatSiswa.length;
+														const h = jurnalItem.presensi?.filter((p: any) => p.status === "H").length || 0;
+														const is =
+															jurnalItem.presensi?.filter((p: any) => p.status === "I" || p.status === "S").length || 0;
+														const a = totalKls - h - is;
 
-												return (
-													<div key={jurnalItem.id} className={styles.jurnalLogCard}>
-														<div className={styles.jurnalLogHeader}>
-															<div className={styles.jurnalLogTitle}>Pertemuan Ke-{startIndex + index + 1}</div>
-															<div className={styles.jurnalLogDate}>
-																<Calendar size={14} /> {tglFormatted}
+														return (
+															<div key={jurnalItem.id} className={styles.jurnalLogCard}>
+																<div className={styles.jurnalLogHeader}>
+																	<div className={styles.jurnalLogTitle}>Pertemuan Ke-{startIndex + index + 1}</div>
+																	<div className={styles.jurnalLogDate}>
+																		<Calendar size={14} /> {tglFormatted}
+																	</div>
+																</div>
+
+																<div className={styles.jurnalLogBody}>
+																	<div className={styles.jurnalLogSection}>
+																		<strong>Topik Materi</strong>
+																		<p>{jurnalItem.materiBab || jurnalItem.topik}</p>
+																	</div>
+
+																	<div className={styles.jurnalLogSection}>
+																		<strong>Catatan Evaluasi / Kendala KBM:</strong>
+																		<p>
+																			{jurnalItem.catatan ? (
+																				jurnalItem.catatan
+																			) : (
+																				<span style={{ color: "#94a3b8", fontStyle: "italic" }}>
+																					Tidak ada catatan tambahan untuk pertemuan ini.
+																				</span>
+																			)}
+																		</p>
+																	</div>
+
+																	<div className={styles.jurnalLogStats}>
+																		<span style={{ color: "#10b981" }}>Hadir: {h} Siswa</span>
+																		<span style={{ color: "#f59e0b" }}>Izin/Sakit: {is} Siswa</span>
+																		<span style={{ color: "#ef4444" }}>Alpha: {a} Siswa</span>
+																	</div>
+																</div>
 															</div>
-														</div>
-
-														<div className={styles.jurnalLogBody}>
-															<div className={styles.jurnalLogSection}>
-																<strong>Topik Materi</strong>
-																<p>{jurnalItem.materiBab || jurnalItem.topik}</p>
-															</div>
-
-															<div className={styles.jurnalLogSection}>
-																<strong>Catatan Evaluasi / Kendala KBM:</strong>
-																<p>
-																	{jurnalItem.catatan ? (
-																		jurnalItem.catatan
-																	) : (
-																		<span style={{ color: "#94a3b8", fontStyle: "italic" }}>
-																			Tidak ada catatan tambahan untuk pertemuan ini.
-																		</span>
-																	)}
-																</p>
-															</div>
-
-															<div className={styles.jurnalLogStats}>
-																<span style={{ color: "#10b981" }}>Hadir: {h} Siswa</span>
-																<span style={{ color: "#f59e0b" }}>Izin/Sakit: {is} Siswa</span>
-																<span style={{ color: "#ef4444" }}>Alpha: {a} Siswa</span>
-															</div>
-														</div>
-													</div>
-												);
-											})}
+														);
+													})}
 													{/* PAGINATION UI JURNAL */}
 													<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", padding: "1rem", backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
 														<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
