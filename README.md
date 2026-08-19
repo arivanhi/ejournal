@@ -4,6 +4,17 @@ Sistem Jurnal Mengajar Elektronik dan Pemantauan Kinerja Akademik Terpadu untuk 
 
 ## 📝 Changelog (Pembaruan Terkini)
 
+### v1.2.0 - Laporan Dinamis & Optimasi Pagination
+- **Penyaringan Data Fleksibel:**
+  - Menambahkan *Dropdown Filter* **Nama Guru** dan **Tingkat Kelas** (X, XI, XII) pada antarmuka Jurnal Mengajar dan Kehadiran Siswa di akun Pimpinan.
+- **Ekspor PDF Dinamis (Custom Date Range):**
+  - Kini Modal Ekspor PDF mendukung *Date Picker* (rentang tanggal) untuk mencetak Riwayat Jurnal dan Monitoring KBM secara parsial.
+  - Tabel "Rekapitulasi Kehadiran Siswa" di dalam dokumen PDF kini **otomatis dihitung ulang secara dinamis** (nilai Hadir, Sakit, Izin, Alpa) berdasarkan rentang waktu spesifik yang dicetak saja.
+- **Optimasi Pagination & UI:**
+  - Menerapkan batasan item per halaman (*pagination*) menjadi 15 item pada tabel untuk memudahkan navigasi.
+  - Memperbaiki *bug* pada penomoran baris tabel (kolom NO) agar bersifat kontinu saat berganti halaman, diterapkan merata di sisi akun Guru maupun Pimpinan.
+
+
 ### v1.1.0 - Responsive UI, PDF F4 & Bug Fixes
 - **UI/UX Responsif (Mobile Friendly):**
   - Perbaikan tata letak (*layout*) pada akun **Guru** dan **Kepala Sekolah (Pimpinan)** agar menyesuaikan layar HP.

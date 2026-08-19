@@ -914,7 +914,7 @@ export default function JurnalClient({
 											const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 											const startIndex = (currentPageJurnal - 1) * itemsPerPage;
 											const paginatedJurnal = sortedJurnal.slice(startIndex, startIndex + itemsPerPage);
-											
+
 											if (totalItems === 0) {
 												return (
 													<tr>
@@ -925,177 +925,177 @@ export default function JurnalClient({
 												);
 											}
 											return paginatedJurnal.map((jurnalItem: any, index: number) => {
-													const tglFormatted = new Date(jurnalItem.tanggal).toLocaleDateString("id-ID", {
-														year: "numeric",
-														month: "long",
-														day: "numeric",
-													});
-													const isQRAktif = !!jurnalItem.qrToken;
+												const tglFormatted = new Date(jurnalItem.tanggal).toLocaleDateString("id-ID", {
+													year: "numeric",
+													month: "long",
+													day: "numeric",
+												});
+												const isQRAktif = !!jurnalItem.qrToken;
 
-													const hariIniStr = new Date().toLocaleDateString("en-CA");
-													const tanggalJurnalStr = new Date(jurnalItem.tanggal).toLocaleDateString("en-CA");
-													const isHariIni = hariIniStr === tanggalJurnalStr;
+												const hariIniStr = new Date().toLocaleDateString("en-CA");
+												const tanggalJurnalStr = new Date(jurnalItem.tanggal).toLocaleDateString("en-CA");
+												const isHariIni = hariIniStr === tanggalJurnalStr;
 
-													const totalKls = activeJadwal.kelas.riwayatSiswa.length;
-													const h = jurnalItem.presensi?.filter((p: any) => p.status === "H").length || 0;
-													const is =
-														jurnalItem.presensi?.filter((p: any) => p.status === "I" || p.status === "S").length || 0;
-													const a = totalKls - h - is;
+												const totalKls = activeJadwal.kelas.riwayatSiswa.length;
+												const h = jurnalItem.presensi?.filter((p: any) => p.status === "H").length || 0;
+												const is =
+													jurnalItem.presensi?.filter((p: any) => p.status === "I" || p.status === "S").length || 0;
+												const a = totalKls - h - is;
 
-													return (
-														<tr key={jurnalItem.id}>
-															<td style={{ fontWeight: 500 }}>{startIndex + index + 1}</td>
-															<td style={{ fontWeight: 600, color: "#0f172a" }}>{tglFormatted}</td>
-															<td style={{ color: "#475569" }}>
-																<div style={{ fontWeight: 600, color: "#1e293b" }}>
-																	{jurnalItem.waktuMulai && jurnalItem.waktuSelesai
-																		? `${jurnalItem.waktuMulai} - ${jurnalItem.waktuSelesai}`
-																		: activeJadwal.waktuRentang}{" "}
-																	WIB
-																</div>
-															</td>
+												return (
+													<tr key={jurnalItem.id}>
+														<td style={{ fontWeight: 500 }}>{startIndex + index + 1}</td>
+														<td style={{ fontWeight: 600, color: "#0f172a" }}>{tglFormatted}</td>
+														<td style={{ color: "#475569" }}>
+															<div style={{ fontWeight: 600, color: "#1e293b" }}>
+																{activeJadwal.displaySesi} ({jurnalItem.waktuMulai && jurnalItem.waktuSelesai
+																	? `${jurnalItem.waktuMulai} - ${jurnalItem.waktuSelesai}`
+																	: activeJadwal.waktuRentang}{" "}
+																WIB)
+															</div>
+														</td>
 
-															<td>
-																<div
-																	style={{
-																		maxWidth: "200px",
-																		whiteSpace: "nowrap",
-																		overflow: "hidden",
-																		textOverflow: "ellipsis",
-																	}}
-																	title={jurnalItem.materiBab}
-																>
-																	{jurnalItem.materiBab}
-																</div>
-															</td>
-															<td>
-																<div style={{ display: "flex", gap: "0.5rem", fontSize: "0.75rem", fontWeight: 700 }}>
-																	<span style={{ color: "#10b981" }} title="Hadir">
-																		H: {h}
-																	</span>
-																	<span style={{ color: "#f59e0b" }} title="Izin/Sakit">
-																		I/S: {is}
-																	</span>
-																	<span style={{ color: "#ef4444" }} title="Alpha/Belum">
-																		A: {a}
-																	</span>
-																</div>
-															</td>
-															<td>
-																{isQRAktif ? (
-																	<span
-																		style={{
-																			background: "#d1fae5",
-																			color: "#047857",
-																			padding: "0.25rem 0.5rem",
-																			borderRadius: "4px",
-																			fontSize: "0.7rem",
-																			fontWeight: 700,
-																		}}
-																	>
-																		AKTIF
-																	</span>
-																) : (
-																	<span
-																		style={{
-																			background: "#f1f5f9",
-																			color: "#64748b",
-																			padding: "0.25rem 0.5rem",
-																			borderRadius: "4px",
-																			fontSize: "0.7rem",
-																			fontWeight: 700,
-																		}}
-																	>
-																		DITUTUP
-																	</span>
-																)}
-															</td>
-															<td
+														<td>
+															<div
 																style={{
+																	maxWidth: "200px",
+																	whiteSpace: "nowrap",
+																	overflow: "hidden",
+																	textOverflow: "ellipsis",
+																}}
+																title={jurnalItem.materiBab}
+															>
+																{jurnalItem.materiBab}
+															</div>
+														</td>
+														<td>
+															<div style={{ display: "flex", gap: "0.5rem", fontSize: "0.75rem", fontWeight: 700 }}>
+																<span style={{ color: "#10b981" }} title="Hadir">
+																	H: {h}
+																</span>
+																<span style={{ color: "#f59e0b" }} title="Izin/Sakit">
+																	I/S: {is}
+																</span>
+																<span style={{ color: "#ef4444" }} title="Alpha/Belum">
+																	A: {a}
+																</span>
+															</div>
+														</td>
+														<td>
+															{isQRAktif ? (
+																<span
+																	style={{
+																		background: "#d1fae5",
+																		color: "#047857",
+																		padding: "0.25rem 0.5rem",
+																		borderRadius: "4px",
+																		fontSize: "0.7rem",
+																		fontWeight: 700,
+																	}}
+																>
+																	AKTIF
+																</span>
+															) : (
+																<span
+																	style={{
+																		background: "#f1f5f9",
+																		color: "#64748b",
+																		padding: "0.25rem 0.5rem",
+																		borderRadius: "4px",
+																		fontSize: "0.7rem",
+																		fontWeight: 700,
+																	}}
+																>
+																	DITUTUP
+																</span>
+															)}
+														</td>
+														<td
+															style={{
+																display: "flex",
+																gap: "0.5rem",
+																justifyContent: "center",
+																alignItems: "center",
+															}}
+														>
+															<button
+																style={{
+																	background: "none",
+																	border: "none",
+																	color: "#3b82f6",
+																	cursor: "pointer",
 																	display: "flex",
-																	gap: "0.5rem",
-																	justifyContent: "center",
 																	alignItems: "center",
 																}}
+																title="Edit Jurnal"
+																onClick={() => openEditModal(jurnalItem)}
 															>
-																<button
-																	style={{
-																		background: "none",
-																		border: "none",
-																		color: "#3b82f6",
-																		cursor: "pointer",
-																		display: "flex",
-																		alignItems: "center",
-																	}}
-																	title="Edit Jurnal"
-																	onClick={() => openEditModal(jurnalItem)}
-																>
-																	<Edit size={16} />
-																</button>
+																<Edit size={16} />
+															</button>
 
-																{isQRAktif ? (
-																	<button
-																		className={styles.btnOutlineFull}
-																		style={{
-																			padding: "0.4rem 0.75rem",
-																			width: "auto",
-																			fontSize: "0.75rem",
-																			display: "flex",
-																			alignItems: "center",
-																			gap: "0.35rem",
-																			borderColor: "#ef4444",
-																			color: "#ef4444",
-																			backgroundColor: "#fef2f2",
-																		}}
-																		onClick={() => triggerModalTutupQR(jurnalItem.id)}
-																	>
-																		<PowerOff size={14} /> Tutup QR
-																	</button>
-																) : (
-																	<button
-																		className={styles.btnOutlineFull}
-																		style={{
-																			padding: "0.4rem 0.75rem",
-																			width: "auto",
-																			fontSize: "0.75rem",
-																			display: "flex",
-																			alignItems: "center",
-																			gap: "0.35rem",
-																			opacity: !isHariIni ? 0.5 : 1,
-																			cursor: !isHariIni ? "not-allowed" : "pointer",
-																		}}
-																		onClick={() => triggerModalBukaQR(jurnalItem.id, jurnalItem.tanggal)}
-																		disabled={!isHariIni}
-																	>
-																		<QrCode size={14} /> Buka QR
-																	</button>
-																)}
-
+															{isQRAktif ? (
 																<button
-																	className={styles.btnPrimaryFull}
+																	className={styles.btnOutlineFull}
 																	style={{
 																		padding: "0.4rem 0.75rem",
 																		width: "auto",
 																		fontSize: "0.75rem",
-																		backgroundColor: "#f59e0b",
 																		display: "flex",
 																		alignItems: "center",
 																		gap: "0.35rem",
-																		border: "none",
+																		borderColor: "#ef4444",
+																		color: "#ef4444",
+																		backgroundColor: "#fef2f2",
 																	}}
-																	onClick={() => handleBukaDetailAbsen(jurnalItem)}
+																	onClick={() => triggerModalTutupQR(jurnalItem.id)}
 																>
-																	<UserCheck size={14} /> Detail Presensi
+																	<PowerOff size={14} /> Tutup QR
 																</button>
-															</td>
-														</tr>
-													);
-												})
+															) : (
+																<button
+																	className={styles.btnOutlineFull}
+																	style={{
+																		padding: "0.4rem 0.75rem",
+																		width: "auto",
+																		fontSize: "0.75rem",
+																		display: "flex",
+																		alignItems: "center",
+																		gap: "0.35rem",
+																		opacity: !isHariIni ? 0.5 : 1,
+																		cursor: !isHariIni ? "not-allowed" : "pointer",
+																	}}
+																	onClick={() => triggerModalBukaQR(jurnalItem.id, jurnalItem.tanggal)}
+																	disabled={!isHariIni}
+																>
+																	<QrCode size={14} /> Buka QR
+																</button>
+															)}
+
+															<button
+																className={styles.btnPrimaryFull}
+																style={{
+																	padding: "0.4rem 0.75rem",
+																	width: "auto",
+																	fontSize: "0.75rem",
+																	backgroundColor: "#f59e0b",
+																	display: "flex",
+																	alignItems: "center",
+																	gap: "0.35rem",
+																	border: "none",
+																}}
+																onClick={() => handleBukaDetailAbsen(jurnalItem)}
+															>
+																<UserCheck size={14} /> Detail Presensi
+															</button>
+														</td>
+													</tr>
+												);
+											})
 										})()}
 									</tbody>
 								</table>
 							</div>
-							
+
 							{/* PAGINATION UI JURNAL */}
 							<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", padding: "1rem", backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
 								<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
@@ -1603,7 +1603,10 @@ export default function JurnalClient({
 																			month: "long",
 																			year: "numeric",
 																		})}{" "}
-																		/ {activeJadwal.waktuRentang} WIB
+																		/ {activeJadwal.displaySesi} ({activeJurnal.waktuMulai && activeJurnal.waktuSelesai
+																			? `${activeJurnal.waktuMulai} - ${activeJurnal.waktuSelesai}`
+																			: activeJadwal.waktuRentang}{" "}
+																		WIB)
 																	</td>
 																</tr>
 																<tr>
