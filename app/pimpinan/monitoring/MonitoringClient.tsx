@@ -97,7 +97,7 @@ const KopSurat = () => (
 					SMA NEGERI 2 BREBES
 				</h1>
 				<p style={{ margin: "2px 0", fontSize: "10pt", color: "#000" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
+				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smadabes@gmail.com</p>
 			</div>
 			<div style={{ width: "120px" }}></div>
 		</div>
@@ -373,7 +373,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 													<strong>GURU PENGAMPU:</strong>
 												</p>
 												<p style={{ fontSize: "16pt", fontWeight: 700, color: "#0a2540" }}>{selectedItem.guruNama}</p>
-												<p style={{ fontSize: "12pt", marginTop: "0.5rem" }}>NPP: {selectedItem.guruNpp || "-"}</p>
+												<p style={{ fontSize: "12pt", marginTop: "0.5rem" }}>NIP: {selectedItem.guruNpp || "-"}</p>
 											</div>
 											<div
 												style={{
@@ -548,7 +548,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 														</div>
 														<div style={{ textAlign: "center" }}>
 															<p style={{ fontSize: "12pt", marginBottom: "0.5rem" }}>
-																<strong>NPP:</strong>
+																<strong>NIP:</strong>
 															</p>
 															<p style={{ fontSize: "16pt", fontWeight: 700, color: "#0a2540" }}>{guruData.guruNpp}</p>
 														</div>
@@ -998,7 +998,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 											<User size={14} color="#64748b" /> {selectedItem.guruNama}
 										</div>
 										<span style={{ color: "#cbd5e1" }}>•</span>
-										<span style={{ color: "#94a3b8" }}>(NPP: {selectedItem.guruNpp})</span>
+										<span style={{ color: "#94a3b8" }}>(NIP: {selectedItem.guruNpp})</span>
 									</div>
 								</div>
 							</div>

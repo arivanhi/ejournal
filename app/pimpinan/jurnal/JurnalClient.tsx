@@ -96,7 +96,7 @@ const KopSurat = () => (
 					SMA NEGERI 2 BREBES
 				</h1>
 				<p style={{ margin: "2px 0", fontSize: "10pt", color: "#000" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
+				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smadabes@gmail.com</p>
 			</div>
 			<div style={{ width: "120px" }}></div>
 		</div>
@@ -397,7 +397,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 									<p style={{ margin: 0, fontSize: "10pt" }}>Brebes, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
 									<p style={{ margin: "5px 0 50px 0", fontSize: "10pt" }}>Mengetahui,</p>
 									<p style={{ margin: 0, fontSize: "10pt", fontWeight: "bold" }}>{user.nama}</p>
-									<p style={{ margin: 0, fontSize: "10pt" }}>NIP/NPP: {user.username || "-"}</p>
+									<p style={{ margin: 0, fontSize: "10pt" }}>NIP: {user.username || "-"}</p>
 								</div>
 							);
 
@@ -491,7 +491,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 														<div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
 															<p style={{ fontSize: "12pt", marginBottom: "0.5rem" }}><strong>NAMA GURU:</strong></p>
 															<p style={{ fontSize: "16pt", fontWeight: 700, color: "#0a2540", textTransform: "uppercase" }}>{dataItem.guruNama}</p>
-															<p style={{ fontSize: "12pt", marginTop: "0.5rem" }}>NPP: {dataItem.guruNpp}</p>
+															<p style={{ fontSize: "12pt", marginTop: "0.5rem" }}>NIP: {dataItem.guruNpp}</p>
 														</div>
 
 														<div style={{ textAlign: "center" }}>

@@ -88,7 +88,7 @@ const KopSurat = () => (
 					SMA NEGERI 2 BREBES
 				</h1>
 				<p style={{ margin: "2px 0", fontSize: "11pt", color: "#000" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
+				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smadabes@gmail.com</p>
 			</div>
 			<div style={{ width: "120px" }}></div>
 		</div>
@@ -374,7 +374,7 @@ export default function RiwayatClient({
 													<strong>GURU PENGAMPU:</strong>
 												</p>
 												<p style={{ fontSize: "14pt", fontWeight: 700, color: "#0a2540", margin: 0 }}>{user.nama}</p>
-												<p style={{ fontSize: "11pt", marginTop: "0.5rem" }}>NPP: {user.username}</p>
+												<p style={{ fontSize: "11pt", marginTop: "0.5rem" }}>NIP: {user.username}</p>
 											</div>
 
 											<div
@@ -608,7 +608,7 @@ export default function RiwayatClient({
 															</p>
 															<p style={{ marginBottom: "4rem" }}>Guru Pengampu,</p>
 															<p><strong>{user.nama}</strong></p>
-															<p>NPP: {user.username}</p>
+															<p>NIP: {user.username}</p>
 														</div>
 													</div>
 													<PageFooter current={pageNumC} total={totalPdfPages} />

@@ -95,7 +95,7 @@ const KopSurat = () => (
 					SMA NEGERI 2 BREBES
 				</h1>
 				<p style={{ margin: "2px 0", fontSize: "10pt", color: "#000" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
+				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smadabes@gmail.com</p>
 			</div>
 			<div style={{ width: "120px" }}></div>
 		</div>
@@ -328,7 +328,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 																<strong>WALI KELAS:</strong>
 															</p>
 															<p style={{ fontSize: "14pt", fontWeight: 700, color: "#0a2540" }}>{kelasData.waliKelas}</p>
-															<p style={{ fontSize: "11pt", marginTop: "0.5rem" }}>NPP: {kelasData.waliKelasNpp}</p>
+															<p style={{ fontSize: "11pt", marginTop: "0.5rem" }}>NIP: {kelasData.waliKelasNpp}</p>
 														</div>
 
 														<div
@@ -426,7 +426,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 																		<p>
 																			<strong>{user.nama}</strong>
 																		</p>
-																		<p>NIP/NPP: {user.username || "-"}</p>
+																		<p>NIP: {user.username || "-"}</p>
 																	</div>
 																)}
 																<PageFooter current={pageCounter++} total={globalTotalPages} />
@@ -795,7 +795,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 								<div>
 									<div className={styles.infoLabel}>Wali Kelas</div>
 									<div className={styles.infoName}>{selectedKelas.waliKelas}</div>
-									<div className={styles.infoSub}>NPP: {selectedKelas.waliKelasNpp}</div>
+									<div className={styles.infoSub}>NIP: {selectedKelas.waliKelasNpp}</div>
 								</div>
 							</div>
 							<div className={styles.infoCardRow}>
