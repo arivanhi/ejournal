@@ -240,7 +240,7 @@ export default function JurnalClient({
 			grouped.push({
 				...curr,
 				jams: isNaN(jamParsed) ? [] : [jamParsed],
-				displaySesi: isNaN(jamParsed) ? jamValue : `Jam ${jamParsed}`,
+				displaySesi: isNaN(jamParsed) ? jamValue : `Jam Ke ${jamParsed}`,
 				waktuRentang: isNaN(jamParsed)
 					? curr.waktuMulai && curr.waktuMulai.includes("-")
 						? curr.waktuMulai
@@ -749,8 +749,7 @@ export default function JurnalClient({
 												<div className={styles.infoRow}>
 													<Clock size={14} />
 													<span>
-														<strong style={{ color: "#1e293b" }}>{hariText},</strong> {jadwal.displaySesi} (
-														{jadwal.waktuRentang} WIB)
+														<strong style={{ color: "#1e293b" }}>{hariText},</strong> {jadwal.displaySesi}
 													</span>
 												</div>
 												<div className={styles.infoRow}>
@@ -790,7 +789,7 @@ export default function JurnalClient({
 									/>
 									Jadwal Reguler:{" "}
 									{["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][activeJadwal.hari]} (
-									{activeJadwal.displaySesi}, {activeJadwal.waktuRentang} WIB)
+									{activeJadwal.displaySesi})
 								</p>
 							</div>
 						</div>
@@ -1141,7 +1140,10 @@ export default function JurnalClient({
 										month: "long",
 										year: "numeric",
 									})}{" "}
-									| {activeJadwal.displaySesi} ({activeJadwal.waktuRentang} WIB)
+									| {activeJadwal.displaySesi}  ({activeJurnal.waktuMulai && activeJurnal.waktuSelesai
+										? `${activeJurnal.waktuMulai} - ${activeJurnal.waktuSelesai}`
+										: activeJadwal.waktuRentang}{" "}
+									WIB)
 								</div>
 							</div>
 							<button
@@ -1399,7 +1401,7 @@ export default function JurnalClient({
 														<td>{startIndex + index + 1}</td>
 														<td style={{ fontWeight: 500 }}>{siswa.nis}</td>
 														<td style={{ fontWeight: 600, color: "#0f172a" }}>{siswa.user?.nama || "Nama Siswa"}</td>
-														<td>{siswa.jenisKelamin === "L" ? "L" : "P"}</td>
+														<td>{siswa.jenisKelamin === "Laki-laki" ? "L" : "P"}</td>
 														<td>
 															<span
 																style={{
