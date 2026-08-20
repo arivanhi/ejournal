@@ -181,3 +181,17 @@ export async function tutupPresensiQR(jurnalId: string, catatan: string = "") {
 		return { success: false, message: "Gagal menutup QR dan menyimpan catatan." };
 	}
 }
+
+export async function hapusJurnalAction(jurnalId: string) {
+	try {
+		await prisma.jurnalMengajar.delete({
+			where: { id: jurnalId },
+		});
+		revalidatePath("/teacher/jurnal");
+		revalidatePath("/teacher/presensi");
+		revalidatePath("/teacher/riwayat");
+		return { success: true };
+	} catch (error) {
+		return { success: false, message: "Gagal menghapus jurnal." };
+	}
+}

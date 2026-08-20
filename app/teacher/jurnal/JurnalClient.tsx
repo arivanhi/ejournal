@@ -29,6 +29,7 @@ import {
 	Filter,
 	ArrowUp,
 	ArrowDown,
+	Trash2,
 } from "lucide-react";
 import styles from "./jurnal.module.css";
 import Link from "next/link";
@@ -39,6 +40,7 @@ import {
 	simpanPresensiManualAction,
 	updateJurnalAction,
 	tutupPresensiQR,
+	hapusJurnalAction,
 } from "./actions";
 
 type ModalConfig = {
@@ -177,6 +179,10 @@ export default function JurnalClient({
 	const [editWaktuSelesai, setEditWaktuSelesai] = useState("");
 	const [editMateri, setEditMateri] = useState("");
 	const [editTugas, setEditTugas] = useState("");
+
+	// Hapus Jurnal
+	const [isHapusModalOpen, setIsHapusModalOpen] = useState(false);
+	const [hapusJurnalId, setHapusJurnalId] = useState("");
 
 	const [presensiEdits, setPresensiEdits] = useState<Record<string, string>>({});
 	const [nilaiTugasEdits, setNilaiTugasEdits] = useState<Record<string, number>>({});
@@ -367,6 +373,29 @@ export default function JurnalClient({
 		else showToast(res.message, "error");
 	};
 
+	const triggerModalHapusJurnal = (jurnalId: string) => {
+		setHapusJurnalId(jurnalId);
+		setIsHapusModalOpen(true);
+	};
+
+	const handleHapusJurnal = async () => {
+		setLoading(true);
+		try {
+			const res = await hapusJurnalAction(hapusJurnalId);
+			if (res.success) {
+				showToast("Jurnal berhasil dihapus", "success");
+				setIsHapusModalOpen(false);
+				setHapusJurnalId("");
+			} else {
+				showToast(res.message || "Gagal menghapus jurnal", "error");
+			}
+		} catch (error) {
+			showToast("Terjadi kesalahan sistem", "error");
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	const handleSimpanPresensiManual = async () => {
 		setLoading(true);
 		const presensiData = Object.entries(presensiEdits).map(([siswaId, status]) => ({
@@ -506,12 +535,13 @@ export default function JurnalClient({
 			console.error("Gagal men-generate PDF:", error);
 			alert("Terjadi kesalahan saat memproses PDF.");
 		} finally {
-			setIsDownloading(false);
+		setIsDownloading(false);
 		}
 	};
 
 	return (
 		<>
+			{/* === TOAST NOTIFICATION === */}
 			<div className={styles.toastContainer}>
 				{toasts.map((toast) => (
 					<div
@@ -527,6 +557,36 @@ export default function JurnalClient({
 					</div>
 				))}
 			</div>
+
+			{/* === MODAL KONFIRMASI HAPUS JURNAL === */}
+			{isHapusModalOpen && (
+				<div className={styles.modalOverlay}>
+					<div className={styles.modalContent}>
+						<h3 className={styles.modalTitle}>Hapus Jurnal Mengajar</h3>
+						<p className={styles.modalMessage}>
+							Apakah Anda yakin ingin menghapus jurnal ini? Seluruh data presensi siswa pada jurnal ini juga akan ikut terhapus secara permanen.
+						</p>
+						<div className={styles.modalActions}>
+							<button
+								className={styles.btnOutlineFull}
+								style={{ width: "auto", margin: 0, padding: "0.5rem 1.5rem" }}
+								onClick={() => setIsHapusModalOpen(false)}
+								disabled={loading}
+							>
+								Batal
+							</button>
+							<button
+								className={styles.btnPrimaryFull}
+								style={{ width: "auto", margin: 0, padding: "0.5rem 1.5rem", backgroundColor: "#ef4444", border: "none" }}
+								onClick={handleHapusJurnal}
+								disabled={loading}
+							>
+								{loading ? "Menghapus..." : "Ya, Hapus"}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 
 			{/* === MODAL KONFIRMASI === */}
 			{modal && modal.isOpen && (
@@ -1027,6 +1087,21 @@ export default function JurnalClient({
 																onClick={() => openEditModal(jurnalItem)}
 															>
 																<Edit size={16} />
+															</button>
+
+															<button
+																style={{
+																	background: "none",
+																	border: "none",
+																	color: "#ef4444",
+																	cursor: "pointer",
+																	display: "flex",
+																	alignItems: "center",
+																}}
+																title="Hapus Jurnal"
+																onClick={() => triggerModalHapusJurnal(jurnalItem.id)}
+															>
+																<Trash2 size={16} />
 															</button>
 
 															{isQRAktif ? (
