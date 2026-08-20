@@ -184,6 +184,9 @@ export default function JurnalClient({
 	const [isHapusModalOpen, setIsHapusModalOpen] = useState(false);
 	const [hapusJurnalId, setHapusJurnalId] = useState("");
 
+	// Tab Kelas (View 1)
+	const [activeTabKelas, setActiveTabKelas] = useState("Semua Kelas");
+
 	const [presensiEdits, setPresensiEdits] = useState<Record<string, string>>({});
 	const [nilaiTugasEdits, setNilaiTugasEdits] = useState<Record<string, number>>({});
 	const [alasanIzinEdits, setAlasanIzinEdits] = useState<Record<string, string>>({});
@@ -258,6 +261,18 @@ export default function JurnalClient({
 
 		return grouped;
 	}, [jadwalSemua]);
+
+	const kelasTabs = useMemo(() => {
+		if (!groupedJadwal) return ["Semua Kelas"];
+		const uniqueKelas = Array.from(new Set(groupedJadwal.map((j) => j.kelas?.nama))).filter(Boolean) as string[];
+		return ["Semua Kelas", ...uniqueKelas.sort()];
+	}, [groupedJadwal]);
+
+	const filteredJadwal = useMemo(() => {
+		if (!groupedJadwal) return [];
+		if (activeTabKelas === "Semua Kelas") return groupedJadwal;
+		return groupedJadwal.filter((j) => j.kelas?.nama === activeTabKelas);
+	}, [groupedJadwal, activeTabKelas]);
 
 	useEffect(() => {
 		if (activeJadwal && groupedJadwal) {
@@ -775,11 +790,24 @@ export default function JurnalClient({
 							</div>
 						</div>
 
-						{!groupedJadwal || groupedJadwal.length === 0 ? (
-							<div className={styles.emptyStateContainer}>Anda tidak memiliki jadwal mengajar pada semester ini.</div>
+						{/* --- TABS NAVIGASI KELAS --- */}
+						<div className={styles.tabsContainer}>
+							{kelasTabs.map((tab) => (
+								<button
+									key={tab}
+									className={`${styles.tabBtn} ${activeTabKelas === tab ? styles.tabActive : ""}`}
+									onClick={() => setActiveTabKelas(tab)}
+								>
+									{tab}
+								</button>
+							))}
+						</div>
+
+						{!filteredJadwal || filteredJadwal.length === 0 ? (
+							<div className={styles.emptyStateContainer}>Tidak ada jadwal mengajar untuk kelas ini.</div>
 						) : (
 							<div className={styles.cardGrid}>
-								{groupedJadwal.map((jadwal: any) => {
+								{filteredJadwal.map((jadwal: any) => {
 									const hariIniStr = new Date().toLocaleDateString("en-CA");
 									const jurnalHariIni = jadwal.jurnal?.find(
 										(j: any) => new Date(j.tanggal).toLocaleDateString("en-CA") === hariIniStr,

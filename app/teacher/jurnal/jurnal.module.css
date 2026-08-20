@@ -458,6 +458,52 @@
 	top: 100px;
 }
 
+/* === TABS NAVIGATION === */
+.tabsContainer {
+	display: flex;
+	gap: 2rem;
+	border-bottom: 2px solid #e2e8f0;
+	margin-bottom: 1.5rem;
+	overflow-x: auto;
+	white-space: nowrap;
+	-webkit-overflow-scrolling: touch;
+}
+
+.tabsContainer::-webkit-scrollbar {
+	height: 4px;
+}
+
+.tabsContainer::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.tabsContainer::-webkit-scrollbar-thumb {
+	background: #cbd5e1;
+	border-radius: 4px;
+}
+
+.tabBtn {
+	background: none;
+	border: none;
+	padding: 0.75rem 0;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #64748b;
+	cursor: pointer;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -2px;
+	transition: 0.2s;
+}
+
+.tabBtn:hover {
+	color: #0f172a;
+}
+
+.tabActive {
+	color: #0a2540;
+	border-bottom-color: #0a2540;
+}
+
 /* === VIEW 3: DETAIL PRESENSI (REFACTOR RESPONSIVE) === */
 .presensiHeader {
 	display: flex;
