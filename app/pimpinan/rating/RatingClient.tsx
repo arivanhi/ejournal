@@ -5,6 +5,73 @@ import { Users, FileBarChart, Calendar, ChevronLeft, ChevronRight, X, Printer, S
 import styles from "./rating.module.css";
 import { useRouter } from "next/navigation";
 
+// ============================================================================
+// KOMPONEN PEMBANTU PDF (PAGINATION MANUAL & KOP SURAT STANDAR)
+// ============================================================================
+
+const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
+	<div
+		style={{
+			width: "210mm",
+			height: "296mm", // Sedikit di bawah 297mm untuk mencegah blank page ekstra
+			padding: "15mm 20mm",
+			boxSizing: "border-box",
+			display: "flex",
+			flexDirection: "column",
+			pageBreakAfter: isLast ? "auto" : "always",
+			backgroundColor: "white",
+			color: "black",
+			position: "relative",
+			overflow: "hidden"
+		}}
+	>
+		{children}
+	</div>
+);
+
+const PageFooter = ({ current, total }: { current: number; total: number }) => (
+	<div style={{ textAlign: "right", fontSize: "10pt", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid #e2e8f0" }}>
+		Halaman {current} dari {total}
+	</div>
+);
+
+const KopSurat = () => (
+	<div style={{ paddingBottom: "5px", backgroundColor: "white", marginBottom: "15px", flexShrink: 0 }}>
+		<div
+			style={{
+				display: "flex",
+				alignItems: "center",
+				borderBottom: "3px solid black",
+				paddingBottom: "10px",
+				marginBottom: "2px",
+			}}
+		>
+			<img
+				src="/logo.jpg"
+				alt="Logo SMAN 2 Brebes"
+				style={{ width: "80px", height: "80px", objectFit: "contain", margin: "0 20px" }}
+			/>
+			<div style={{ flex: 1, textAlign: "center" }}>
+				<h1
+					style={{
+						margin: "0 0 4px 0",
+						fontSize: "20pt",
+						fontWeight: "bold",
+						color: "#000",
+						fontFamily: '"Times New Roman", Times, serif',
+					}}
+				>
+					SMA NEGERI 2 BREBES
+				</h1>
+				<p style={{ margin: "2px 0", fontSize: "11pt", color: "#000" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
+				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smadabes@gmail.com</p>
+			</div>
+			<div style={{ width: "120px" }}></div>
+		</div>
+		<div style={{ borderBottom: "1px solid black" }}></div>
+	</div>
+);
+
 // Tipe Data
 type TahunAjaranData = {
 	id: string;
@@ -17,6 +84,7 @@ type GuruData = {
 	id: string;
 	nama: string;
 	mapelPerTA: Record<string, string[]>;
+	kelasPerTA: Record<string, string[]>;
 };
 
 type RatingData = {
@@ -47,19 +115,19 @@ export default function RatingClient({
 }) {
 	const router = useRouter();
 	const activeTa = tahunAjaranList.find((t) => t.isActive) || tahunAjaranList[0];
-	
+
 	const [selectedTahunId, setSelectedTahunId] = useState<string>(activeTa?.id || "");
 	const [isToggling, setIsToggling] = useState(false);
-	
+
 	// Modal States
 	const [showToast, setShowToast] = useState(false);
 	const [toastMsg, setToastMsg] = useState("");
-	
+
 	const [showToggleModal, setShowToggleModal] = useState(false);
-	
+
 	const [showPdfModal, setShowPdfModal] = useState(false);
 	const [isDownloading, setIsDownloading] = useState(false);
-	
+
 	const [showDetailModal, setShowDetailModal] = useState(false);
 	const [detailGuruId, setDetailGuruId] = useState<string | null>(null);
 
@@ -81,19 +149,23 @@ export default function RatingClient({
 	const tableData = useMemo(() => {
 		return dataGuru.map(guru => {
 			const ratingsGuru = ratingFiltered.filter(r => r.guruId === guru.id);
-			
+
 			// Mapel
 			const assignedMapel = guru.mapelPerTA[selectedTahunId] || [];
 			const mapelString = assignedMapel.length > 0 ? assignedMapel.join(", ") : "-";
-			
+
+			// Kelas
+			const assignedKelas = guru.kelasPerTA[selectedTahunId] || [];
+			const kelasString = assignedKelas.length > 0 ? assignedKelas.join(", ") : "-";
+
 			// Responden
 			const totalResponden = ratingsGuru.length;
-			
+
 			// Rata-rata
-			const avgRating = totalResponden > 0 
+			const avgRating = totalResponden > 0
 				? ratingsGuru.reduce((sum, r) => sum + r.rating, 0) / totalResponden
 				: 0;
-			
+
 			// Keterangan
 			let keterangan = "-";
 			if (totalResponden > 0) {
@@ -105,7 +177,8 @@ export default function RatingClient({
 			return {
 				guruId: guru.id,
 				nama: guru.nama,
-				mapel: mapelString || "-",
+				mapel: mapelString,
+				kelas: kelasString,
 				responden: totalResponden,
 				rating: avgRating,
 				keterangan,
@@ -119,10 +192,10 @@ export default function RatingClient({
 		return [...tableData].sort((a, b) => {
 			let valA: any = a[sortKey];
 			let valB: any = b[sortKey];
-			
+
 			if (typeof valA === "string") valA = valA.toLowerCase();
 			if (typeof valB === "string") valB = valB.toLowerCase();
-			
+
 			if (valA < valB) return sortDesc ? 1 : -1;
 			if (valA > valB) return sortDesc ? -1 : 1;
 			return 0;
@@ -136,9 +209,9 @@ export default function RatingClient({
 	// Summary Cards
 	const totalGuruDinilai = tableData.filter(d => d.responden > 0).length;
 	const totalGuruAll = dataGuru.length;
-	
+
 	const avgRatingSekolah = tableData.reduce((sum, d) => sum + d.rating, 0) / (totalGuruDinilai || 1);
-	
+
 	const partisipanSet = new Set(ratingFiltered.map(r => r.siswaId));
 	const pctPartisipasi = totalSiswaAktif > 0 ? Math.round((partisipanSet.size / totalSiswaAktif) * 100) : 0;
 
@@ -164,9 +237,9 @@ export default function RatingClient({
 			const res = await fetch("/api/rating/toggle", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ 
-					tahunAjaranId: currentTa.id, 
-					isRatingActive: !currentTa.isRatingActive 
+				body: JSON.stringify({
+					tahunAjaranId: currentTa.id,
+					isRatingActive: !currentTa.isRatingActive
 				}),
 			});
 			if (res.ok) {
@@ -183,32 +256,42 @@ export default function RatingClient({
 		}
 	};
 
-	// --- DOWNLOAD PDF ---
+	// ============================================================================
+	// LOGIKA DOWNLOAD PDF
+	// ============================================================================
+
+	// VARIABEL KONTROL: Ubah angka 15 di bawah ini untuk mengatur batas maksimal jumlah data per halaman PDF
+	const PDF_MAX_ROWS = 15;
+
 	const chunkArray = (arr: any[], size: number) => {
 		return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
 	};
 
 	const handleDownloadPdf = async () => {
 		setIsDownloading(true);
-		try {
-			const html2pdf = (await import("html2pdf.js")).default;
-			const element = document.getElementById("rating-pdf-content");
-			const opt = {
-				margin: 0,
-				filename: `Laporan_Rating_Guru_${currentTa?.nama.replace(/ /g, "_")}.pdf`,
-				image: { type: "jpeg" as const, quality: 1 },
-				html2canvas: { scale: 2, useCORS: true },
-				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-				pagebreak: { mode: ['css'] }
-			};
-			await html2pdf().set(opt).from(element).save();
-		} catch (error) {
-			console.error("Gagal cetak PDF:", error);
-			alert("Terjadi kesalahan.");
-		} finally {
-			setIsDownloading(false);
-			setShowPdfModal(false);
-		}
+
+		// Beri waktu sejenak agar teks tombol di UI sempat berubah menjadi "Memproses PDF..."
+		setTimeout(async () => {
+			try {
+				const html2pdf = (await import("html2pdf.js")).default;
+				const element = document.getElementById("rating-pdf-content");
+				const opt = {
+					margin: 0, // Wajib 0 agar ukuran PageContainer paten
+					filename: `Laporan_Rating_Guru_${currentTa?.nama.replace(/ /g, "_")}.pdf`,
+					image: { type: "jpeg" as const, quality: 1 },
+					html2canvas: { scale: 2, useCORS: true },
+					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+					pagebreak: { mode: ['css'] } // Page-break otomatis ditangani oleh isLast pada PageContainer
+				};
+				await html2pdf().set(opt).from(element).save();
+			} catch (error) {
+				console.error("Gagal cetak PDF:", error);
+				alert("Terjadi kesalahan saat memproses PDF.");
+			} finally {
+				setIsDownloading(false);
+				setShowPdfModal(false);
+			}
+		}, 300);
 	};
 
 	return (
@@ -223,11 +306,11 @@ export default function RatingClient({
 			{/* HEADER */}
 			<div className={styles.header}>
 				<div>
-					<h1 className={styles.title}>Manajemen Rating Guru</h1>
+					<h1 className={styles.title}>Manajemen Penilaian Guru</h1>
 					<p className={styles.subtitle}>Kelola dan pantau penilaian kinerja guru oleh siswa secara berkala</p>
 				</div>
 				<div className={styles.headerActions}>
-					<select 
+					<select
 						className={styles.taSelect}
 						value={selectedTahunId}
 						onChange={(e) => {
@@ -240,7 +323,7 @@ export default function RatingClient({
 						))}
 					</select>
 					<button className={styles.btnPrimary} onClick={() => setShowPdfModal(true)}>
-						<Printer size={16} /> Laporan Rating
+						<Printer size={16} /> Laporan Penilaian
 					</button>
 				</div>
 			</div>
@@ -249,14 +332,14 @@ export default function RatingClient({
 			<div className={styles.activationCard}>
 				<div>
 					<h3 className={styles.activationTitle}>
-						Aktivasi Program Rating 
+						Aktivasi Program Penilaian Guru
 						<span className={`${styles.statusBadge} ${currentTa?.isRatingActive ? styles.bgGreen : styles.bgRed}`}>
 							{currentTa?.isRatingActive ? "Status: Aktif" : "Status: Nonaktif"}
 						</span>
 					</h3>
 					<p className={styles.activationDesc}>Izinkan siswa untuk memberikan penilaian kepada guru mata pelajaran mereka.</p>
 				</div>
-				<button 
+				<button
 					className={currentTa?.isRatingActive ? styles.btnDanger : styles.btnDark}
 					disabled={!isCurrentTaActive}
 					onClick={() => setShowToggleModal(true)}
@@ -279,7 +362,7 @@ export default function RatingClient({
 				</div>
 				<div className={styles.summaryCard}>
 					<div className={styles.summaryHeader}>
-						<FileBarChart size={20} color="#64748b" /> Rata-rata Rating Guru
+						<FileBarChart size={20} color="#64748b" /> Rata-rata Penilaian Guru
 					</div>
 					<div className={styles.summaryValue}>
 						<span className={styles.valueMain}>{avgRatingSekolah.toFixed(1)}</span>
@@ -307,10 +390,10 @@ export default function RatingClient({
 			{/* TABLE */}
 			<div className={styles.tableCard}>
 				<div className={styles.tableHeader}>
-					<h3 className={styles.tableTitle}>Daftar Rating Guru</h3>
-					<input 
-						type="text" 
-						placeholder="Cari nama guru..." 
+					<h3 className={styles.tableTitle}>Daftar Penilaian Guru</h3>
+					<input
+						type="text"
+						placeholder="Cari nama guru..."
 						className={styles.searchInput}
 						value={searchQuery}
 						onChange={(e) => {
@@ -324,20 +407,23 @@ export default function RatingClient({
 						<thead>
 							<tr>
 								<th style={{ width: "5%" }}>No</th>
-								<th style={{ width: "25%", cursor: "pointer" }} onClick={() => handleSort("nama")}>
-									Nama Guru {sortKey === "nama" && (sortDesc ? "↓" : "↑")}
+								<th onClick={() => handleSort("nama")} style={{ cursor: "pointer", width: "25%" }}>
+									Nama Guru {sortKey === "nama" && (sortDesc ? "▼" : "▲")}
 								</th>
-								<th style={{ width: "25%", cursor: "pointer" }} onClick={() => handleSort("mapel")}>
-									Mata Pelajaran {sortKey === "mapel" && (sortDesc ? "↓" : "↑")}
+								<th onClick={() => handleSort("mapel")} style={{ cursor: "pointer", width: "20%" }}>
+									Mata Pelajaran {sortKey === "mapel" && (sortDesc ? "▼" : "▲")}
 								</th>
-								<th style={{ width: "15%", cursor: "pointer", textAlign: "center" }} onClick={() => handleSort("responden")}>
-									Total Responden {sortKey === "responden" && (sortDesc ? "↓" : "↑")}
+								<th onClick={() => handleSort("kelas")} style={{ cursor: "pointer", width: "15%" }}>
+									Kelas Ajar {sortKey === "kelas" && (sortDesc ? "▼" : "▲")}
 								</th>
-								<th style={{ width: "10%", cursor: "pointer", textAlign: "center" }} onClick={() => handleSort("rating")}>
-									Rata-rata Rating {sortKey === "rating" && (sortDesc ? "↓" : "↑")}
+								<th onClick={() => handleSort("responden")} style={{ cursor: "pointer", width: "15%", textAlign: "center" }}>
+									Total Responden {sortKey === "responden" && (sortDesc ? "▼" : "▲")}
 								</th>
-								<th style={{ width: "10%", cursor: "pointer", textAlign: "center" }} onClick={() => handleSort("keterangan")}>
-									Keterangan {sortKey === "keterangan" && (sortDesc ? "↓" : "↑")}
+								<th onClick={() => handleSort("rating")} style={{ cursor: "pointer", width: "10%", textAlign: "center" }}>
+									Rata-rata Penilaian {sortKey === "rating" && (sortDesc ? "▼" : "▲")}
+								</th>
+								<th onClick={() => handleSort("keterangan")} style={{ cursor: "pointer", width: "10%", textAlign: "center" }}>
+									Keterangan {sortKey === "keterangan" && (sortDesc ? "▼" : "▲")}
 								</th>
 								<th style={{ width: "10%", textAlign: "center" }}>Aksi</th>
 							</tr>
@@ -345,26 +431,27 @@ export default function RatingClient({
 						<tbody>
 							{currentTableData.length === 0 ? (
 								<tr>
-									<td colSpan={7} style={{ textAlign: "center", padding: "2rem", color: "#64748b" }}>
-										Belum ada data rating.
+									<td colSpan={8} style={{ textAlign: "center", padding: "2rem", color: "#64748b" }}>
+										Belum ada data Penilaian.
 									</td>
 								</tr>
 							) : (
 								currentTableData.map((row, idx) => (
 									<tr key={row.guruId}>
 										<td style={{ textAlign: "center" }}>{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</td>
-										<td>{row.nama}</td>
+										<td style={{ fontWeight: "bold" }}>{row.nama}</td>
 										<td>{row.mapel}</td>
+										<td>{row.kelas}</td>
 										<td style={{ textAlign: "center" }}>{row.responden}</td>
 										<td style={{ textAlign: "center", fontWeight: "bold" }}>
-											<Star size={12} fill="#fbbf24" color="#fbbf24" style={{ marginRight: 4 }}/>
+											<Star size={12} fill="#fbbf24" color="#fbbf24" style={{ marginRight: 4 }} />
 											{row.rating > 0 ? row.rating.toFixed(1) : "-"}
 										</td>
 										<td style={{ textAlign: "center" }}>
 											<span className={styles.badge} data-val={row.keterangan}>{row.keterangan}</span>
 										</td>
 										<td style={{ textAlign: "center" }}>
-											<button 
+											<button
 												className={styles.btnOutlineSmall}
 												onClick={() => {
 													setDetailGuruId(row.guruId);
@@ -381,18 +468,18 @@ export default function RatingClient({
 					</table>
 				</div>
 				<div className={styles.pagination}>
-					<button 
-						disabled={currentPage === 1} 
+					<button
+						disabled={currentPage === 1}
 						onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
 					>
-						<ChevronLeft size={16}/>
+						<ChevronLeft size={16} />
 					</button>
 					<span>Halaman {currentPage} dari {totalPages}</span>
-					<button 
-						disabled={currentPage === totalPages} 
+					<button
+						disabled={currentPage === totalPages}
 						onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
 					>
-						<ChevronRight size={16}/>
+						<ChevronRight size={16} />
 					</button>
 				</div>
 			</div>
@@ -403,7 +490,7 @@ export default function RatingClient({
 					<div className={styles.modalContainer}>
 						<h3 className={styles.modalTitle}>Konfirmasi Aktivasi</h3>
 						<p className={styles.modalDesc}>
-							Apakah Anda yakin ingin {currentTa?.isRatingActive ? "menonaktifkan" : "mengaktifkan"} program rating untuk tahun ajaran ini?
+							Apakah Anda yakin ingin {currentTa?.isRatingActive ? "menonaktifkan" : "mengaktifkan"} program penilaian untuk tahun ajaran ini?
 						</p>
 						<div className={styles.modalFooter}>
 							<button className={styles.btnOutline} onClick={() => setShowToggleModal(false)}>Batal</button>
@@ -423,8 +510,8 @@ export default function RatingClient({
 					<div className={styles.modalOverlay}>
 						<div className={styles.modalContainerLarge}>
 							<div className={styles.modalHeader}>
-								<h3 className={styles.modalTitle}>Detail Rating: {guru.nama}</h3>
-								<button className={styles.modalClose} onClick={() => setShowDetailModal(false)}><X size={20}/></button>
+								<h3 className={styles.modalTitle}>Detail Penilaian: {guru.nama}</h3>
+								<button className={styles.modalClose} onClick={() => setShowDetailModal(false)}><X size={20} /></button>
 							</div>
 							<div className={styles.modalBodyScroll}>
 								<table className={styles.table}>
@@ -433,13 +520,13 @@ export default function RatingClient({
 											<th>No</th>
 											<th>Nama Siswa</th>
 											<th>Mata Pelajaran</th>
-											<th style={{ textAlign: "center" }}>Rating</th>
+											<th style={{ textAlign: "center" }}>Penilaian</th>
 											<th>Komentar</th>
 										</tr>
 									</thead>
 									<tbody>
 										{guru.ratings.length === 0 ? (
-											<tr><td colSpan={5} style={{ textAlign: "center" }}>Tidak ada rating</td></tr>
+											<tr><td colSpan={5} style={{ textAlign: "center" }}>Tidak ada Penilaian</td></tr>
 										) : (
 											guru.ratings.map((r, i) => (
 												<tr key={r.id}>
@@ -447,7 +534,7 @@ export default function RatingClient({
 													<td>{r.siswa.user.nama}</td>
 													<td>{r.mapel.nama}</td>
 													<td style={{ textAlign: "center", fontWeight: "bold" }}>
-														<Star size={12} fill="#fbbf24" color="#fbbf24" style={{ marginRight: 4 }}/>{r.rating}
+														<Star size={12} fill="#fbbf24" color="#fbbf24" style={{ marginRight: 4 }} />{r.rating}
 													</td>
 													<td>{r.komentar || "-"}</td>
 												</tr>
@@ -465,8 +552,8 @@ export default function RatingClient({
 			{showPdfModal && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContainer}>
-						<h3 className={styles.modalTitle}>Laporan Rating Guru</h3>
-						<p className={styles.modalDesc}>Ekspor rekapitulasi rating guru untuk tahun ajaran {currentTa?.nama}.</p>
+						<h3 className={styles.modalTitle}>Laporan Penilaian Guru</h3>
+						<p className={styles.modalDesc}>Ekspor rekapitulasi penilaian guru untuk tahun ajaran {currentTa?.nama}.</p>
 						<div className={styles.modalFooter}>
 							<button className={styles.btnOutline} onClick={() => setShowPdfModal(false)}>Batal</button>
 							<button className={styles.btnPrimary} onClick={handleDownloadPdf} disabled={isDownloading}>
@@ -477,77 +564,77 @@ export default function RatingClient({
 				</div>
 			)}
 
-			{/* HIDDEN PDF CONTENT (15 items per page chunking) */}
+			{/* ================================================================= */}
+			{/* AREA TERSEMBUNYI UNTUK CETAK PDF (SISTEM PAGINATION MANUAL) */}
+			{/* ================================================================= */}
 			<div style={{ position: "absolute", top: "-9999px", left: "-9999px", visibility: "hidden", zIndex: -1 }}>
 				<div id="rating-pdf-content" style={{ width: "210mm", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 					{(() => {
-						const chunks = chunkArray(sortedTableData, 15);
+						const chunks = chunkArray(sortedTableData, PDF_MAX_ROWS);
 						const totalPages = chunks.length === 0 ? 1 : chunks.length;
 
 						if (chunks.length === 0) {
 							return (
-								<div className="pdf-page" style={{ width: "210mm", minHeight: "296mm", padding: "20mm", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
-									<h2 style={{ textAlign: "center", marginBottom: "20px" }}>LAPORAN RATING GURU</h2>
-									<p style={{ textAlign: "center" }}>Tahun Ajaran {currentTa?.nama}</p>
-									<p style={{ textAlign: "center", marginTop: "50px" }}>Tidak ada data rating.</p>
-								</div>
+								<PageContainer isLast={true}>
+									<KopSurat />
+									<h3 style={{ textAlign: "center", fontSize: "14pt", margin: "10px 0", fontWeight: "bold", textTransform: "uppercase" }}>
+										LAPORAN PENILAIAN GURU
+									</h3>
+									<p style={{ textAlign: "center", margin: 0, fontSize: "11pt" }}>Tahun Ajaran: {currentTa?.nama}</p>
+									<p style={{ textAlign: "center", marginTop: "50px", color: "#64748b" }}>Tidak ada data penilaian.</p>
+									<PageFooter current={1} total={1} />
+								</PageContainer>
 							);
 						}
 
 						return chunks.map((chunk, chunkIdx) => (
-							<div key={chunkIdx} className="pdf-page" style={{ width: "210mm", minHeight: "296mm", padding: "20mm", boxSizing: "border-box", display: "flex", flexDirection: "column", pageBreakAfter: chunkIdx === chunks.length - 1 ? "auto" : "always" }}>
-								
-								{/* Kop & Judul hanya di halaman pertama */}
-								{chunkIdx === 0 && (
-									<div style={{ marginBottom: "20px" }}>
-										<div style={{ display: "flex", borderBottom: "3px solid #000", paddingBottom: "10px", marginBottom: "20px", alignItems: "center" }}>
-											<img src="/logo.jpg" alt="Logo" style={{ width: "80px", height: "80px", objectFit: "contain" }} />
-											<div style={{ flex: 1, textAlign: "center" }}>
-												<h2 style={{ margin: 0, fontSize: "16pt" }}>PEMERINTAH PROVINSI JAWA TENGAH</h2>
-												<h2 style={{ margin: 0, fontSize: "16pt" }}>DINAS PENDIDIKAN DAN KEBUDAYAAN</h2>
-												<h1 style={{ margin: "5px 0", fontSize: "18pt", fontWeight: "bold" }}>SMA NEGERI 2 BREBES</h1>
-												<p style={{ margin: 0, fontSize: "10pt" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-											</div>
-											<div style={{ width: "80px" }}></div>
+							<div key={chunkIdx}>
+								<PageContainer isLast={chunkIdx === chunks.length - 1}>
+									<KopSurat />
+
+									{/* Kop & Judul hanya di halaman pertama */}
+									{chunkIdx === 0 ? (
+										<div style={{ marginBottom: "20px" }}>
+											<h3 style={{ textAlign: "center", fontSize: "14pt", margin: "10px 0", fontWeight: "bold", textTransform: "uppercase" }}>
+												LAPORAN PENILAIAN GURU
+											</h3>
+											<p style={{ textAlign: "center", margin: 0, fontSize: "11pt" }}>Tahun Ajaran: {currentTa?.nama}</p>
 										</div>
-										<h3 style={{ textAlign: "center", fontSize: "14pt", margin: "10px 0" }}>LAPORAN RATING GURU</h3>
-										<p style={{ textAlign: "center", margin: 0 }}>Tahun Ajaran: {currentTa?.nama}</p>
-									</div>
-								)}
+									) : (
+										<h3 style={{ fontSize: "12pt", margin: "10px 0", fontWeight: "bold", textTransform: "uppercase" }}>
+											LAPORAN PENILAIAN GURU (Lanjutan)
+										</h3>
+									)}
 
-								{chunkIdx > 0 && (
-									<h3 style={{ fontSize: "12pt", margin: "10px 0" }}>LAPORAN RATING GURU (Lanjutan)</h3>
-								)}
-
-								<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt", marginTop: "10px" }}>
-									<thead>
-										<tr style={{ backgroundColor: "#f1f5f9" }}>
-											<th style={{ border: "1px solid #cbd5e1", padding: "8px" }}>No</th>
-											<th style={{ border: "1px solid #cbd5e1", padding: "8px" }}>Nama Guru</th>
-											<th style={{ border: "1px solid #cbd5e1", padding: "8px" }}>Mata Pelajaran</th>
-											<th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>Responden</th>
-											<th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>Rating</th>
-											<th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>Keterangan</th>
-										</tr>
-									</thead>
-									<tbody>
-										{chunk.map((row: any, i: number) => (
-											<tr key={row.guruId}>
-												<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{(chunkIdx * 15) + i + 1}</td>
-												<td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>{row.nama}</td>
-												<td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>{row.mapel}</td>
-												<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{row.responden}</td>
-												<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{row.rating > 0 ? row.rating.toFixed(1) : "-"}</td>
-												<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{row.keterangan}</td>
+									<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt", marginTop: "10px" }}>
+										<thead style={{ display: "table-header-group" }}>
+											<tr style={{ backgroundColor: "#f1f5f9" }}>
+												<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%", textAlign: "center" }}>No</th>
+												<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "25%", textAlign: "left" }}>Nama Guru</th>
+												<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "20%", textAlign: "left" }}>Mata Pelajaran</th>
+												<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "15%", textAlign: "left" }}>Kelas Ajar</th>
+												<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "10%", textAlign: "center" }}>Responden</th>
+												<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "10%", textAlign: "center" }}>Penilaian</th>
+												<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "15%", textAlign: "center" }}>Keterangan</th>
 											</tr>
-										))}
-									</tbody>
-								</table>
+										</thead>
+										<tbody>
+											{chunk.map((row: any, i: number) => (
+												<tr key={row.guruId}>
+													<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{(chunkIdx * PDF_MAX_ROWS) + i + 1}</td>
+													<td style={{ border: "1px solid #cbd5e1", padding: "8px", fontWeight: "bold" }}>{row.nama}</td>
+													<td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>{row.mapel}</td>
+													<td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>{row.kelas}</td>
+													<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{row.responden}</td>
+													<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center", fontWeight: "bold" }}>{row.rating > 0 ? row.rating.toFixed(1) : "-"}</td>
+													<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{row.keterangan}</td>
+												</tr>
+											))}
+										</tbody>
+									</table>
 
-								<div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", fontSize: "9pt", borderTop: "1px solid #cbd5e1", paddingTop: "10px" }}>
-									<span>Dicetak pada: {new Date().toLocaleDateString("id-ID")}</span>
-									<span>Halaman {chunkIdx + 1} dari {totalPages}</span>
-								</div>
+									<PageFooter current={chunkIdx + 1} total={totalPages} />
+								</PageContainer>
 							</div>
 						));
 					})()}

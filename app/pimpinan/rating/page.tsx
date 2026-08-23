@@ -28,7 +28,7 @@ export default async function RatingPage() {
 		include: { 
 			user: true,
 			jadwalPelajaran: {
-				include: { mapel: true }
+				include: { mapel: true, kelas: true }
 			}
 		},
 	});
@@ -61,16 +61,28 @@ export default async function RatingPage() {
 	}));
 	const dataGuru = semuaGuru.map(g => {
 		const mapelPerTA: Record<string, string[]> = {};
+		const kelasPerTA: Record<string, string[]> = {};
+		
 		g.jadwalPelajaran.forEach(j => {
+			// Map Mapel
 			if (!mapelPerTA[j.tahunAjaranId]) mapelPerTA[j.tahunAjaranId] = [];
 			if (!mapelPerTA[j.tahunAjaranId].includes(j.mapel.nama)) {
 				mapelPerTA[j.tahunAjaranId].push(j.mapel.nama);
+			}
+
+			// Map Kelas
+			if (j.kelas) {
+				if (!kelasPerTA[j.tahunAjaranId]) kelasPerTA[j.tahunAjaranId] = [];
+				if (!kelasPerTA[j.tahunAjaranId].includes(j.kelas.nama)) {
+					kelasPerTA[j.tahunAjaranId].push(j.kelas.nama);
+				}
 			}
 		});
 		return {
 			id: g.id,
 			nama: g.user.nama,
 			mapelPerTA,
+			kelasPerTA,
 		};
 	});
 
