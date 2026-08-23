@@ -57,11 +57,13 @@ model TahunAjaran {
   id              String              @id @default(uuid())
   nama            String              @unique // Contoh: "2026/2027 Ganjil"
   isActive        Boolean             @default(false)
+  isRatingActive  Boolean             @default(false)
   
   riwayatSiswa    RiwayatKelasSiswa[]
   jadwalPelajaran JadwalPelajaran[]
   mataPelajaran   MataPelajaran[]
-  laporanPdca   LaporanPdca[]
+  laporanPdca     LaporanPdca[]
+  ratingGuru      RatingGuru[]
 }
 
 model Kelas {
@@ -80,6 +82,7 @@ model MataPelajaran {
   
   jadwalPelajaran JadwalPelajaran[]
   tahunAjaran     TahunAjaran[]
+  ratingGuru      RatingGuru[]
 }
 
 model PengaturanSekolah {
@@ -138,6 +141,7 @@ model Guru {
   
   jadwalPelajaran JadwalPelajaran[]
   waliKelasDi     KelasWali[]
+  ratingGuru      RatingGuru[]
 }
 
 model KelasWali {
@@ -161,6 +165,7 @@ model Siswa {
   
   riwayatKelas RiwayatKelasSiswa[]
   presensi     PresensiSiswa[]
+  ratingGuru   RatingGuru[]
 }
 
 // Relasi historis agar data absen aman saat siswa pindah kelas
@@ -234,4 +239,22 @@ model PresensiSiswa {
 
   // 1 Jurnal hanya boleh ada 1 record presensi per siswa
   @@unique([jurnalId, siswaId])
+}
+
+model RatingGuru {
+  id              String        @id @default(uuid())
+  guruId          String
+  siswaId         String
+  mapelId         String
+  tahunAjaranId   String
+  rating          Int           // Skala 1-5
+  komentar        String?       @db.Text
+  createdAt       DateTime      @default(now())
+
+  guru            Guru          @relation(fields: [guruId], references: [id], onDelete: Cascade)
+  siswa           Siswa         @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  mapel           MataPelajaran @relation(fields: [mapelId], references: [id], onDelete: Cascade)
+  tahunAjaran     TahunAjaran   @relation(fields: [tahunAjaranId], references: [id], onDelete: Cascade)
+
+  @@unique([siswaId, guruId, mapelId, tahunAjaranId]) // 1 siswa max 1 rating per guru per mapel per tahun ajaran
 }
