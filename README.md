@@ -4,6 +4,18 @@ Sistem Jurnal Mengajar Elektronik dan Pemantauan Kinerja Akademik Terpadu untuk 
 
 ## 📝 Changelog (Pembaruan Terkini)
 
+### v1.3.0 - Manajemen Jurnal Guru & Navigasi Kelas
+- **Fitur Hapus Jurnal Mengajar:**
+  - Menambahkan tombol "Hapus Jurnal" (ikon tong sampah) pada riwayat/daftar jurnal di akun Guru.
+  - Dilengkapi dengan *Modal Konfirmasi* untuk mencegah penghapusan secara tidak sengaja.
+  - Penghapusan jurnal akan secara otomatis dan aman (cascade delete) menghapus seluruh data presensi siswa yang terikat pada jam tersebut.
+- **Navigasi Tab Kelas:**
+  - Menambahkan *Tab Navigasi Kelas* (yang *scrollable* di perangkat *mobile*) pada antarmuka utama (View 1) akun Guru.
+  - Berguna untuk memfilter daftar kartu mata pelajaran berdasarkan kelas yang diajar agar tampilan lebih rapi dan fokus.
+- **Pembaruan Format Cetak PDF:**
+  - Mengubah label `NPP:` atau `NIP/NPP:` menjadi `NIP:` secara menyeluruh pada semua format cetakan PDF.
+  - Memperbaiki penulisan email instansi pada kop surat PDF menjadi `smadabes@gmail.com`.
+
 ### v1.2.0 - Laporan Dinamis & Optimasi Pagination
 - **Penyaringan Data Fleksibel:**
   - Menambahkan *Dropdown Filter* **Nama Guru** dan **Tingkat Kelas** (X, XI, XII) pada antarmuka Jurnal Mengajar dan Kehadiran Siswa di akun Pimpinan.

@@ -88,14 +88,13 @@ const KopSurat = () => (
 					SMA NEGERI 2 BREBES
 				</h1>
 				<p style={{ margin: "2px 0", fontSize: "11pt", color: "#000" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smadabes@gmail.com</p>
+				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
 			</div>
 			<div style={{ width: "120px" }}></div>
 		</div>
 		<div style={{ borderBottom: "1px solid black" }}></div>
 	</div>
 );
-
 
 export default function RiwayatClient({
 	jadwalSemua,
@@ -125,6 +124,33 @@ export default function RiwayatClient({
 
 	const filteredJadwal = jadwalSemua.filter((j) => j.tahunAjaranId === selectedTahunId);
 
+	// State Utama Navigasi Kelas (Tampilan Background)
+	const [activeTabKelas, setActiveTabKelas] = useState("Semua Kelas");
+
+	// State Modal Export Massal
+	const [isMassPdfModalOpen, setIsMassPdfModalOpen] = useState(false);
+	const [selectedJadwalIds, setSelectedJadwalIds] = useState<string[]>([]);
+	const [massStartDate, setMassStartDate] = useState<string>("");
+	const [massEndDate, setMassEndDate] = useState<string>("");
+	const [modalKelasFilter, setModalKelasFilter] = useState("Semua Kelas"); // Tambahan state khusus Modal
+
+	const kelasTabs = useMemo(() => {
+		if (!filteredJadwal) return ["Semua Kelas"];
+		const uniqueKelas = Array.from(new Set(filteredJadwal.map((j) => j.kelas?.nama))).filter(Boolean) as string[];
+		return ["Semua Kelas", ...uniqueKelas.sort()];
+	}, [filteredJadwal]);
+
+	const filteredJadwalByKelas = useMemo(() => {
+		if (activeTabKelas === "Semua Kelas") return filteredJadwal;
+		return filteredJadwal.filter((j) => j.kelas?.nama === activeTabKelas);
+	}, [filteredJadwal, activeTabKelas]);
+
+	// Filter Jadwal khusus untuk Modal (Mengikuti Pilihan Dropdown Modal)
+	const modalFilteredJadwal = useMemo(() => {
+		if (modalKelasFilter === "Semua Kelas") return filteredJadwal;
+		return filteredJadwal.filter((j) => j.kelas?.nama === modalKelasFilter);
+	}, [filteredJadwal, modalKelasFilter]);
+
 	const periodeText = useMemo(() => {
 		if (!startDate || !endDate) return "Pilih tanggal mulai dan akhir";
 		const format = (dateStr: string) => new Date(dateStr).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
@@ -153,7 +179,6 @@ export default function RiwayatClient({
 			.sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
 	}, [activeJadwal, startDate, endDate]);
 
-	// Mengurutkan Siswa Berdasarkan Nama
 	const sortedSiswa = useMemo(() => {
 		if (!activeJadwal?.kelas?.riwayatSiswa) return [];
 		return [...activeJadwal.kelas.riwayatSiswa].sort((a: any, b: any) => {
@@ -213,9 +238,6 @@ export default function RiwayatClient({
 		return { H, I, S, A, totalHadir: H, totalPertemuan, persentase, statusText, statusClass, rataNilai, countTugas };
 	};
 
-	// ============================================================================
-	// LOGIKA PERHITUNGAN HALAMAN MANUAL (CHUNKING)
-	// ============================================================================
 	const MAX_ROWS = 25;
 	const chunkArray = (arr: any[], size: number) => {
 		if (!arr || arr.length === 0) return [[]];
@@ -231,39 +253,92 @@ export default function RiwayatClient({
 	const pagesBabB = siswaChunks.length;
 	const pagesBabC = 1;
 	const pagesBabD = jurnalTugas.length === 0 ? 1 : siswaChunks.length;
-
 	const totalPdfPages = 1 + pagesBabA + pagesBabB + pagesBabC + pagesBabD;
 
 	const handleDownloadPdf = async () => {
 		if (!startDate || !endDate) return alert("Pilih tanggal mulai dan akhir untuk dicetak.");
 		if (new Date(startDate) > new Date(endDate)) return alert("Tanggal akhir tidak boleh mendahului tanggal mulai.");
+
 		setIsDownloading(true);
-		try {
-			const html2pdf = (await import("html2pdf.js")).default;
-			const element = document.getElementById("pdf-portofolio-content");
 
-			const opt = {
-				margin: 0,
-				filename: `Riwayat_Jurnal_${activeJadwal.tahunAjaran.nama}_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}.pdf`,
-				image: { type: "jpeg", quality: 1 },
-				html2canvas: { scale: 2, useCORS: true },
-				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-				pagebreak: { mode: ['css'] }
-			};
+		// SetTimeout memberikan waktu pada UI React untuk mere-render tombol "Memproses PDF..."
+		setTimeout(async () => {
+			try {
+				const html2pdf = (await import("html2pdf.js")).default;
+				const element = document.getElementById("pdf-portofolio-content");
 
-			await html2pdf().set(opt).from(element).save();
-		} catch (error) {
-			console.error("Gagal men-generate PDF:", error);
-			alert("Terjadi kesalahan saat memproses PDF.");
-		} finally {
-			setIsDownloading(false);
-			setIsPdfModalOpen(false);
+				const opt = {
+					margin: 0,
+					filename: `Riwayat_Jurnal_${activeJadwal.tahunAjaran.nama}_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}.pdf`,
+					image: { type: "jpeg", quality: 1 },
+					html2canvas: { scale: 2, useCORS: true },
+					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+					pagebreak: { mode: ['css'] }
+				};
+
+				await html2pdf().set(opt).from(element).save();
+			} catch (error) {
+				console.error("Gagal men-generate PDF:", error);
+				alert("Terjadi kesalahan saat memproses PDF.");
+			} finally {
+				setIsDownloading(false);
+				setIsPdfModalOpen(false);
+			}
+		}, 300);
+	};
+
+	const handleSelectAllJadwal = (checked: boolean) => {
+		if (checked) {
+			setSelectedJadwalIds(modalFilteredJadwal.map((j) => j.id));
+		} else {
+			setSelectedJadwalIds([]);
 		}
+	};
+
+	const handleSelectJadwal = (jadwalId: string, checked: boolean) => {
+		if (checked) {
+			setSelectedJadwalIds((prev) => [...prev, jadwalId]);
+		} else {
+			setSelectedJadwalIds((prev) => prev.filter((id) => id !== jadwalId));
+		}
+	};
+
+	const handleMassDownloadPdf = async () => {
+		if (!massStartDate || !massEndDate) return alert("Pilih tanggal mulai dan akhir untuk dicetak.");
+		if (new Date(massStartDate) > new Date(massEndDate)) return alert("Tanggal akhir tidak boleh mendahului tanggal mulai.");
+		if (selectedJadwalIds.length === 0) return alert("Pilih minimal satu mata pelajaran.");
+
+		setIsDownloading(true);
+
+		// Menunda sedikit fungsi html2pdf agar state "Memproses PDF..." merender dulu
+		setTimeout(async () => {
+			try {
+				const html2pdf = (await import("html2pdf.js")).default;
+				const element = document.getElementById("mass-pdf-content");
+
+				const opt = {
+					margin: 0,
+					filename: `Ekspor_Massal_Jurnal_${modalKelasFilter.replace(/ /g, '_')}.pdf`,
+					image: { type: "jpeg", quality: 1 },
+					html2canvas: { scale: 2, useCORS: true },
+					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+					pagebreak: { mode: ['css'] }
+				};
+
+				await html2pdf().set(opt).from(element).save();
+			} catch (error) {
+				console.error("Gagal men-generate PDF massal:", error);
+				alert("Terjadi kesalahan saat memproses PDF massal.");
+			} finally {
+				setIsDownloading(false);
+				setIsMassPdfModalOpen(false);
+			}
+		}, 500);
 	};
 
 	return (
 		<>
-			{/* === MODAL PREVIEW & PILIH BULAN PDF === */}
+			{/* === MODAL PREVIEW & PILIH BULAN PDF (SINGLE) === */}
 			{isPdfModalOpen && activeJadwal && (
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContainerLarge} style={{ maxWidth: "600px", height: "auto", maxHeight: "90vh" }}>
@@ -284,7 +359,6 @@ export default function RiwayatClient({
 								Filter Jangka Waktu Laporan:
 							</h4>
 
-							{/* PERBAIKAN: Menggunakan className agar otomatis flex-col di Mobile */}
 							<div className={styles.datePickerWrapper}>
 								<div style={{ flex: 1 }}>
 									<label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "#64748b", marginBottom: "0.5rem" }}>
@@ -323,11 +397,9 @@ export default function RiwayatClient({
 								</p>
 							</div>
 
-							{/* ================================================================= */}
-							{/* AREA TERSEMBUNYI UNTUK CETAK PDF (SISTEM PAGINATION MANUAL) */}
-							{/* ================================================================= */}
-							<div style={{ display: "none" }}>
-								<div id="pdf-portofolio-content" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
+							{/* PERBAIKAN: Posisi mutlak dan di luar layar agar html2pdf bisa membaca (jangan display: none) */}
+							<div style={{ position: "absolute", top: "-9999px", left: "-9999px", visibility: "hidden", zIndex: -1 }}>
+								<div id="pdf-portofolio-content" style={{ width: "210mm", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 
 									{/* --- HALAMAN 1: COVER --- */}
 									<PageContainer>
@@ -719,6 +791,132 @@ export default function RiwayatClient({
 				</div>
 			)}
 
+			{/* === MODAL EKSPOR MASSAL === */}
+			{isMassPdfModalOpen && (
+				<div className={styles.modalOverlay}>
+					<div className={styles.modalContainerLarge} style={{ maxWidth: "600px", height: "auto", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+						<div className={styles.modalHeader}>
+							<div>
+								<h3 className={styles.modalTitle}>Ekspor Laporan Massal</h3>
+								<p style={{ fontSize: "0.875rem", color: "#64748b", margin: 0 }}>
+									Pilih mata pelajaran dan rentang tanggal untuk diekspor ke satu file PDF.
+								</p>
+							</div>
+							<button className={styles.modalCloseBtn} onClick={() => setIsMassPdfModalOpen(false)}>
+								<X size={20} />
+							</button>
+						</div>
+
+						<div className={styles.modalBodyScroll} style={{ padding: "1.5rem 2rem", flex: 1, overflowY: "auto", display: "block" }}>
+
+							<div className={styles.datePickerWrapper} style={{ marginBottom: "1.5rem" }}>
+								<div style={{ flex: 1 }}>
+									<label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "#64748b", marginBottom: "0.5rem" }}>
+										Tanggal Mulai
+									</label>
+									<input
+										type="date"
+										style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
+										value={massStartDate}
+										onChange={(e) => setMassStartDate(e.target.value)}
+									/>
+								</div>
+								<div style={{ flex: 1 }}>
+									<label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "#64748b", marginBottom: "0.5rem" }}>
+										Tanggal Akhir
+									</label>
+									<input
+										type="date"
+										style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
+										value={massEndDate}
+										onChange={(e) => setMassEndDate(e.target.value)}
+									/>
+								</div>
+							</div>
+
+							{/* PERBAIKAN: Dropdown untuk Memilih Kelas */}
+							<div style={{ marginBottom: "1.5rem" }}>
+								<label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "#0f172a", marginBottom: "0.5rem" }}>
+									Filter Berdasarkan Kelas:
+								</label>
+								<select
+									className={styles.filterSelect}
+									style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
+									value={modalKelasFilter}
+									onChange={(e) => {
+										setModalKelasFilter(e.target.value);
+										setSelectedJadwalIds([]); // Reset Checklist jika kelas berubah
+									}}
+								>
+									{kelasTabs.map(tab => (
+										<option key={tab} value={tab}>{tab}</option>
+									))}
+								</select>
+							</div>
+
+							<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+								<h4 style={{ fontSize: "1rem", fontWeight: "bold", color: "#0f172a", margin: 0 }}>
+									Pilih Mata Pelajaran:
+								</h4>
+								<label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", color: "#0a2540" }}>
+									<input
+										type="checkbox"
+										checked={selectedJadwalIds.length === modalFilteredJadwal.length && modalFilteredJadwal.length > 0}
+										onChange={(e) => handleSelectAllJadwal(e.target.checked)}
+									/>
+									Pilih Semua
+								</label>
+							</div>
+
+							<div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "300px", overflowY: "auto", padding: "0.5rem", backgroundColor: "#f8fafc", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}>
+								{modalFilteredJadwal.length === 0 ? (
+									<div style={{ padding: "1rem", textAlign: "center", color: "#64748b", fontSize: "0.875rem" }}>
+										Tidak ada jadwal tersedia untuk kelas ini.
+									</div>
+								) : (
+									modalFilteredJadwal.map(j => (
+										<label key={j.id} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem", backgroundColor: "white", borderRadius: "0.375rem", border: "1px solid #e2e8f0", cursor: "pointer", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
+											<input
+												type="checkbox"
+												checked={selectedJadwalIds.includes(j.id)}
+												onChange={(e) => handleSelectJadwal(j.id, e.target.checked)}
+											/>
+											<div style={{ flex: 1 }}>
+												<div style={{ fontWeight: 600, color: "#0a2540", fontSize: "0.95rem" }}>{j.mapel.nama}</div>
+
+												{/* Hanya Tampilkan Nama Kelas Jika Sedang di Tab 'Semua Kelas' */}
+												{modalKelasFilter === "Semua Kelas" && (
+													<div style={{ fontSize: "0.8rem", color: "#64748b" }}>Kelas: {j.kelas.nama}</div>
+												)}
+											</div>
+										</label>
+									))
+								)}
+							</div>
+						</div>
+
+						<div className={styles.modalFooter}>
+							<button className={styles.btnOutline} onClick={() => setIsMassPdfModalOpen(false)}>
+								Batal
+							</button>
+							<button
+								className={styles.btnPrimary}
+								onClick={handleMassDownloadPdf}
+								disabled={isDownloading || !massStartDate || !massEndDate || selectedJadwalIds.length === 0}
+							>
+								{isDownloading ? (
+									"Memproses PDF..."
+								) : (
+									<>
+										<Printer size={16} /> Unduh PDF Massal
+									</>
+								)}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
 			{/* === MAIN CONTENT === */}
 			<div className={styles.dashboardContainer}>
 				{/* === VIEW 1: ARSIP LIST === */}
@@ -729,7 +927,6 @@ export default function RiwayatClient({
 							Arsip jurnal dan presensi dari tahun ajaran dan semester sebelumnya.
 						</p>
 
-						{/* PERBAIKAN: Pembungkus yang lebih dinamis untuk filter */}
 						<div className={styles.filterBox}>
 							<div className={styles.filterGroup}>
 								<label className={styles.filterLabel}>Tahun Ajaran / Semester</label>
@@ -745,14 +942,40 @@ export default function RiwayatClient({
 									))}
 								</select>
 							</div>
-							{/* Diberikan className btnFilter untuk kontrol via CSS */}
-							<button className={`${styles.btnPrimary} ${styles.btnFilter}`}>
-								<Filter size={16} /> Terapkan Filter
-							</button>
+							<div style={{ display: "flex", gap: "0.5rem" }}>
+								<button className={`${styles.btnPrimary} ${styles.btnFilter}`}>
+									<Filter size={16} /> Terapkan Filter
+								</button>
+								<button
+									className={`${styles.btnOutline} ${styles.btnFilter}`}
+									style={{ borderColor: "#10b981", color: "#10b981" }}
+									onClick={() => {
+										// Inisialisasi Modal Massal
+										setModalKelasFilter(activeTabKelas);
+										setSelectedJadwalIds([]);
+										setIsMassPdfModalOpen(true);
+									}}
+								>
+									<Download size={16} /> Ekspor Laporan Massal
+								</button>
+							</div>
+						</div>
+
+						{/* --- TABS NAVIGASI KELAS --- */}
+						<div className={styles.tabsContainer}>
+							{kelasTabs.map((tab) => (
+								<button
+									key={tab}
+									className={`${styles.tabBtn} ${activeTabKelas === tab ? styles.tabActive : ""}`}
+									onClick={() => setActiveTabKelas(tab)}
+								>
+									{tab}
+								</button>
+							))}
 						</div>
 
 						<div className={styles.cardGrid}>
-							{filteredJadwal.length === 0 ? (
+							{filteredJadwalByKelas.length === 0 ? (
 								<div
 									style={{
 										gridColumn: "1 / -1",
@@ -767,7 +990,7 @@ export default function RiwayatClient({
 									Tidak ada riwayat kelas yang telah diselesaikan pada periode ini.
 								</div>
 							) : (
-								filteredJadwal.map((jadwal) => {
+								filteredJadwalByKelas.map((jadwal) => {
 									const stats = getKelasStats(jadwal.kelas.riwayatSiswa.length, jadwal.jurnal);
 									const ta = tahunAjaranList.find((t) => t.id === jadwal.tahunAjaranId)?.nama || "";
 
@@ -814,7 +1037,6 @@ export default function RiwayatClient({
 				{/* === VIEW 2: DETAIL STATISTIK === */}
 				{viewMode === "detail" && activeJadwal && (
 					<div>
-						{/* PERBAIKAN: Menggunakan class khusus agar turun baris saat layar HP sempit */}
 						<div className={styles.detailHeaderWrapper}>
 							<div className={styles.detailTitleBox}>
 								<div className={styles.breadcrumb}>
@@ -883,7 +1105,6 @@ export default function RiwayatClient({
 									borderBottom: "1px solid #e2e8f0",
 								}}
 							>
-								{/* PERBAIKAN: Tabs Container yang rapi dan scrollable */}
 								<div className={styles.tabsContainer}>
 									<button
 										className={`${styles.tabBtn} ${activeTab === "rekap" ? styles.tabActive : ""}`}
@@ -1331,6 +1552,311 @@ export default function RiwayatClient({
 						</div>
 					</div>
 				)}
+			</div>
+
+			{/* === AREA TERSEMBUNYI UNTUK EKSPOR MASSAL PDF === */}
+			<div style={{ position: "absolute", top: "-9999px", left: "-9999px", visibility: "hidden", zIndex: -1 }}>
+				<div id="mass-pdf-content" style={{ width: "210mm", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
+					{selectedJadwalIds.map((jadwalId, index) => {
+						const jadwal = jadwalSemua.find((j) => j.id === jadwalId);
+						if (!jadwal) return null;
+
+						const mJurnalForPdf = [...jadwal.jurnal]
+							.filter((j: any) => {
+								if (!massStartDate || !massEndDate) return true;
+								const d = new Date(j.tanggal).getTime();
+								const s = new Date(massStartDate).getTime();
+								const e = new Date(massEndDate);
+								e.setHours(23, 59, 59, 999);
+								return d >= s && d <= e.getTime();
+							})
+							.sort((a: any, b: any) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
+
+						const mSortedSiswa = [...(jadwal.kelas?.riwayatSiswa || [])].sort((a: any, b: any) => (a.siswa?.user?.nama || "").localeCompare(b.siswa?.user?.nama || ""));
+						const mJurnalTugas = mJurnalForPdf.filter((j: any) => j.tugas && j.tugas.trim() !== "");
+
+						const format = (dateStr: string) => new Date(dateStr).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+						const mPeriodeText = (!massStartDate || !massEndDate) ? "Semua Periode" : `Periode: ${format(massStartDate)} - ${format(massEndDate)}`;
+
+						const mJurnalChunks = chunkArray(mJurnalForPdf, MAX_ROWS);
+						const mSiswaChunks = chunkArray(mSortedSiswa, MAX_ROWS);
+
+						const mPagesBabA = mJurnalForPdf.length === 0 ? 1 : mJurnalChunks.length;
+						const mPagesBabB = mSiswaChunks.length;
+						const mPagesBabC = 1;
+						const mPagesBabD = mJurnalTugas.length === 0 ? 1 : mSiswaChunks.length;
+						const mTotalPdfPages = 1 + mPagesBabA + mPagesBabB + mPagesBabC + mPagesBabD;
+
+						// Memastikan halaman terakhir dari satu mata pelajaran akan menyebabkan Page Break ke jadwal berikutnya
+						const isLastJadwal = index === selectedJadwalIds.length - 1;
+
+						return (
+							<div key={jadwal.id}>
+								{/* HALAMAN 1: COVER */}
+								<PageContainer>
+									<div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+										<h2 style={{ fontSize: "18pt", fontWeight: 800, marginBottom: "0.5rem" }}>RIWAYAT JURNAL MENGAJAR</h2>
+										<h1 style={{ fontSize: "24pt", fontWeight: 900, color: "#0a2540", marginBottom: "0.5rem", textTransform: "uppercase", textAlign: "center" }}>{jadwal.mapel.nama}</h1>
+										<p style={{ fontSize: "12pt", fontWeight: 600 }}>Tahun Akademik {jadwal.tahunAjaran.nama}</p>
+										<p style={{ fontSize: "12pt", fontWeight: 600, marginTop: "0.5rem", color: "#dc2626" }}>{mPeriodeText}</p>
+										<div style={{ margin: "4rem 0", display: "flex", justifyContent: "center" }}>
+											<img src="/logo.jpg" alt="Logo SMAN 2 Brebes" style={{ width: "160px", height: "160px", objectFit: "contain" }} />
+										</div>
+										<div style={{ textAlign: "center" }}>
+											<p style={{ fontSize: "11pt", marginBottom: "0.5rem" }}><strong>GURU PENGAMPU:</strong></p>
+											<p style={{ fontSize: "14pt", fontWeight: 700, color: "#0a2540", margin: 0 }}>{user.nama}</p>
+											<p style={{ fontSize: "11pt", marginTop: "0.5rem" }}>NIP: {user.username}</p>
+										</div>
+										<div style={{ marginTop: "4rem", textAlign: "center", borderTop: "2px solid #0a2540", paddingTop: "1.5rem", width: "70%", margin: "4rem auto 0 auto" }}>
+											<p style={{ fontSize: "14pt", fontWeight: 800 }}>KELAS: {jadwal.kelas.nama}</p>
+											<p style={{ fontSize: "12pt" }}>SMA NEGERI 2 BREBES</p>
+										</div>
+									</div>
+									<PageFooter current={1} total={mTotalPdfPages} />
+								</PageContainer>
+
+								{/* BAB A: JURNAL */}
+								{mJurnalForPdf.length === 0 ? (
+									<PageContainer>
+										<KopSurat />
+										<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>A. JURNAL MENGAJAR & CATATAN KBM</h3>
+										<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt" }}>
+											<thead style={{ display: "table-header-group" }}>
+												<tr style={{ backgroundColor: "#f1f5f9" }}>
+													<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%" }}>Pert.</th>
+													<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "20%" }}>Tanggal</th>
+													<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "25%" }}>Topik Pembelajaran</th>
+													<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "35%" }}>Catatan Evaluasi / Kendala</th>
+													<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "15%" }}>Status</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr>
+													<td colSpan={5} style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>Belum ada jurnal untuk periode terpilih.</td>
+												</tr>
+											</tbody>
+										</table>
+										<PageFooter current={2} total={mTotalPdfPages} />
+									</PageContainer>
+								) : (
+									mJurnalChunks.map((chunk, chunkIdx) => {
+										const pageNum = 1 + (chunkIdx + 1);
+										return (
+											<div key={`A-${chunkIdx}`}>
+												<PageContainer>
+													<KopSurat />
+													<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>A. JURNAL MENGAJAR & CATATAN KBM {chunkIdx > 0 ? "(Lanjutan)" : ""}</h3>
+													<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt" }}>
+														<thead style={{ display: "table-header-group" }}>
+															<tr style={{ backgroundColor: "#f1f5f9" }}>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%" }}>Pert.</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "20%" }}>Tanggal</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "25%" }}>Topik Pembelajaran</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "35%" }}>Catatan Evaluasi / Kendala</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "15%" }}>Status</th>
+															</tr>
+														</thead>
+														<tbody>
+															{chunk.map((jur: any, i: number) => {
+																const globalIdx = (chunkIdx * MAX_ROWS) + i + 1;
+																return (
+																	<tr key={jur.id}>
+																		<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{globalIdx}</td>
+																		<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{new Date(jur.tanggal).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</td>
+																		<td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>{jur.materiBab || jur.topik || "-"}</td>
+																		<td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>{jur.catatan || "-"}</td>
+																		<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{jur.status === "SUBMITTED" ? "Terkirim" : "Draft"}</td>
+																	</tr>
+																);
+															})}
+														</tbody>
+													</table>
+													<PageFooter current={pageNum} total={mTotalPdfPages} />
+												</PageContainer>
+											</div>
+										);
+									})
+								)}
+
+								{/* BAB B: REKAP KEHADIRAN */}
+								{mSiswaChunks.map((chunk, chunkIdx) => {
+									const pageNum = 1 + mPagesBabA + (chunkIdx + 1);
+									return (
+										<div key={`B-${chunkIdx}`}>
+											<PageContainer>
+												<KopSurat />
+												<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "5px" }}>B. REKAPITULASI KEHADIRAN SISWA {chunkIdx > 0 ? "(Lanjutan)" : ""}</h3>
+												{chunkIdx === 0 && <p style={{ fontSize: "9pt", marginBottom: "15px" }}><em>*Berdasarkan {mPeriodeText}</em></p>}
+												<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt" }}>
+													<thead style={{ display: "table-header-group" }}>
+														<tr style={{ backgroundColor: "#f1f5f9" }}>
+															<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%" }}>No.</th>
+															<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "35%" }}>Nama Siswa</th>
+															<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "15%" }}>NIS</th>
+															<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "7%", textAlign: "center" }}>H</th>
+															<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "7%", textAlign: "center" }}>I</th>
+															<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "7%", textAlign: "center" }}>S</th>
+															<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "7%", textAlign: "center" }}>A</th>
+															<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "17%", textAlign: "center" }}>% Hadir</th>
+														</tr>
+													</thead>
+													<tbody>
+														{chunk.map((rs: any, i: number) => {
+															const globalIdx = (chunkIdx * MAX_ROWS) + i + 1;
+															const rekap = getRekapSiswa(rs.siswa.id, mJurnalForPdf);
+															return (
+																<tr key={rs.siswa.id}>
+																	<td style={{ border: "1px solid #cbd5e1", padding: "6px", textAlign: "center" }}>{globalIdx}</td>
+																	<td style={{ border: "1px solid #cbd5e1", padding: "6px" }}>{rs.siswa.user?.nama}</td>
+																	<td style={{ border: "1px solid #cbd5e1", padding: "6px" }}>{rs.siswa.nis}</td>
+																	<td style={{ border: "1px solid #cbd5e1", padding: "6px", textAlign: "center" }}>{rekap.H}</td>
+																	<td style={{ border: "1px solid #cbd5e1", padding: "6px", textAlign: "center" }}>{rekap.I}</td>
+																	<td style={{ border: "1px solid #cbd5e1", padding: "6px", textAlign: "center" }}>{rekap.S}</td>
+																	<td style={{ border: "1px solid #cbd5e1", padding: "6px", textAlign: "center", color: rekap.A > 0 ? "#ef4444" : "inherit" }}>{rekap.A}</td>
+																	<td style={{ border: "1px solid #cbd5e1", padding: "6px", textAlign: "center", fontWeight: "bold" }}>{rekap.persentase}%</td>
+																</tr>
+															);
+														})}
+													</tbody>
+												</table>
+												<PageFooter current={pageNum} total={mTotalPdfPages} />
+											</PageContainer>
+										</div>
+									);
+								})}
+
+								{/* BAB C: ANALISA */}
+								{(() => {
+									const pageNumC = 1 + mPagesBabA + mPagesBabB + 1;
+									const totalSiswaKls = jadwal.kelas.riwayatSiswa.length;
+									const chartData = mJurnalForPdf.map((j: any, i: number) => {
+										const h = j.presensi?.filter((p: any) => p.status === "H").length || 0;
+										const pct = totalSiswaKls > 0 ? Math.round((h / totalSiswaKls) * 100) : 0;
+										let fillColor = "#0a2540";
+										if (pct < 75) fillColor = "#ef4444";
+										else if (pct < 90) fillColor = "#f59e0b";
+										return { pertemuan: i + 1, pct, hadir: h, fillColor };
+									});
+									const statsPdf = getKelasStats(totalSiswaKls, mJurnalForPdf);
+
+									return (
+										<div>
+											<PageContainer>
+												<KopSurat />
+												<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>C. ANALISA HASIL KBM</h3>
+												<div style={{ border: "1px solid #000", padding: "1rem", marginBottom: "1.5rem" }}>
+													<p style={{ fontWeight: "bold", marginBottom: "1.5rem", textAlign: "center", fontSize: "11pt" }}>GRAFIK TREN KEHADIRAN SISWA</p>
+													<div style={{ display: "flex", justifyContent: "space-around", alignItems: "flex-end", height: "140px", borderBottom: "1px solid #cbd5e1", paddingBottom: "0.5rem", margin: "0 2rem" }}>
+														{chartData.length === 0 ? (
+															<div style={{ color: "#64748b", fontSize: "10pt", alignSelf: "center" }}>Belum ada data kehadiran.</div>
+														) : (
+															chartData.map((data: any, idx: number) => (
+																<div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "30px" }}>
+																	<span style={{ fontSize: "8pt", fontWeight: "bold", marginBottom: "4px" }}>{data.pct}%</span>
+																	<div style={{ height: "100px", width: "100%", backgroundColor: "#f1f5f9", display: "flex", alignItems: "flex-end" }}>
+																		<div style={{ width: "100%", height: `${data.pct}%`, backgroundColor: data.fillColor }}></div>
+																	</div>
+																	<span style={{ fontSize: "8pt", marginTop: "4px" }}>P-{data.pertemuan}</span>
+																</div>
+															))
+														)}
+													</div>
+												</div>
+												<div style={{ border: "1px solid #000", padding: "1rem" }}>
+													<p><strong>REKAPITULASI CAPAIAN KELAS:</strong></p>
+													<p style={{ marginBottom: "1rem" }}>Rata-rata persentase kehadiran kelas {jadwal.kelas.nama} adalah <strong>{statsPdf.rataKehadiran}%</strong> selama <strong>{statsPdf.totalPertemuan} pertemuan</strong>.</p>
+													<p><strong>RANGKUMAN CATATAN EVALUASI:</strong></p>
+													<ul style={{ paddingLeft: "1.5rem", marginBottom: "2rem" }}>
+														{(() => {
+															const notes = mJurnalForPdf.filter((j: any) => j.catatan && j.catatan.trim() !== "");
+															if (notes.length === 0) return <li style={{ color: "#64748b" }}>Tidak ada catatan kendala yang direkam pada periode ini.</li>;
+															return notes.map((n: any, i: number) => (
+																<li key={i} style={{ marginBottom: "0.5rem" }}>
+																	<strong>Pertemuan ke-{i + 1} ({new Date(n.tanggal).toLocaleDateString("id-ID")}):</strong> {n.catatan}
+																</li>
+															));
+														})()}
+													</ul>
+													<div style={{ textAlign: "right", marginTop: "3rem", paddingRight: "10%" }}>
+														<p>Brebes, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
+														<p style={{ marginBottom: "4rem" }}>Guru Pengampu,</p>
+														<p><strong>{user.nama}</strong></p>
+														<p>NIP: {user.username}</p>
+													</div>
+												</div>
+												<PageFooter current={pageNumC} total={mTotalPdfPages} />
+											</PageContainer>
+										</div>
+									);
+								})()}
+
+								{/* BAB D: REKAP NILAI TUGAS */}
+								{mJurnalTugas.length === 0 ? (
+									<PageContainer isLast={isLastJadwal}>
+										<KopSurat />
+										<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>D. REKAPITULASI NILAI TUGAS</h3>
+										<p style={{ fontSize: "10pt" }}>Tidak ada tugas yang diberikan pada periode ini.</p>
+										<PageFooter current={mTotalPdfPages} total={mTotalPdfPages} />
+									</PageContainer>
+								) : (
+									mSiswaChunks.map((chunk, chunkIdx) => {
+										const pageNum = 1 + mPagesBabA + mPagesBabB + 1 + (chunkIdx + 1);
+										const isLastPage = isLastJadwal && chunkIdx === mSiswaChunks.length - 1;
+										return (
+											<div key={`D-${chunkIdx}`}>
+												<PageContainer isLast={isLastPage}>
+													<KopSurat />
+													<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>D. REKAPITULASI NILAI TUGAS {chunkIdx > 0 ? "(Lanjutan)" : ""}</h3>
+													{chunkIdx === 0 && (
+														<p style={{ fontSize: "9pt", marginBottom: "10px" }}>
+															<em>*Daftar Tugas:</em><br />
+															{mJurnalTugas.map((t: any, i: number) => (
+																<span key={t.id}><strong>T{i + 1}:</strong> {t.tugas} ({new Date(t.tanggal).toLocaleDateString("id-ID")})<br /></span>
+															))}
+														</p>
+													)}
+													<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9pt" }}>
+														<thead style={{ display: "table-header-group" }}>
+															<tr style={{ backgroundColor: "#f1f5f9" }}>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%" }}>No.</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "35%" }}>Nama Siswa</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "15%" }}>NIS</th>
+																{mJurnalTugas.map((t: any, i: number) => (
+																	<th key={t.id} style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>T{i + 1}</th>
+																))}
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "10%", textAlign: "center" }}>Rata-rata</th>
+															</tr>
+														</thead>
+														<tbody>
+															{chunk.map((rs: any, i: number) => {
+																const globalIdx = (chunkIdx * MAX_ROWS) + i + 1;
+																const rekap = getRekapSiswa(rs.siswa.id, mJurnalForPdf);
+																return (
+																	<tr key={rs.siswa.id}>
+																		<td style={{ border: "1px solid #cbd5e1", padding: "6px", textAlign: "center" }}>{globalIdx}</td>
+																		<td style={{ border: "1px solid #cbd5e1", padding: "6px" }}>{rs.siswa.user?.nama}</td>
+																		<td style={{ border: "1px solid #cbd5e1", padding: "6px" }}>{rs.siswa.nis}</td>
+																		{mJurnalTugas.map((t: any) => {
+																			const absen = t.presensi?.find((p: any) => p.siswaId === rs.siswa.id);
+																			const nilai = absen?.nilaiTugas;
+																			return <td key={t.id} style={{ border: "1px solid #cbd5e1", padding: "6px", textAlign: "center" }}>{nilai !== null && nilai !== undefined ? nilai : "-"}</td>;
+																		})}
+																		<td style={{ border: "1px solid #cbd5e1", padding: "6px", textAlign: "center", fontWeight: "bold" }}>{rekap.countTugas > 0 ? rekap.rataNilai : "-"}</td>
+																	</tr>
+																);
+															})}
+														</tbody>
+													</table>
+													<PageFooter current={pageNum} total={mTotalPdfPages} />
+												</PageContainer>
+											</div>
+										);
+									})
+								)}
+							</div>
+						);
+					})}
+				</div>
 			</div>
 		</>
 	);

@@ -91,7 +91,7 @@ export default function PresensiClient({
 	}, [router]);
 
 	// Timer UI & Logika Update QR Server-side (Setiap 60 detik)
-	const [timeLeft, setTimeLeft] = useState(60);
+	const [timeLeft, setTimeLeft] = useState(30);
 	useEffect(() => {
 		if (viewMode !== "detail" || !selectedSession) return;
 
@@ -101,7 +101,7 @@ export default function PresensiClient({
 					aktifkanPresensiQR(selectedSession.id).then(() => {
 						router.refresh();
 					});
-					return 60;
+					return 30;
 				}
 				return prev - 1;
 			});
@@ -263,10 +263,10 @@ export default function PresensiClient({
 				</div>
 			)}
 
-			
+
 
 			<>
-				
+
 
 				<div className={styles.dashboardContainer}>
 					{/* === STATE 1: EMPTY STATE === */}
@@ -397,7 +397,7 @@ export default function PresensiClient({
 											</span>
 										</div>
 										<div className={styles.progressTrack}>
-											<div className={styles.progressBar} style={{ width: `${(timeLeft / 60) * 100}%` }}></div>
+											<div className={styles.progressBar} style={{ width: `${(timeLeft / 30) * 100}%` }}></div>
 										</div>
 									</div>
 
