@@ -261,7 +261,7 @@ export default function RatingClient({
 	// ============================================================================
 
 	// VARIABEL KONTROL: Ubah angka 15 di bawah ini untuk mengatur batas maksimal jumlah data per halaman PDF
-	const PDF_MAX_ROWS = 15;
+	const PDF_MAX_ROWS = 5;
 
 	const chunkArray = (arr: any[], size: number) => {
 		return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
