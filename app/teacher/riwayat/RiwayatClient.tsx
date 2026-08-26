@@ -145,10 +145,51 @@ export default function RiwayatClient({
 		return filteredJadwal.filter((j) => j.kelas?.nama === activeTabKelas);
 	}, [filteredJadwal, activeTabKelas]);
 
-	// Filter Jadwal khusus untuk Modal (Mengikuti Pilihan Dropdown Modal)
+	// GROUPING: Gabungkan jadwal yang Mapel & Kelasnya sama
+	const groupedJadwalByMapelKelas = useMemo(() => {
+		const groups: Record<string, any> = {};
+		filteredJadwalByKelas.forEach((jadwal) => {
+			const key = `${jadwal.mapel.id}-${jadwal.kelas.id}`;
+			if (!groups[key]) {
+				groups[key] = {
+					...jadwal,
+					jurnal: [...(jadwal.jurnal || [])],
+					hariList: [jadwal.hari],
+				};
+			} else {
+				groups[key].jurnal = [...groups[key].jurnal, ...(jadwal.jurnal || [])];
+				if (!groups[key].hariList.includes(jadwal.hari)) {
+					groups[key].hariList.push(jadwal.hari);
+				}
+			}
+		});
+		return Object.values(groups);
+	}, [filteredJadwalByKelas]);
+
+	// Filter Jadwal khusus untuk Modal (Mengikuti Pilihan Dropdown Modal) & Digabung
 	const modalFilteredJadwal = useMemo(() => {
-		if (modalKelasFilter === "Semua Kelas") return filteredJadwal;
-		return filteredJadwal.filter((j) => j.kelas?.nama === modalKelasFilter);
+		let filtered = filteredJadwal;
+		if (modalKelasFilter !== "Semua Kelas") {
+			filtered = filteredJadwal.filter((j) => j.kelas?.nama === modalKelasFilter);
+		}
+
+		const groups: Record<string, any> = {};
+		filtered.forEach((jadwal) => {
+			const key = `${jadwal.mapel.id}-${jadwal.kelas.id}`;
+			if (!groups[key]) {
+				groups[key] = {
+					...jadwal,
+					hariList: [jadwal.hari],
+					mergedIds: [jadwal.id],
+				};
+			} else {
+				groups[key].mergedIds.push(jadwal.id);
+				if (!groups[key].hariList.includes(jadwal.hari)) {
+					groups[key].hariList.push(jadwal.hari);
+				}
+			}
+		});
+		return Object.values(groups);
 	}, [filteredJadwal, modalKelasFilter]);
 
 	const periodeText = useMemo(() => {
@@ -287,20 +328,24 @@ export default function RiwayatClient({
 		}, 300);
 	};
 
-	const handleSelectAllJadwal = (checked: boolean) => {
-		if (checked) {
-			setSelectedJadwalIds(modalFilteredJadwal.map((j) => j.id));
+	const handleSelectAllJadwal = (isChecked: boolean) => {
+		if (isChecked) {
+			const allIds = modalFilteredJadwal.flatMap((j) => j.mergedIds);
+			setSelectedJadwalIds(allIds);
 		} else {
 			setSelectedJadwalIds([]);
 		}
 	};
 
-	const handleSelectJadwal = (jadwalId: string, checked: boolean) => {
-		if (checked) {
-			setSelectedJadwalIds((prev) => [...prev, jadwalId]);
-		} else {
-			setSelectedJadwalIds((prev) => prev.filter((id) => id !== jadwalId));
-		}
+	const handleSelectJadwal = (mergedIds: string[], isChecked: boolean) => {
+		setSelectedJadwalIds((prev) => {
+			if (isChecked) {
+				const newSet = new Set([...prev, ...mergedIds]);
+				return Array.from(newSet);
+			} else {
+				return prev.filter((id) => !mergedIds.includes(id));
+			}
+		});
 	};
 
 	const handleMassDownloadPdf = async () => {
@@ -861,7 +906,10 @@ export default function RiwayatClient({
 								<label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", color: "#0a2540" }}>
 									<input
 										type="checkbox"
-										checked={selectedJadwalIds.length === modalFilteredJadwal.length && modalFilteredJadwal.length > 0}
+										checked={
+											selectedJadwalIds.length > 0 &&
+											selectedJadwalIds.length === modalFilteredJadwal.flatMap((j) => j.mergedIds).length
+										}
 										onChange={(e) => handleSelectAllJadwal(e.target.checked)}
 									/>
 									Pilih Semua
@@ -878,11 +926,13 @@ export default function RiwayatClient({
 										<label key={j.id} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem", backgroundColor: "white", borderRadius: "0.375rem", border: "1px solid #e2e8f0", cursor: "pointer", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
 											<input
 												type="checkbox"
-												checked={selectedJadwalIds.includes(j.id)}
-												onChange={(e) => handleSelectJadwal(j.id, e.target.checked)}
+												checked={j.mergedIds.every((id: string) => selectedJadwalIds.includes(id))}
+												onChange={(e) => handleSelectJadwal(j.mergedIds, e.target.checked)}
 											/>
 											<div style={{ flex: 1 }}>
-												<div style={{ fontWeight: 600, color: "#0a2540", fontSize: "0.95rem" }}>{j.mapel.nama}</div>
+												<div style={{ fontWeight: 600, color: "#0a2540", fontSize: "0.95rem" }}>
+													{j.mapel.nama} <span style={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 400 }}>({j.hariList.join(", ")})</span>
+												</div>
 
 												{/* Hanya Tampilkan Nama Kelas Jika Sedang di Tab 'Semua Kelas' */}
 												{modalKelasFilter === "Semua Kelas" && (
@@ -975,7 +1025,7 @@ export default function RiwayatClient({
 						</div>
 
 						<div className={styles.cardGrid}>
-							{filteredJadwalByKelas.length === 0 ? (
+							{groupedJadwalByMapelKelas.length === 0 ? (
 								<div
 									style={{
 										gridColumn: "1 / -1",
@@ -990,7 +1040,7 @@ export default function RiwayatClient({
 									Tidak ada riwayat kelas yang telah diselesaikan pada periode ini.
 								</div>
 							) : (
-								filteredJadwalByKelas.map((jadwal) => {
+								groupedJadwalByMapelKelas.map((jadwal) => {
 									const stats = getKelasStats(jadwal.kelas.riwayatSiswa.length, jadwal.jurnal);
 									const ta = tahunAjaranList.find((t) => t.id === jadwal.tahunAjaranId)?.nama || "";
 
@@ -1001,8 +1051,13 @@ export default function RiwayatClient({
 												<div className={styles.badgeSelesai}>Selesai</div>
 											</div>
 											<div className={styles.cardSubtitle}>{jadwal.kelas.nama}</div>
-											<div className={styles.cardMeta}>
-												<Calendar size={12} /> {ta}
+											<div className={styles.cardMeta} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+												<div>
+													<Calendar size={12} /> {ta}
+												</div>
+												<div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#3b82f6", background: "#eff6ff", padding: "2px 6px", borderRadius: "4px" }}>
+													{jadwal.hariList.join(", ")}
+												</div>
 											</div>
 
 											<div className={styles.cardStats}>
