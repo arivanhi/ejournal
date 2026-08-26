@@ -931,7 +931,7 @@ export default function RiwayatClient({
 											/>
 											<div style={{ flex: 1 }}>
 												<div style={{ fontWeight: 600, color: "#0a2540", fontSize: "0.95rem" }}>
-													{j.mapel.nama} <span style={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 400 }}>({j.hariList.join(", ")})</span>
+													{j.mapel.nama} <span style={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 400 }}>({j.hariList.map((h: string) => ({ "1": "Senin", "2": "Selasa", "3": "Rabu", "4": "Kamis", "5": "Jumat", "6": "Sabtu", "7": "Minggu" }[String(h)] || h)).join(", ")})</span>
 												</div>
 
 												{/* Hanya Tampilkan Nama Kelas Jika Sedang di Tab 'Semua Kelas' */}
@@ -1056,7 +1056,7 @@ export default function RiwayatClient({
 													<Calendar size={12} /> {ta}
 												</div>
 												<div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#3b82f6", background: "#eff6ff", padding: "2px 6px", borderRadius: "4px" }}>
-													{jadwal.hariList.join(", ")}
+													{jadwal.hariList.map((h: string) => ({ "1": "Senin", "2": "Selasa", "3": "Rabu", "4": "Kamis", "5": "Jumat", "6": "Sabtu", "7": "Minggu" }[String(h)] || h)).join(", ")}
 												</div>
 											</div>
 
@@ -1366,7 +1366,7 @@ export default function RiwayatClient({
 										</div>
 									) : (
 										(() => {
-											const sortedJurnal = [...activeJadwal.jurnal].sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+											const sortedJurnal = [...activeJadwal.jurnal].sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
 											const totalItems = sortedJurnal.length;
 											const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 											const startIndex = (currentPageJurnal - 1) * itemsPerPage;
