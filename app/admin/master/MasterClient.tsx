@@ -76,6 +76,39 @@ interface KelasProps {
 	nama: string;
 }
 
+// ============================================================================
+// HELPER PAGINATION
+// ============================================================================
+const getPaginationRange = (currentPage: number, totalPages: number) => {
+	const totalNumbers = 3;
+	const totalBlocks = totalNumbers + 2;
+
+	if (totalPages > totalBlocks) {
+		const startPage = Math.max(2, currentPage - 1);
+		const endPage = Math.min(totalPages - 1, currentPage + 1);
+
+		let pages: (number | string)[] = [1];
+
+		if (startPage > 2) {
+			pages.push("...");
+		}
+
+		for (let i = startPage; i <= endPage; i++) {
+			pages.push(i);
+		}
+
+		if (endPage < totalPages - 1) {
+			pages.push("...");
+		}
+
+		pages.push(totalPages);
+
+		return pages;
+	}
+
+	return Array.from({ length: totalPages }, (_, i) => i + 1);
+};
+
 export default function MasterClient({
 	initialSiswa,
 	initialGuru,
@@ -1008,11 +1041,22 @@ export default function MasterClient({
 							>
 								Prev
 							</button>
-							{Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+							{getPaginationRange(currentPage, totalPages).map((p, index) => (
 								<button
-									key={p}
-									onClick={() => setCurrentPage(p)}
-									style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPage === p ? "#1e3a8a" : "white", color: currentPage === p ? "white" : "#334155", border: "1px solid", borderColor: currentPage === p ? "#1e3a8a" : "#e2e8f0", cursor: "pointer" }}
+									key={index}
+									disabled={p === "..."}
+									onClick={() => typeof p === "number" && setCurrentPage(p)}
+									style={{
+										padding: "0.375rem 0.75rem",
+										borderRadius: "0.375rem",
+										fontSize: "0.875rem",
+										fontWeight: 500,
+										backgroundColor: currentPage === p ? "#1e3a8a" : "white",
+										color: currentPage === p ? "white" : (p === "..." ? "#94a3b8" : "#334155"),
+										border: "1px solid",
+										borderColor: currentPage === p ? "#1e3a8a" : (p === "..." ? "transparent" : "#e2e8f0"),
+										cursor: p === "..." ? "default" : "pointer"
+									}}
 								>
 									{p}
 								</button>
