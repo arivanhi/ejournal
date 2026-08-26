@@ -53,6 +53,11 @@ export default function TeacherDashboardClient({
 	const [activeSession, setActiveSession] = useState<any | null>(null);
 	const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
+	// Logika hari ini untuk default tab
+	const daysStr = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+	const todayStr = useMemo(() => daysStr[new Date().getDay()], []);
+	const [selectedHari, setSelectedHari] = useState<string>("Semua");
+
 	// --- 1. LOGIKA PENGGABUNGAN JADWAL BERURUTAN (GROUPING) ---
 	const groupedJadwal = useMemo(() => {
 		const grouped: any[] = [];
@@ -105,6 +110,28 @@ export default function TeacherDashboardClient({
 
 		return grouped;
 	}, [jadwalKeseluruhan]);
+
+	// Menghitung hari-hari apa saja yang tersedia di jadwal (unik dan diurutkan)
+	const availableDays = useMemo(() => {
+		const uniqueDays = Array.from(new Set(groupedJadwal.map((j) => j.hari)));
+		const hariOrder: Record<string, number> = { Senin: 1, Selasa: 2, Rabu: 3, Kamis: 4, Jumat: 5, Sabtu: 6, Minggu: 7 };
+		return uniqueDays.sort((a, b) => (hariOrder[a] || 99) - (hariOrder[b] || 99));
+	}, [groupedJadwal]);
+
+	// Set default tab ke hari ini jika hari ini ada jadwal
+	useEffect(() => {
+		if (availableDays.includes(todayStr)) {
+			setSelectedHari(todayStr);
+		} else {
+			setSelectedHari("Semua");
+		}
+	}, [availableDays, todayStr]);
+
+	// Menyaring jadwal berdasarkan hari terpilih
+	const filteredJadwal = useMemo(() => {
+		if (selectedHari === "Semua") return groupedJadwal;
+		return groupedJadwal.filter((j) => j.hari === selectedHari);
+	}, [groupedJadwal, selectedHari]);
 
 	// --- 2. TIMER & PENGECEKAN SESI AKTIF REAL-TIME ---
 	useEffect(() => {
@@ -293,7 +320,50 @@ export default function TeacherDashboardClient({
 							<div className={styles.cardBox}>
 								<div className={styles.cardHeader}>
 									<h3 className={styles.cardTitle}>Jadwal Mengajar Keseluruhan</h3>
-									<span className={styles.badgeCount}>{groupedJadwal.length} Jadwal</span>
+									<span className={styles.badgeCount}>{filteredJadwal.length} Jadwal</span>
+								</div>
+
+								{/* TABS NAVIGASI HARI */}
+								<div style={{ padding: "0 1.25rem 1rem 1.25rem", display: "flex", gap: "0.5rem", flexWrap: "wrap", borderBottom: "1px solid #f1f5f9" }}>
+									<div style={{ display: "flex", background: "#f1f5f9", padding: "4px", borderRadius: "8px", gap: "4px", flexWrap: "wrap" }}>
+										<button
+											onClick={() => setSelectedHari("Semua")}
+											style={{
+												padding: "6px 14px",
+												fontSize: "0.75rem",
+												fontWeight: "bold",
+												borderRadius: "6px",
+												cursor: "pointer",
+												border: "none",
+												transition: "all 0.2s",
+												backgroundColor: selectedHari === "Semua" ? "#ffffff" : "transparent",
+												color: selectedHari === "Semua" ? "#1e293b" : "#64748b",
+												boxShadow: selectedHari === "Semua" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+											}}
+										>
+											Semua
+										</button>
+										{availableDays.map((hari) => (
+											<button
+												key={hari}
+												onClick={() => setSelectedHari(hari)}
+												style={{
+													padding: "6px 14px",
+													fontSize: "0.75rem",
+													fontWeight: "bold",
+													borderRadius: "6px",
+													cursor: "pointer",
+													border: "none",
+													transition: "all 0.2s",
+													backgroundColor: selectedHari === hari ? "#ffffff" : "transparent",
+													color: selectedHari === hari ? "#1e293b" : "#64748b",
+													boxShadow: selectedHari === hari ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+												}}
+											>
+												{hari}
+											</button>
+										))}
+									</div>
 								</div>
 
 								<div className={styles.tableContainer}>
@@ -308,14 +378,14 @@ export default function TeacherDashboardClient({
 											</tr>
 										</thead>
 										<tbody>
-											{groupedJadwal.length === 0 ? (
+											{filteredJadwal.length === 0 ? (
 												<tr>
 													<td colSpan={5} style={{ textAlign: "center", padding: "3rem", color: "#64748b" }}>
-														Belum ada jadwal mengajar yang diatur.
+														Belum ada jadwal mengajar yang diatur untuk {selectedHari === "Semua" ? "hari apapun" : `hari ${selectedHari}`}.
 													</td>
 												</tr>
 											) : (
-												groupedJadwal.map((jadwal, i) => (
+												filteredJadwal.map((jadwal, i) => (
 													<tr key={`${jadwal.id}-${i}`}>
 														<td style={{ fontWeight: 500 }}>{i + 1}</td>
 														<td style={{ color: "#64748b" }}>{jadwal.mapelKode || "-"}</td>
