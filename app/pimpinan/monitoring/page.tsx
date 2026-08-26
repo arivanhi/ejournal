@@ -30,6 +30,14 @@ const parseSesi = (val: any) => {
 	return null;
 };
 
+// Fungsi Helper untuk Mendapatkan Tanggal YYYY-MM-DD Lokal Tanpa Terpengaruh Zona Waktu UTC
+const getLocalYYYYMMDD = (d: Date) => {
+	const yyyy = d.getFullYear();
+	const mm = String(d.getMonth() + 1).padStart(2, "0");
+	const dd = String(d.getDate()).padStart(2, "0");
+	return `${yyyy}-${mm}-${dd}`;
+};
+
 export default async function MonitoringPage() {
 	const session = await getServerSession();
 	if (!session || !session.user) redirect("/login");
@@ -142,7 +150,7 @@ export default async function MonitoringPage() {
 		const processedJournalDates = new Set();
 
 		jurnalsForGroup.forEach((jur) => {
-			const dateStr = jur.tanggal.toISOString().split("T")[0];
+			const dateStr = getLocalYYYYMMDD(jur.tanggal);
 			processedJournalDates.add(dateStr);
 
 			let jamStr = "Waktu Fleksibel";
@@ -179,7 +187,7 @@ export default async function MonitoringPage() {
 		// TAMBAHKAN JAM KOSONG
 		for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
 			const dayIdx = d.getDay();
-			const dateStr = d.toISOString().split("T")[0];
+			const dateStr = getLocalYYYYMMDD(d);
 
 			if (jadwalHarian[dayIdx] && !processedJournalDates.has(dateStr)) {
 				jadwalHarian[dayIdx].forEach((block: any) => {
