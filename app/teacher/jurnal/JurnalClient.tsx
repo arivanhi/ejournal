@@ -288,6 +288,40 @@ export default function JurnalClient({
 		}
 	}, [groupedJadwal, activeJadwal?.id]);
 
+	const handleSaveNilaiTugas = (siswaId: string, val: string) => {
+		const num = parseFloat(val);
+		setNilaiTugasEdits((prev) => ({ ...prev, [siswaId]: isNaN(num) ? 0 : num }));
+	};
+
+	const handleMassalHadirClick = () => {
+		setModal({
+			isOpen: true,
+			title: "Tandai Semua Hadir",
+			message: "Siswa yang belum diisi presensinya akan otomatis ditandai sebagai Hadir. Data yang sudah terisi (seperti Sakit/Izin) tidak akan tertimpa. Apakah Anda yakin ingin melanjutkan?",
+			onConfirm: () => {
+				const newEdits = { ...presensiEdits };
+				let updatedCount = 0;
+				activeJadwal?.kelas?.riwayatSiswa?.forEach((rs: any) => {
+					if (!newEdits[rs.siswa.id]) {
+						newEdits[rs.siswa.id] = "H";
+						updatedCount++;
+					}
+				});
+				setPresensiEdits(newEdits);
+
+				setToasts((prev) => [
+					...prev,
+					{
+						id: Date.now(),
+						message: `${updatedCount} siswa berhasil ditandai Hadir secara massal!`,
+						type: "success",
+					},
+				]);
+				setModal(null);
+			},
+		});
+	};
+
 	const showToast = (message: string, type: "success" | "error" = "success") => {
 		const id = Date.now();
 		setToasts((prev) => [...prev, { id, message, type }]);
@@ -1319,7 +1353,14 @@ export default function JurnalClient({
 							{/* PERBAIKAN 3: REFACTOR TABLE TOOLBAR & SEARCH BAR */}
 							<div className={styles.tableToolbar}>
 								<div className={styles.tableTitle}>Daftar Kehadiran</div>
-								<div className={styles.searchWrapper}>
+								<div className={styles.searchWrapper} style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+									<button
+										onClick={handleMassalHadirClick}
+										className={styles.btnOutlineFull}
+										style={{ padding: "0.5rem 1rem", height: "100%" }}
+									>
+										<UserCheck size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: "0.25rem" }} /> Tandai Semua Hadir
+									</button>
 									<div className={styles.searchContainer}>
 										<Search size={16} className={styles.searchIcon} />
 										<input
