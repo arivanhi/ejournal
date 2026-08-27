@@ -1454,7 +1454,7 @@ export default function JurnalClient({
 								<div className={styles.statTextContainer}>
 									<div className={styles.statLabel}>Hadir</div>
 									<div className={styles.statValueGreen}>
-										{activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H")
+										{activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H" || presensiEdits[rs.siswa.id] === "D")
 											.length || 0}
 									</div>
 								</div>
@@ -1480,7 +1480,7 @@ export default function JurnalClient({
 									<div className={styles.statLabel}>Alpha/Belum</div>
 									<div className={styles.statValueRed}>
 										{(activeJadwal.kelas?.riwayatSiswa?.length || 0) -
-											(activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H")
+											(activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H" || presensiEdits[rs.siswa.id] === "D")
 												.length || 0) -
 											(activeJadwal.kelas?.riwayatSiswa?.filter(
 												(rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
@@ -1587,6 +1587,7 @@ export default function JurnalClient({
 													)}
 												</div>
 											</th>
+											<th>Alasan</th>
 											{activeJurnal.tugas && (
 												<th
 													style={{ cursor: "pointer", textAlign: "center", width: "120px" }}
@@ -1663,7 +1664,7 @@ export default function JurnalClient({
 											if (totalItems === 0) {
 												return (
 													<tr>
-														<td colSpan={7} style={{ textAlign: "center", padding: "3rem", color: "#64748b", fontStyle: "italic" }}>
+														<td colSpan={activeJurnal.tugas ? 8 : 7} style={{ textAlign: "center", padding: "3rem", color: "#64748b", fontStyle: "italic" }}>
 															Tidak ada siswa yang cocok dengan pencarian "{search}".
 														</td>
 													</tr>
@@ -1677,6 +1678,7 @@ export default function JurnalClient({
 
 												let badgeStyle = { bg: "#f1f5f9", text: "#64748b", label: "Belum Absen" };
 												if (currentStatus === "H") badgeStyle = { bg: "#d1fae5", text: "#047857", label: "Hadir" };
+												else if (currentStatus === "D") badgeStyle = { bg: "#d1fae5", text: "#047857", label: "Hadir Dispensasi" };
 												else if (currentStatus === "I") badgeStyle = { bg: "#fef3c7", text: "#b45309", label: "Izin" };
 												else if (currentStatus === "S") badgeStyle = { bg: "#dbeafe", text: "#1d4ed8", label: "Sakit" };
 												else if (currentStatus === "A") badgeStyle = { bg: "#fee2e2", text: "#b91c1c", label: "Alpha" };
@@ -1723,10 +1725,23 @@ export default function JurnalClient({
 																}}
 															>
 																{badgeStyle.label}{" "}
-																{originalAbsensi?.waktuScan && currentStatus === originalAbsensi.status
+																{originalAbsensi?.waktuScan && currentStatus === (originalAbsensi.isDispensasi ? "D" : originalAbsensi.status)
 																	? `(${new Date(originalAbsensi.waktuScan).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })})`
 																	: ""}
 															</span>
+														</td>
+														<td>
+															<div style={{ fontSize: "0.875rem", color: "#64748b", whiteSpace: "pre-line" }}>
+																{currentStatus === "D" || currentStatus === "S" || currentStatus === "I"
+																	? (alasanIzinEdits[siswa.id] && <div style={{ marginBottom: "0.25rem" }}>{alasanIzinEdits[siswa.id]}</div>)
+																	: null}
+																{isTerlambatEdits[siswa.id]
+																	? (
+																		<div>
+																			<span style={{ color: "#ef4444", fontWeight: 600 }}>Terlambat:</span> {alasanTerlambatEdits[siswa.id] || "-"}
+																		</div>
+																	) : null}
+															</div>
 														</td>
 														{activeJurnal.tugas && (
 															<td style={{ textAlign: "center" }}>
