@@ -584,7 +584,7 @@ export default function JurnalClient({
 		setViewMode("presensi");
 	};
 
-	const MAX_ROWS = 20;
+	const MAX_ROWS = 18;
 	const chunkArray = (arr: any[], size: number) => {
 		if (!arr || arr.length === 0) return [[]];
 		const res = [];
@@ -612,7 +612,7 @@ export default function JurnalClient({
 			console.error("Gagal men-generate PDF:", error);
 			alert("Terjadi kesalahan saat memproses PDF.");
 		} finally {
-		setIsDownloading(false);
+			setIsDownloading(false);
 		}
 	};
 
@@ -735,7 +735,7 @@ export default function JurnalClient({
 							<div style={{ marginBottom: "1.5rem" }}>
 								<label className={styles.formLabel}>Upload Surat Bukti (Opsional)</label>
 								<div style={{ position: "relative", overflow: "hidden", display: "inline-block", width: "100%" }}>
-									<label 
+									<label
 										style={{
 											display: "flex",
 											alignItems: "center",
@@ -766,7 +766,7 @@ export default function JurnalClient({
 													formData.append("file", file);
 													formData.append("kelasName", activeJadwal?.kelas?.nama || "Unknown");
 													formData.append("siswaName", currentSiswaIzin.nama.replace(/[^a-zA-Z0-9]/g, "_"));
-													
+
 													try {
 														const res = await fetch("/api/upload", {
 															method: "POST",
@@ -1856,7 +1856,7 @@ export default function JurnalClient({
 									return siswaChunks.map((chunk, chunkIdx) => {
 										const isLastPage = chunkIdx === totalPages - 1;
 
-										const hCount = activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H").length || 0;
+										const hCount = activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H" || presensiEdits[rs.siswa.id] === "D").length || 0;
 										const isCount = activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S").length || 0;
 										const aCount = (activeJadwal.kelas?.riwayatSiswa?.length || 0) - hCount - isCount;
 
@@ -1945,11 +1945,22 @@ export default function JurnalClient({
 
 																let statusLabel = "Alpha";
 																if (currentStatus === "H") statusLabel = "Hadir";
+																else if (currentStatus === "D") {
+																	statusLabel = "Hadir Dispensasi";
+																	if (alasanIzinEdits[siswa.id]) statusLabel += ` (${alasanIzinEdits[siswa.id]})`;
+																}
 																else if (currentStatus === "I") {
 																	statusLabel = "Izin";
 																	if (alasanIzinEdits[siswa.id]) statusLabel += ` (${alasanIzinEdits[siswa.id]})`;
 																}
-																else if (currentStatus === "S") statusLabel = "Sakit";
+																else if (currentStatus === "S") {
+																	statusLabel = "Sakit";
+																	if (alasanIzinEdits[siswa.id]) statusLabel += ` (${alasanIzinEdits[siswa.id]})`;
+																}
+
+																if (isTerlambatEdits[siswa.id]) {
+																	statusLabel += ` [Terlambat: ${alasanTerlambatEdits[siswa.id] || "-"}]`;
+																}
 
 																return (
 																	<tr key={siswa.id}>
