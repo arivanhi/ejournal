@@ -88,7 +88,7 @@ const KopSurat = () => (
 					SMA NEGERI 2 BREBES
 				</h1>
 				<p style={{ margin: "2px 0", fontSize: "11pt", color: "#000" }}>Jl. Jend. A. Yani 77 Brebes 52212 Telp. (0283) 671060</p>
-				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smandabes@gmail.com</p>
+				<p style={{ margin: 0, fontSize: "10pt", color: "#000" }}>Website: sman2brebes.sch.id - Email: smadabes@gmail.com</p>
 			</div>
 			<div style={{ width: "120px" }}></div>
 		</div>
@@ -234,6 +234,33 @@ export default function RiwayatClient({
 		return jurnalForPdf.filter((j: any) => j.tugas && j.tugas.trim() !== "");
 	}, [jurnalForPdf]);
 
+	const alasanPdfData = useMemo(() => {
+		const list: any[] = [];
+		jurnalForPdf.forEach((j: any) => {
+			const tgl = new Date(j.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+			const siswaWithAlasan: any[] = [];
+			j.presensi?.forEach((p: any) => {
+				const sInfo = activeJadwal?.kelas?.riwayatSiswa?.find((rs: any) => rs.siswa.id === p.siswaId)?.siswa;
+				if (!sInfo) return;
+
+				if (p.isDispensasi) {
+					siswaWithAlasan.push({ nama: sInfo.user?.nama || "Siswa", info: `Dispensasi${p.alasan ? ` (${p.alasan})` : ""}` });
+				} else if (p.status === "I") {
+					siswaWithAlasan.push({ nama: sInfo.user?.nama || "Siswa", info: `Izin${p.alasanIzin ? ` (${p.alasanIzin})` : ""}` });
+				} else if (p.status === "S") {
+					siswaWithAlasan.push({ nama: sInfo.user?.nama || "Siswa", info: `Sakit${p.alasanIzin ? ` (${p.alasanIzin})` : ""}` });
+				}
+				if (p.isTerlambat) {
+					siswaWithAlasan.push({ nama: sInfo.user?.nama || "Siswa", info: `Terlambat${p.alasanTerlambat ? ` (${p.alasanTerlambat})` : ""}` });
+				}
+			});
+			if (siswaWithAlasan.length > 0) {
+				list.push({ tanggal: tgl, details: siswaWithAlasan });
+			}
+		});
+		return list;
+	}, [jurnalForPdf, activeJadwal]);
+
 	const getKelasStats = (totalSiswa: number, jurnalList: any[]) => {
 		const totalPertemuan = jurnalList.length;
 		if (totalPertemuan === 0 || totalSiswa === 0) return { totalPertemuan, rataKehadiran: 0 };
@@ -291,11 +318,13 @@ export default function RiwayatClient({
 	const jurnalChunks = chunkArray(jurnalForPdf, MAX_ROWS);
 	const siswaChunks = chunkArray(sortedSiswa, MAX_ROWS);
 
+	const alasanChunks = chunkArray(alasanPdfData, 12);
 	const pagesBabA = jurnalForPdf.length === 0 ? 1 : jurnalChunks.length;
 	const pagesBabB = siswaChunks.length;
-	const pagesBabC = 1;
-	const pagesBabD = jurnalTugas.length === 0 ? 1 : siswaChunks.length;
-	const totalPdfPages = 1 + pagesBabA + pagesBabB + pagesBabC + pagesBabD;
+	const pagesBabC = alasanChunks.length === 0 ? 1 : alasanChunks.length;
+	const pagesBabD = 1;
+	const pagesBabE = jurnalTugas.length === 0 ? 1 : siswaChunks.length;
+	const totalPdfPages = 1 + pagesBabA + pagesBabB + pagesBabC + pagesBabD + pagesBabE;
 
 	const handleDownloadPdf = async () => {
 		if (!startDate || !endDate) return alert("Pilih tanggal mulai dan akhir untuk dicetak.");
@@ -602,40 +631,19 @@ export default function RiwayatClient({
 														<thead style={{ display: "table-header-group" }}>
 															<tr style={{ backgroundColor: "#f1f5f9" }}>
 																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%" }}>No.</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "20%" }}>Nama Siswa</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "10%" }}>NIS</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%", textAlign: "center" }}>H</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%", textAlign: "center" }}>I</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%", textAlign: "center" }}>S</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%", textAlign: "center" }}>A</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "10%", textAlign: "center" }}>% Hadir</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "35%" }}>Catatan Alasan</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "35%" }}>Nama Siswa</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "15%" }}>NIS</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "7%", textAlign: "center" }}>H</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "7%", textAlign: "center" }}>I</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "7%", textAlign: "center" }}>S</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "7%", textAlign: "center" }}>A</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "17%", textAlign: "center" }}>% Hadir</th>
 															</tr>
 														</thead>
 														<tbody>
 															{chunk.map((rs: any, index: number) => {
 																const globalIdx = (chunkIdx * MAX_ROWS) + index + 1;
 																const rekap = getRekapSiswa(rs.siswa.id, jurnalForPdf);
-
-																const catatanList: string[] = [];
-																jurnalForPdf.forEach((j: any) => {
-																	const p = j.presensi?.find((pr: any) => pr.siswaId === rs.siswa.id);
-																	if (p) {
-																		const tgl = new Date(j.tanggal).toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
-																		if (p.isDispensasi) {
-																			catatanList.push(`${tgl}: Dispensasi${p.alasan ? ` (${p.alasan})` : ""}`);
-																		} else if (p.status === "I") {
-																			catatanList.push(`${tgl}: Izin${p.alasanIzin ? ` (${p.alasanIzin})` : ""}`);
-																		} else if (p.status === "S") {
-																			catatanList.push(`${tgl}: Sakit${p.alasanIzin ? ` (${p.alasanIzin})` : ""}`);
-																		}
-																		if (p.isTerlambat) {
-																			catatanList.push(`${tgl}: Terlambat${p.alasanTerlambat ? ` (${p.alasanTerlambat})` : ""}`);
-																		}
-																	}
-																});
-																const catatanString = catatanList.length > 0 ? catatanList.join("; ") : "-";
-
 																return (
 																	<tr key={rs.siswa.id}>
 																		<td style={{ border: "1px solid #cbd5e1", padding: "6px", textAlign: "center" }}>{globalIdx}</td>
@@ -648,7 +656,6 @@ export default function RiwayatClient({
 																			{rekap.A}
 																		</td>
 																		<td style={{ border: "1px solid #cbd5e1", padding: "6px", textAlign: "center", fontWeight: "bold" }}>{rekap.persentase}%</td>
-																		<td style={{ border: "1px solid #cbd5e1", padding: "6px", fontSize: "8.5pt" }}>{catatanString}</td>
 																	</tr>
 																);
 															})}
@@ -660,9 +667,48 @@ export default function RiwayatClient({
 										);
 									})}
 
-									{/* --- HALAMAN BAB C: ANALISA KBM --- */}
+									{/* --- HALAMAN BAB C: CATATAN ALASAN --- */}
+									{alasanChunks.length === 0 ? (
+										<PageContainer>
+											<KopSurat />
+											<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>C. CATATAN ALASAN</h3>
+											<p style={{ fontSize: "10pt", fontStyle: "italic", color: "#64748b" }}>Tidak ada catatan alasan ketidakhadiran atau keterlambatan pada periode ini.</p>
+											<PageFooter current={1 + pagesBabA + pagesBabB + 1} total={totalPdfPages} />
+										</PageContainer>
+									) : (
+										alasanChunks.map((chunk, chunkIdx) => {
+											const pageNum = 1 + pagesBabA + pagesBabB + (chunkIdx + 1);
+											return (
+												<div key={`C-${chunkIdx}`}>
+													<PageContainer>
+														<KopSurat />
+														<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>
+															C. CATATAN ALASAN {chunkIdx > 0 ? "(Lanjutan)" : ""}
+														</h3>
+														<div style={{ fontSize: "10pt" }}>
+															{chunk.map((item: any, idx: number) => (
+																<div key={idx} style={{ marginBottom: "1rem" }}>
+																	<p style={{ fontWeight: "bold", marginBottom: "0.25rem" }}>{item.tanggal}:</p>
+																	<ul style={{ margin: 0, paddingLeft: "1.5rem" }}>
+																		{item.details.map((d: any, dIdx: number) => (
+																			<li key={dIdx} style={{ marginBottom: "0.25rem" }}>
+																				<strong>{d.nama}</strong>, {d.info}
+																			</li>
+																		))}
+																	</ul>
+																</div>
+															))}
+														</div>
+														<PageFooter current={pageNum} total={totalPdfPages} />
+													</PageContainer>
+												</div>
+											);
+										})
+									)}
+
+									{/* --- HALAMAN BAB D: ANALISA KBM --- */}
 									{(() => {
-										const pageNumC = 1 + pagesBabA + pagesBabB + 1;
+										const pageNumD = 1 + pagesBabA + pagesBabB + pagesBabC + 1;
 										const totalSiswaKls = activeJadwal.kelas.riwayatSiswa.length;
 										const chartData = jurnalForPdf.map((j: any, i: number) => {
 											const h = j.presensi?.filter((p: any) => p.status === "H").length || 0;
@@ -680,7 +726,7 @@ export default function RiwayatClient({
 												<PageContainer>
 													<KopSurat />
 													<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>
-														C. ANALISA HASIL KBM
+														D. ANALISA HASIL KBM
 													</h3>
 
 													<div style={{ border: "1px solid #000", padding: "1rem", marginBottom: "1.5rem" }}>
@@ -751,32 +797,32 @@ export default function RiwayatClient({
 															<p>NIP: {user.username}</p>
 														</div>
 													</div>
-													<PageFooter current={pageNumC} total={totalPdfPages} />
+													<PageFooter current={pageNumD} total={totalPdfPages} />
 												</PageContainer>
 											</div>
 										);
 									})()}
 
-									{/* --- HALAMAN BAB D: REKAP NILAI TUGAS --- */}
+									{/* --- HALAMAN BAB E: REKAP NILAI TUGAS --- */}
 									{jurnalTugas.length === 0 ? (
 										<PageContainer isLast={true}>
 											<KopSurat />
 											<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>
-												D. REKAPITULASI NILAI TUGAS
+												E. REKAPITULASI NILAI TUGAS
 											</h3>
 											<p style={{ fontSize: "10pt" }}>Tidak ada tugas yang diberikan pada periode ini.</p>
 											<PageFooter current={totalPdfPages} total={totalPdfPages} />
 										</PageContainer>
 									) : (
 										siswaChunks.map((chunk, chunkIdx) => {
-											const pageNum = 1 + pagesBabA + pagesBabB + 1 + (chunkIdx + 1);
+											const pageNum = 1 + pagesBabA + pagesBabB + pagesBabC + 1 + (chunkIdx + 1);
 											const isLastPage = chunkIdx === siswaChunks.length - 1;
 											return (
 												<div key={`D-${chunkIdx}`}>
 													<PageContainer isLast={isLastPage}>
 														<KopSurat />
 														<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>
-															D. REKAPITULASI NILAI TUGAS {chunkIdx > 0 ? "(Lanjutan)" : ""}
+															E. REKAPITULASI NILAI TUGAS {chunkIdx > 0 ? "(Lanjutan)" : ""}
 														</h3>
 														{chunkIdx === 0 && (
 															<p style={{ fontSize: "9pt", marginBottom: "10px" }}>
