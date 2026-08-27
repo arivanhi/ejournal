@@ -54,6 +54,8 @@ services:
     networks:
       - ejournal_network
       - smandabes_net
+    volumes:
+      - ./public/storage:/app/public/storage
 
 # Mengamankan data database agar tidak hilang saat container mati
 volumes:

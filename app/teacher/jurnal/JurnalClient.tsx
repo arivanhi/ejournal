@@ -30,6 +30,7 @@ import {
 	ArrowUp,
 	ArrowDown,
 	Trash2,
+	Upload,
 } from "lucide-react";
 import styles from "./jurnal.module.css";
 import Link from "next/link";
@@ -190,6 +191,15 @@ export default function JurnalClient({
 	const [presensiEdits, setPresensiEdits] = useState<Record<string, string>>({});
 	const [nilaiTugasEdits, setNilaiTugasEdits] = useState<Record<string, number>>({});
 	const [alasanIzinEdits, setAlasanIzinEdits] = useState<Record<string, string>>({});
+	const [isTerlambatEdits, setIsTerlambatEdits] = useState<Record<string, boolean>>({});
+	const [alasanTerlambatEdits, setAlasanTerlambatEdits] = useState<Record<string, string>>({});
+	const [fileBuktiEdits, setFileBuktiEdits] = useState<Record<string, string>>({});
+	const [uploadingBukti, setUploadingBukti] = useState(false);
+	const [fileInputKey, setFileInputKey] = useState(Date.now());
+
+	const [isModalTerlambatOpen, setIsModalTerlambatOpen] = useState(false);
+	const [currentSiswaTerlambat, setCurrentSiswaTerlambat] = useState<{ id: string; nama: string } | null>(null);
+	const [inputAlasanTerlambat, setInputAlasanTerlambat] = useState("");
 
 	const [sortColumn, setSortColumn] = useState<"nis" | "nama" | "jk" | "status" | "nilai">("nama");
 	const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -449,9 +459,14 @@ export default function JurnalClient({
 		setLoading(true);
 		const presensiData = Object.entries(presensiEdits).map(([siswaId, status]) => ({
 			siswaId,
-			status,
+			status: status === "D" ? "H" : status,
+			isDispensasi: status === "D",
+			isTerlambat: isTerlambatEdits[siswaId] || false,
+			alasanTerlambat: alasanTerlambatEdits[siswaId],
 			nilaiTugas: nilaiTugasEdits[siswaId],
-			alasanIzin: alasanIzinEdits[siswaId]
+			alasanIzin: alasanIzinEdits[siswaId],
+			alasan: alasanIzinEdits[siswaId],
+			fileBukti: fileBuktiEdits[siswaId],
 		}));
 		const res = await simpanPresensiManualAction(activeJurnal.id, presensiData);
 		setLoading(false);
@@ -541,18 +556,31 @@ export default function JurnalClient({
 		const initialEdits: Record<string, string> = {};
 		const initialNilai: Record<string, number> = {};
 		const initialAlasan: Record<string, string> = {};
+		const initialTerlambat: Record<string, boolean> = {};
+		const initialAlasanTerlambat: Record<string, string> = {};
+		const initialFileBukti: Record<string, string> = {};
 		jurnal.presensi?.forEach((p: any) => {
-			initialEdits[p.siswaId] = p.status;
+			initialEdits[p.siswaId] = p.isDispensasi ? "D" : p.status;
+			initialTerlambat[p.siswaId] = p.isTerlambat || false;
+			if (p.alasanTerlambat) {
+				initialAlasanTerlambat[p.siswaId] = p.alasanTerlambat;
+			}
+			if (p.alasan || p.alasanIzin) {
+				initialAlasan[p.siswaId] = p.alasan || p.alasanIzin;
+			}
+			if (p.fileBukti) {
+				initialFileBukti[p.siswaId] = p.fileBukti;
+			}
 			if (p.nilaiTugas !== null && p.nilaiTugas !== undefined) {
 				initialNilai[p.siswaId] = p.nilaiTugas;
-			}
-			if (p.alasanIzin) {
-				initialAlasan[p.siswaId] = p.alasanIzin;
 			}
 		});
 		setPresensiEdits(initialEdits);
 		setNilaiTugasEdits(initialNilai);
 		setAlasanIzinEdits(initialAlasan);
+		setIsTerlambatEdits(initialTerlambat);
+		setAlasanTerlambatEdits(initialAlasanTerlambat);
+		setFileBuktiEdits(initialFileBukti);
 		setViewMode("presensi");
 	};
 
@@ -691,9 +719,9 @@ export default function JurnalClient({
 				<div className={styles.modalOverlay}>
 					<div className={styles.modalContent}>
 						<div className={styles.modalTitle} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-							<AlertTriangle size={24} color="#f59e0b" /> Alasan Izin
+							<AlertTriangle size={24} color="#f59e0b" /> Alasan Keterangan
 						</div>
-						<div className={styles.modalMessage}>Masukkan alasan izin untuk siswa <strong>{currentSiswaIzin.nama}</strong>:</div>
+						<div className={styles.modalMessage}>Masukkan alasan untuk siswa <strong>{currentSiswaIzin.nama}</strong>:</div>
 						<div style={{ marginBottom: "1.5rem" }}>
 							<textarea
 								className={styles.formTextarea}
@@ -703,6 +731,72 @@ export default function JurnalClient({
 								onChange={(e) => setInputAlasan(e.target.value)}
 							/>
 						</div>
+						{(presensiEdits[currentSiswaIzin.id] === "I" || presensiEdits[currentSiswaIzin.id] === "S" || presensiEdits[currentSiswaIzin.id] === "D") && (
+							<div style={{ marginBottom: "1.5rem" }}>
+								<label className={styles.formLabel}>Upload Surat Bukti (Opsional)</label>
+								<div style={{ position: "relative", overflow: "hidden", display: "inline-block", width: "100%" }}>
+									<label 
+										style={{
+											display: "flex",
+											alignItems: "center",
+											justifyContent: "center",
+											gap: "0.5rem",
+											padding: "0.6rem 1rem",
+											backgroundColor: "#f8fafc",
+											color: "#334155",
+											border: "1px dashed #cbd5e1",
+											borderRadius: "0.5rem",
+											cursor: "pointer",
+											fontWeight: 500,
+											fontSize: "0.875rem",
+											transition: "all 0.2s"
+										}}
+									>
+										<Upload size={16} /> {uploadingBukti ? "Mengunggah..." : "Pilih File Surat Bukti"}
+										<input
+											key={fileInputKey}
+											type="file"
+											accept="image/*,.pdf"
+											style={{ display: "none" }}
+											onChange={async (e) => {
+												if (e.target.files && e.target.files[0]) {
+													const file = e.target.files[0];
+													setUploadingBukti(true);
+													const formData = new FormData();
+													formData.append("file", file);
+													formData.append("kelasName", activeJadwal?.kelas?.nama || "Unknown");
+													formData.append("siswaName", currentSiswaIzin.nama.replace(/[^a-zA-Z0-9]/g, "_"));
+													
+													try {
+														const res = await fetch("/api/upload", {
+															method: "POST",
+															body: formData,
+														});
+														const data = await res.json();
+														if (data.success) {
+															setFileBuktiEdits({ ...fileBuktiEdits, [currentSiswaIzin.id]: data.fileUrl });
+															showToast("Berhasil upload surat bukti!", "success");
+														} else {
+															showToast("Gagal upload surat: " + data.message, "error");
+														}
+													} catch (err) {
+														showToast("Terjadi kesalahan sistem saat upload", "error");
+													} finally {
+														setUploadingBukti(false);
+													}
+												}
+											}}
+											disabled={uploadingBukti}
+										/>
+									</label>
+								</div>
+								{fileBuktiEdits[currentSiswaIzin.id] && !uploadingBukti && (
+									<div style={{ fontSize: "0.8rem", color: "#10b981", marginTop: "0.75rem", display: "flex", alignItems: "center", gap: "0.25rem", padding: "0.5rem", backgroundColor: "#ecfdf5", borderRadius: "0.375rem" }}>
+										<CheckCircle2 size={14} /> File tersimpan: <a href={fileBuktiEdits[currentSiswaIzin.id]} target="_blank" rel="noreferrer" style={{ textDecoration: "underline", fontWeight: 600 }}>Lihat Surat</a>
+									</div>
+								)}
+							</div>
+						)}
 						<div className={styles.modalActions}>
 							<button
 								className={styles.btnOutlineFull}
@@ -720,8 +814,55 @@ export default function JurnalClient({
 								style={{ width: "auto", margin: 0, padding: "0.5rem 1.5rem" }}
 								onClick={() => {
 									setAlasanIzinEdits({ ...alasanIzinEdits, [currentSiswaIzin.id]: inputAlasan });
+									showToast(`Keterangan berhasil disimpan`, "success");
 									setIsModalIzinOpen(false);
 									setCurrentSiswaIzin(null);
+								}}
+							>
+								Simpan Alasan
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* === MODAL TERLAMBAT === */}
+			{isModalTerlambatOpen && currentSiswaTerlambat && (
+				<div className={styles.modalOverlay}>
+					<div className={styles.modalContent}>
+						<div className={styles.modalTitle} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+							<AlertTriangle size={24} color="#ef4444" /> Keterangan Terlambat
+						</div>
+						<div className={styles.modalMessage}>Masukkan alasan keterlambatan untuk siswa <strong>{currentSiswaTerlambat.nama}</strong>:</div>
+						<div style={{ marginBottom: "1.5rem" }}>
+							<textarea
+								className={styles.formTextarea}
+								style={{ minHeight: "80px", width: "100%" }}
+								placeholder="Bangun kesiangan, ban bocor, dll..."
+								value={inputAlasanTerlambat}
+								onChange={(e) => setInputAlasanTerlambat(e.target.value)}
+							/>
+						</div>
+						<div className={styles.modalActions}>
+							<button
+								className={styles.btnOutlineFull}
+								style={{ width: "auto", margin: 0, padding: "0.5rem 1.5rem" }}
+								onClick={() => {
+									setIsTerlambatEdits({ ...isTerlambatEdits, [currentSiswaTerlambat.id]: false });
+									setIsModalTerlambatOpen(false);
+									setCurrentSiswaTerlambat(null);
+								}}
+							>
+								Batal
+							</button>
+							<button
+								className={styles.btnPrimaryFull}
+								style={{ width: "auto", margin: 0, padding: "0.5rem 1.5rem" }}
+								onClick={() => {
+									setAlasanTerlambatEdits({ ...alasanTerlambatEdits, [currentSiswaTerlambat.id]: inputAlasanTerlambat });
+									showToast(`Alasan keterlambatan berhasil disimpan`, "success");
+									setIsModalTerlambatOpen(false);
+									setCurrentSiswaTerlambat(null);
 								}}
 							>
 								Simpan Alasan
@@ -1544,7 +1685,31 @@ export default function JurnalClient({
 													<tr key={siswa.id}>
 														<td>{startIndex + index + 1}</td>
 														<td style={{ fontWeight: 500 }}>{siswa.nis}</td>
-														<td style={{ fontWeight: 600, color: "#0f172a" }}>{siswa.user?.nama || "Nama Siswa"}</td>
+														<td style={{ fontWeight: 600, color: "#0f172a" }}>
+															<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+																{siswa.user?.nama || "Nama Siswa"}
+																<button
+																	style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex" }}
+																	onClick={() => {
+																		const isCurrentlyLate = isTerlambatEdits[siswa.id];
+																		setIsTerlambatEdits({ ...isTerlambatEdits, [siswa.id]: !isCurrentlyLate });
+																		if (!isCurrentlyLate) {
+																			// Turning it ON, open modal
+																			setCurrentSiswaTerlambat({ id: siswa.id, nama: siswa.user?.nama || "Siswa" });
+																			setInputAlasanTerlambat(alasanTerlambatEdits[siswa.id] || "");
+																			setIsModalTerlambatOpen(true);
+																		} else {
+																			// Turning it OFF, clear reason and show toast
+																			setAlasanTerlambatEdits({ ...alasanTerlambatEdits, [siswa.id]: "" });
+																			showToast("Keterlambatan dibatalkan", "success");
+																		}
+																	}}
+																	title={isTerlambatEdits[siswa.id] ? "Siswa ini ditandai terlambat (Klik untuk batalkan)" : "Tandai siswa terlambat"}
+																>
+																	<AlertTriangle size={16} color={isTerlambatEdits[siswa.id] ? "#ef4444" : "#cbd5e1"} />
+																</button>
+															</div>
+														</td>
 														<td>{siswa.jenisKelamin === "Laki-laki" ? "L" : "P"}</td>
 														<td>
 															<span
@@ -1594,9 +1759,10 @@ export default function JurnalClient({
 																onChange={(e) => {
 																	const newStatus = e.target.value;
 																	setPresensiEdits({ ...presensiEdits, [siswa.id]: newStatus });
-																	if (newStatus === "I") {
+																	if (newStatus === "I" || newStatus === "S" || newStatus === "D") {
 																		setCurrentSiswaIzin({ id: siswa.id, nama: siswa.user?.nama || "Siswa" });
 																		setInputAlasan(alasanIzinEdits[siswa.id] || "");
+																		setFileInputKey(Date.now());
 																		setIsModalIzinOpen(true);
 																	}
 																}}
@@ -1605,6 +1771,7 @@ export default function JurnalClient({
 																	Pilih Aksi
 																</option>
 																<option value="H">Hadir</option>
+																<option value="D">Dispensasi</option>
 																<option value="I">Izin</option>
 																<option value="S">Sakit</option>
 																<option value="A">Alpha</option>

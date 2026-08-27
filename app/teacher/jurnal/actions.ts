@@ -56,20 +56,9 @@ export async function buatJurnalAction(data: {
 			},
 		});
 
-		// 2. LOGIKA BARU: Jika memenuhi syarat (Jam 2-9), langsung set semua siswa "Hadir"
-		if (data.isAutoHadir && data.siswaIds && data.siswaIds.length > 0) {
-			const presensiData = data.siswaIds.map((id) => ({
-				jurnalId: jurnal.id,
-				siswaId: id,
-				status: "H",
-				waktuScan: new Date(),
-			}));
-
-			await prisma.presensiSiswa.createMany({
-				data: presensiData,
-				skipDuplicates: true,
-			});
-		}
+		// 2. LOGIKA BARU: Jika memenuhi syarat (Jam 2-9), presensi dibiarkan kosong (Belum Hadir)
+		// sesuai permintaan pengguna karena sudah ada tombol "Massal Hadir Semua"
+		// (Kode auto-insert dihapus)
 
 		revalidatePath("/teacher/jurnal");
 		return { success: true, data: jurnal };
@@ -102,7 +91,7 @@ export async function aktifkanPresensiQR(jurnalId: string) {
 
 export async function simpanPresensiManualAction(
 	jurnalId: string,
-	presensiData: { siswaId: string; status: string; nilaiTugas?: number; alasanIzin?: string }[],
+	presensiData: { siswaId: string; status: string; nilaiTugas?: number; alasanIzin?: string; isDispensasi?: boolean; isTerlambat?: boolean; alasan?: string; alasanTerlambat?: string; fileBukti?: string }[],
 ) {
 	try {
 		for (const data of presensiData) {
@@ -113,7 +102,16 @@ export async function simpanPresensiManualAction(
 			if (existing) {
 				await prisma.presensiSiswa.update({
 					where: { id: existing.id },
-					data: { status: data.status, nilaiTugas: data.nilaiTugas, alasanIzin: data.alasanIzin },
+					data: { 
+						status: data.status as any, 
+						nilaiTugas: data.nilaiTugas, 
+						alasanIzin: data.alasanIzin,
+						isDispensasi: data.isDispensasi ?? false,
+						isTerlambat: data.isTerlambat ?? false,
+						alasanTerlambat: data.alasanTerlambat,
+						alasan: data.alasan,
+						fileBukti: data.fileBukti
+					},
 				});
 			} else {
 				await prisma.presensiSiswa.create({
@@ -124,6 +122,11 @@ export async function simpanPresensiManualAction(
 						waktuScan: new Date(),
 						nilaiTugas: data.nilaiTugas,
 						alasanIzin: data.alasanIzin,
+						isDispensasi: data.isDispensasi ?? false,
+						isTerlambat: data.isTerlambat ?? false,
+						alasanTerlambat: data.alasanTerlambat,
+						alasan: data.alasan,
+						fileBukti: data.fileBukti
 					},
 				});
 			}

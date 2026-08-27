@@ -234,6 +234,11 @@ model PresensiSiswa {
   waktuScan  DateTime?    // Null jika dia absen manual oleh guru (bukan scan QR)
   nilaiTugas Int?         // <-- TAMBAHAN BARU
   alasanIzin String?      // <-- Alasan izin jika status Izin
+  isDispensasi Boolean    @default(false)
+  isTerlambat  Boolean    @default(false)
+  alasanTerlambat String? @db.Text
+  alasan       String?    @db.Text
+  fileBukti    String?
   jurnal     JurnalMengajar @relation(fields: [jurnalId], references: [id], onDelete: Cascade)
   siswa      Siswa          @relation(fields: [siswaId], references: [id], onDelete: Cascade)
 
