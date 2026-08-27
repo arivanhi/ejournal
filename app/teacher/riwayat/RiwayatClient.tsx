@@ -111,11 +111,12 @@ export default function RiwayatClient({
 
 	const [selectedTahunId, setSelectedTahunId] = useState<string>(tahunAjaranList.find((t) => t.isActive)?.id || "");
 	const [activeJadwal, setActiveJadwal] = useState<any>(null);
-	const [activeTab, setActiveTab] = useState<"rekap" | "jurnal" | "analisa" | "tugas">("rekap");
+	const [activeTab, setActiveTab] = useState<"rekap" | "jurnal" | "analisa" | "tugas" | "terlambat">("rekap");
 	const [currentPageRekap, setCurrentPageRekap] = useState(1);
 	const [currentPageJurnal, setCurrentPageJurnal] = useState(1);
 	const [currentPageTugas, setCurrentPageTugas] = useState(1);
 	const itemsPerPage = 15;
+	const LATE_THRESHOLD = 2;
 
 	const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 	const [isDownloading, setIsDownloading] = useState(false);
@@ -601,19 +602,40 @@ export default function RiwayatClient({
 														<thead style={{ display: "table-header-group" }}>
 															<tr style={{ backgroundColor: "#f1f5f9" }}>
 																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%" }}>No.</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "35%" }}>Nama Siswa</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "15%" }}>NIS</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "7%", textAlign: "center" }}>H</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "7%", textAlign: "center" }}>I</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "7%", textAlign: "center" }}>S</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "7%", textAlign: "center" }}>A</th>
-																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "17%", textAlign: "center" }}>% Hadir</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "20%" }}>Nama Siswa</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "10%" }}>NIS</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%", textAlign: "center" }}>H</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%", textAlign: "center" }}>I</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%", textAlign: "center" }}>S</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%", textAlign: "center" }}>A</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "10%", textAlign: "center" }}>% Hadir</th>
+																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "35%" }}>Catatan Alasan</th>
 															</tr>
 														</thead>
 														<tbody>
 															{chunk.map((rs: any, index: number) => {
 																const globalIdx = (chunkIdx * MAX_ROWS) + index + 1;
 																const rekap = getRekapSiswa(rs.siswa.id, jurnalForPdf);
+
+																const catatanList: string[] = [];
+																jurnalForPdf.forEach((j: any) => {
+																	const p = j.presensi?.find((pr: any) => pr.siswaId === rs.siswa.id);
+																	if (p) {
+																		const tgl = new Date(j.tanggal).toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+																		if (p.isDispensasi) {
+																			catatanList.push(`${tgl}: Dispensasi${p.alasan ? ` (${p.alasan})` : ""}`);
+																		} else if (p.status === "I") {
+																			catatanList.push(`${tgl}: Izin${p.alasanIzin ? ` (${p.alasanIzin})` : ""}`);
+																		} else if (p.status === "S") {
+																			catatanList.push(`${tgl}: Sakit${p.alasanIzin ? ` (${p.alasanIzin})` : ""}`);
+																		}
+																		if (p.isTerlambat) {
+																			catatanList.push(`${tgl}: Terlambat${p.alasanTerlambat ? ` (${p.alasanTerlambat})` : ""}`);
+																		}
+																	}
+																});
+																const catatanString = catatanList.length > 0 ? catatanList.join("; ") : "-";
+
 																return (
 																	<tr key={rs.siswa.id}>
 																		<td style={{ border: "1px solid #cbd5e1", padding: "6px", textAlign: "center" }}>{globalIdx}</td>
@@ -626,6 +648,7 @@ export default function RiwayatClient({
 																			{rekap.A}
 																		</td>
 																		<td style={{ border: "1px solid #cbd5e1", padding: "6px", textAlign: "center", fontWeight: "bold" }}>{rekap.persentase}%</td>
+																		<td style={{ border: "1px solid #cbd5e1", padding: "6px", fontSize: "8.5pt" }}>{catatanString}</td>
 																	</tr>
 																);
 															})}
@@ -1185,6 +1208,12 @@ export default function RiwayatClient({
 									>
 										Tugas Harian
 									</button>
+									<button
+										className={`${styles.tabBtn} ${activeTab === "terlambat" ? styles.tabActive : ""}`}
+										onClick={() => setActiveTab("terlambat")}
+									>
+										Siswa Terlambat
+									</button>
 								</div>
 							</div>
 
@@ -1354,6 +1383,82 @@ export default function RiwayatClient({
 											</>
 										);
 									})()}
+								</div>
+							)}
+
+							{/* --- TAB 5: SISWA TERLAMBAT --- */}
+							{activeTab === "terlambat" && (
+								<div style={{ padding: "1.5rem" }}>
+									<div style={{ marginBottom: "1rem", color: "#64748b", fontSize: "0.875rem" }}>
+										Menampilkan data siswa yang terlambat lebih dari <strong>{LATE_THRESHOLD}</strong> kali.
+									</div>
+									<div style={{ overflowX: "auto", width: "100%" }}>
+										<table className={styles.tableStyle}>
+											<thead>
+												<tr>
+													<th style={{ width: "5%" }}>No</th>
+													<th style={{ width: "25%" }}>Nama Siswa</th>
+													<th style={{ width: "15%" }}>NIS</th>
+													<th style={{ width: "15%", textAlign: "center" }}>Jumlah Terlambat</th>
+													<th style={{ width: "40%" }}>Detail (Tanggal & Alasan)</th>
+												</tr>
+											</thead>
+											<tbody>
+												{(() => {
+													const terlambatData: any[] = [];
+													activeJadwal.kelas.riwayatSiswa.forEach((rs: any) => {
+														const details: any[] = [];
+														activeJadwal.jurnal.forEach((j: any) => {
+															const p = j.presensi?.find((pr: any) => pr.siswaId === rs.siswa.id);
+															if (p && p.isTerlambat) {
+																details.push({
+																	tanggal: j.tanggal,
+																	alasan: p.alasanTerlambat || "-"
+																});
+															}
+														});
+														if (details.length > LATE_THRESHOLD) {
+															terlambatData.push({
+																siswa: rs.siswa,
+																count: details.length,
+																details
+															});
+														}
+													});
+
+													terlambatData.sort((a, b) => b.count - a.count); // urut terbanyak
+
+													if (terlambatData.length === 0) {
+														return (
+															<tr>
+																<td colSpan={5} style={{ textAlign: "center", padding: "3rem", color: "#64748b", fontStyle: "italic" }}>
+																	Tidak ada siswa yang terlambat lebih dari {LATE_THRESHOLD} kali.
+																</td>
+															</tr>
+														);
+													}
+
+													return terlambatData.map((td: any, idx: number) => (
+														<tr key={td.siswa.id}>
+															<td style={{ textAlign: "center", fontWeight: 600 }}>{idx + 1}</td>
+															<td style={{ fontWeight: 700, color: "#0f172a" }}>{td.siswa.user?.nama}</td>
+															<td>{td.siswa.nis}</td>
+															<td style={{ textAlign: "center", fontWeight: "bold", color: "#ef4444" }}>{td.count} kali</td>
+															<td>
+																<ul style={{ margin: 0, paddingLeft: "1.2rem", fontSize: "0.85rem", color: "#64748b" }}>
+																	{td.details.map((d: any, i: number) => (
+																		<li key={i}>
+																			<strong>{new Date(d.tanggal).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}:</strong> {d.alasan}
+																		</li>
+																	))}
+																</ul>
+															</td>
+														</tr>
+													));
+												})()}
+											</tbody>
+										</table>
+									</div>
 								</div>
 							)}
 
