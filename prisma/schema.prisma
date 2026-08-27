@@ -59,16 +59,18 @@ model TahunAjaran {
   isActive        Boolean             @default(false)
   isRatingActive  Boolean             @default(false)
   
-  riwayatSiswa    RiwayatKelasSiswa[]
-  jadwalPelajaran JadwalPelajaran[]
-  mataPelajaran   MataPelajaran[]
-  laporanPdca     LaporanPdca[]
-  ratingGuru      RatingGuru[]
+  riwayatSiswa      RiwayatKelasSiswa[]
+  jadwalPelajaran   JadwalPelajaran[]
+  mataPelajaran     MataPelajaran[]
+  laporanPdca       LaporanPdca[]
+  ratingGuru        RatingGuru[]
+  timFasilitatorTka TimFasilitatorTka[]
 }
 
 model Kelas {
   id              String              @id @default(uuid())
   nama            String              @unique // Contoh: "X-A", "XI-MIPA 1"
+  isTka           Boolean             @default(false)
   
   riwayatSiswa    RiwayatKelasSiswa[]
   jadwalPelajaran JadwalPelajaran[]
@@ -79,10 +81,13 @@ model MataPelajaran {
   id              String            @id @default(uuid())
   kode            String            @unique
   nama            String
+  isTka           Boolean           @default(false)
+
   
-  jadwalPelajaran JadwalPelajaran[]
-  tahunAjaran     TahunAjaran[]
-  ratingGuru      RatingGuru[]
+  jadwalPelajaran   JadwalPelajaran[]
+  tahunAjaran       TahunAjaran[]
+  ratingGuru        RatingGuru[]
+  timFasilitatorTka TimFasilitatorTka[]
 }
 
 model PengaturanSekolah {
@@ -131,6 +136,27 @@ model LaporanPdca {
   updatedAt       DateTime @updatedAt
 }
 
+model RekapBulanan {
+  id              String      @id @default(uuid())
+  tahunAjaranId   String
+  bulan           Int
+  jenisAktivitas  String
+  jumlah          Int
+}
+
+model TimFasilitatorTka {
+  id            String @id @default(uuid())
+  mapelId       String
+  guruId        String
+  tahunAjaranId String
+
+  mapel       MataPelajaran @relation(fields: [mapelId], references: [id], onDelete: Cascade)
+  guru        Guru          @relation(fields: [guruId], references: [id], onDelete: Cascade)
+  tahunAjaran TahunAjaran   @relation(fields: [tahunAjaranId], references: [id], onDelete: Cascade)
+
+  @@unique([mapelId, guruId, tahunAjaranId])
+}
+
 model Guru {
   id              String            @id @default(uuid())
   npp             String            @unique
@@ -139,9 +165,10 @@ model Guru {
   userId          String            @unique
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  jadwalPelajaran JadwalPelajaran[]
-  waliKelasDi     KelasWali[]
-  ratingGuru      RatingGuru[]
+  jadwalPelajaran   JadwalPelajaran[]
+  waliKelasDi       KelasWali[]
+  ratingGuru        RatingGuru[]
+  timFasilitatorTka TimFasilitatorTka[]
 }
 
 model KelasWali {
@@ -174,13 +201,14 @@ model RiwayatKelasSiswa {
   siswaId       String
   kelasId       String
   tahunAjaranId String
+  isTka         Boolean     @default(false)
   
   siswa         Siswa       @relation(fields: [siswaId], references: [id], onDelete: Cascade)
   kelas         Kelas       @relation(fields: [kelasId], references: [id], onDelete: Cascade)
   tahunAjaran   TahunAjaran @relation(fields: [tahunAjaranId], references: [id], onDelete: Cascade)
 
-  // Menjamin 1 siswa hanya berada di 1 kelas pada tahun ajaran yang sama
-  @@unique([siswaId, tahunAjaranId]) 
+  // Menjamin 1 siswa hanya berada di 1 kelas reguler dan 1 rombel TKA pada tahun ajaran yang sama
+  @@unique([siswaId, tahunAjaranId, isTka]) 
 }
 
 // =======================

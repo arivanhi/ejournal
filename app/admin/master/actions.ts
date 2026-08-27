@@ -85,6 +85,7 @@ export async function tambahSiswaAction(formData: {
 					siswaId: newSiswa.id,
 					kelasId: kelas.id,
 					tahunAjaranId: tahunAjaranAktif.id,
+					isTka: false,
 				},
 			});
 		});
@@ -126,7 +127,7 @@ export async function editSiswaAction(
 
 			if (tahunAjaranAktif) {
 				const riwayatExist = await tx.riwayatKelasSiswa.findFirst({
-					where: { siswaId: id, tahunAjaranId: tahunAjaranAktif.id },
+					where: { siswaId: id, tahunAjaranId: tahunAjaranAktif.id, isTka: false },
 				});
 
 				if (riwayatExist) {
@@ -136,7 +137,7 @@ export async function editSiswaAction(
 					});
 				} else {
 					await tx.riwayatKelasSiswa.create({
-						data: { siswaId: id, kelasId: kelas.id, tahunAjaranId: tahunAjaranAktif.id },
+						data: { siswaId: id, kelasId: kelas.id, tahunAjaranId: tahunAjaranAktif.id, isTka: false },
 					});
 				}
 			}
@@ -331,7 +332,7 @@ export async function assignKelasMassalAction(formData: FormData) {
 				}
 
 				const riwayatExist = await tx.riwayatKelasSiswa.findFirst({
-					where: { siswaId: siswa.id, tahunAjaranId: tahunAjaranAktif.id },
+					where: { siswaId: siswa.id, tahunAjaranId: tahunAjaranAktif.id, isTka: false },
 				});
 
 				if (riwayatExist) {
@@ -341,7 +342,12 @@ export async function assignKelasMassalAction(formData: FormData) {
 					});
 				} else {
 					await tx.riwayatKelasSiswa.create({
-						data: { siswaId: siswa.id, kelasId: kelas.id, tahunAjaranId: tahunAjaranAktif.id },
+						data: {
+							siswaId: siswa.id,
+							kelasId: kelas.id,
+							tahunAjaranId: tahunAjaranAktif.id,
+							isTka: false,
+						},
 					});
 				}
 			});

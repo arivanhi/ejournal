@@ -1,0 +1,230 @@
+.pageContainer {
+	width: 100%;
+	max-width: 1440px;
+	margin: 0 auto;
+	padding: 2rem;
+	display: flex;
+	flex-direction: column;
+	gap: 2rem;
+}
+
+.pageTitle {
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: #111827;
+	margin-bottom: 0.25rem;
+}
+
+.pageSubtitle {
+	font-size: 0.875rem;
+	color: #6b7280;
+}
+
+.cardsGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: 1.5rem;
+}
+
+/* === CARD STYLE === */
+.card {
+	background-color: #ffffff;
+	border: 1px solid #e5e7eb;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	overflow: hidden;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.cardActive {
+	border: 2px solid #e5e7eb;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.cardDashed {
+	border: 2px dashed #d1d5db;
+	background-color: #f9fafb;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.cardDashed:hover {
+	border-color: #9ca3af;
+	background-color: #f3f4f6;
+}
+
+/* === RIBBON AKTIF === */
+.ribbon {
+	position: absolute;
+	top: 1rem;
+	right: -2rem;
+	background-color: #fbbf24;
+	color: #713f12;
+	font-size: 0.7rem;
+	font-weight: 700;
+	padding: 0.25rem 2.5rem;
+	transform: rotate(45deg);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* === HEADER CARD === */
+.cardHeader {
+	display: flex;
+	align-items: flex-start;
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+}
+
+.iconBox {
+	background-color: #1e3a8a;
+	color: white;
+	padding: 0.75rem;
+	border-radius: 0.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.iconBoxArchive {
+	background-color: #e5e7eb;
+	color: #6b7280;
+}
+
+.periodLabel {
+	font-size: 0.7rem;
+	font-weight: 700;
+	color: #6b7280;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin-bottom: 0.25rem;
+}
+
+.periodTitle {
+	font-size: 1.125rem;
+	font-weight: 700;
+	color: #111827;
+}
+
+/* === BUTTONS DALAM CARD === */
+.btnPrimaryAction {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background-color: #0f172a;
+	color: white;
+	padding: 1rem;
+	border-radius: 0.5rem;
+	text-decoration: none;
+	font-weight: 600;
+	font-size: 0.875rem;
+	margin-bottom: 0.75rem;
+	transition: background-color 0.2s;
+}
+
+.btnPrimaryAction:hover {
+	background-color: #1e293b;
+}
+
+.btnSecondaryAction {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background-color: white;
+	border: 1px solid #e5e7eb;
+	color: #374151;
+	padding: 1rem;
+	border-radius: 0.5rem;
+	text-decoration: none;
+	font-weight: 600;
+	font-size: 0.875rem;
+	margin-bottom: 0.75rem;
+	transition: background-color 0.2s;
+}
+
+.btnSecondaryAction:hover {
+	background-color: #f9fafb;
+}
+
+.btnDisabledAction {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background-color: transparent;
+	border: 1px solid #e5e7eb;
+	color: #9ca3af;
+	padding: 1rem;
+	border-radius: 0.5rem;
+	font-weight: 600;
+	font-size: 0.875rem;
+	margin-bottom: 0.75rem;
+	cursor: not-allowed;
+}
+
+.cardFooter {
+	margin-top: auto;
+	font-size: 0.75rem;
+	color: #9ca3af;
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+/* === BANNER PANDUAN === */
+.infoBanner {
+	background-color: #eff6ff;
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	display: flex;
+	align-items: flex-start;
+	gap: 1rem;
+	justify-content: space-between;
+}
+
+.infoContent {
+	display: flex;
+	gap: 1rem;
+}
+
+.infoIcon {
+	background-color: white;
+	color: #1e3a8a;
+	padding: 0.5rem;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.infoTitle {
+	font-weight: 700;
+	color: #1e3a8a;
+	font-size: 0.95rem;
+	margin-bottom: 0.25rem;
+}
+
+.infoDesc {
+	color: #475569;
+	font-size: 0.875rem;
+	line-height: 1.5;
+	max-width: 800px;
+}
+
+.btnBanner {
+	background-color: #1e3a8a;
+	color: white;
+	padding: 0.5rem 1rem;
+	border-radius: 0.5rem;
+	font-size: 0.875rem;
+	font-weight: 600;
+	text-decoration: none;
+	border: none;
+	cursor: pointer;
+	white-space: nowrap;
+}
