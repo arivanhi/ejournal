@@ -213,12 +213,72 @@ export default function JurnalTkaClient({
 
 	// --- LOGIKA TKA ---
 	const groupedJadwal = useMemo(() => {
-		return [...(jadwalTka || [])].map(j => ({
-			...j,
-			displaySesi: "Jadwal Fleksibel",
-			waktuRentang: "-",
-			jams: []
-		}));
+		const grouped: any[] = [];
+
+		const sortedJadwal = [...(jadwalTka || [])].sort((a, b) => {
+			if (a.hari !== b.hari) return a.hari - b.hari;
+			if (a.kelas.nama !== b.kelas.nama) return a.kelas.nama.localeCompare(b.kelas.nama);
+			if (a.mapel.nama !== b.mapel.nama) return a.mapel.nama.localeCompare(b.mapel.nama);
+
+			const jamA = parseInt(a.jam || a.waktuMulai);
+			const jamB = parseInt(b.jam || b.waktuMulai);
+			return (isNaN(jamA) ? 0 : jamA) - (isNaN(jamB) ? 0 : jamB);
+		});
+
+		sortedJadwal.forEach((curr) => {
+			const last = grouped[grouped.length - 1];
+			const jamValue = curr.jam || curr.waktuMulai;
+			const jamParsed = parseInt(jamValue);
+
+			if (
+				last &&
+				last.hari === curr.hari &&
+				last.kelas.id === curr.kelas.id &&
+				last.mapel.id === curr.mapel.id &&
+				!isNaN(jamParsed) && curr.hari !== 0
+			) {
+				const lastJams = last.jams;
+				if (lastJams && lastJams.length > 0) {
+					const lastJamVal = lastJams[lastJams.length - 1];
+					if (jamParsed === lastJamVal + 1) {
+						last.jams.push(jamParsed);
+						last.displaySesi =
+							last.jams.length > 1 ? `Jam ${last.jams[0]}-${last.jams[last.jams.length - 1]}` : `Jam ${last.jams[0]}`;
+						last.waktuRentang = getWaktuString(last.jams);
+
+						const mergedJurnals = [...(last.jurnal || []), ...(curr.jurnal || [])];
+						const uniqueJurnalsMap = new Map();
+						mergedJurnals.forEach((j) => {
+							uniqueJurnalsMap.set(j.id, j);
+						});
+						last.jurnal = Array.from(uniqueJurnalsMap.values()).sort(
+							(a: any, b: any) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
+						);
+						return;
+					}
+				}
+			}
+
+			// Add as new entry
+			let displaySesi = "Jadwal Fleksibel";
+			let waktuRentang = "-";
+			let jams: number[] = [];
+
+			if (curr.hari !== 0 && !isNaN(jamParsed)) {
+				displaySesi = `Jam ${jamParsed}`;
+				waktuRentang = getWaktuString([jamParsed]);
+				jams = [jamParsed];
+			}
+
+			grouped.push({
+				...curr,
+				displaySesi,
+				waktuRentang,
+				jams,
+			});
+		});
+
+		return grouped;
 	}, [jadwalTka]);
 
 	const kelasTabs = useMemo(() => {
@@ -964,7 +1024,7 @@ export default function JurnalTkaClient({
 													</span>
 												</div>
 												<div className={styles.infoRow}>
-													<MapPin size={14} /> {jadwal.ruang || "-"}
+													<MapPin size={14} /> {jadwal.kelas?.tempat || jadwal.ruang || "-"}
 												</div>
 											</div>
 
@@ -993,14 +1053,18 @@ export default function JurnalTkaClient({
 								<h1 className={styles.pageTitle} style={{ fontSize: "1.5rem" }}>
 									{activeJadwal.mapel.nama} - {activeJadwal.kelas.nama}
 								</h1>
-								<p className={styles.pageSubtitle}>
-									<Clock
-										size={14}
-										style={{ display: "inline", marginRight: "0.25rem", verticalAlign: "text-bottom" }}
-									/>
-									Jadwal Reguler:{" "}
-									{["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][activeJadwal.hari]} (
-									{activeJadwal.displaySesi})
+								<p className={styles.pageSubtitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+									<span>
+										<Clock size={14} style={{ display: "inline", marginRight: "0.25rem", verticalAlign: "text-bottom" }} />
+										Jadwal:{" "}
+										{["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][activeJadwal.hari]} (
+										{activeJadwal.displaySesi})
+									</span>
+									<span style={{ color: "#cbd5e1" }}>|</span>
+									<span>
+										<MapPin size={14} style={{ display: "inline", marginRight: "0.25rem", verticalAlign: "text-bottom" }} />
+										Tempat: {activeJadwal.kelas?.tempat || activeJadwal.ruang || "-"}
+									</span>
 								</p>
 							</div>
 						</div>

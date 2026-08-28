@@ -24,21 +24,22 @@ export async function buatJurnalTkaAction(data: {
 		// Cari informasi kelas, mapel, dan tahun ajaran dari jadwal ini
 		const jadwalSumber = await prisma.jadwalPelajaran.findUnique({
 			where: { id: data.jadwalId },
-			select: { kelasId: true, mapelId: true, tahunAjaranId: true }
+			select: { kelasId: true, mapelId: true, tahunAjaranId: true, hari: true, waktuMulai: true }
 		});
 
 		if (!jadwalSumber) {
 			return { success: false, message: "Jadwal TKA tidak ditemukan." };
 		}
 
-		// Cari semua jadwal TKA yang memiliki kelas, mapel, dan tahun ajaran yang sama
-		// Ini adalah tim guru (Team Teaching) yang mengampu mapel tersebut di rombel tersebut
+		// Cari semua jadwal TKA yang memiliki kelas, mapel, tahun ajaran, hari, dan waktuMulai yang sama
+		// Ini adalah tim guru (Team Teaching) yang mengampu mapel tersebut di rombel tersebut pada sesi ini
 		const jadwalTim = await prisma.jadwalPelajaran.findMany({
 			where: {
 				kelasId: jadwalSumber.kelasId,
 				mapelId: jadwalSumber.mapelId,
 				tahunAjaranId: jadwalSumber.tahunAjaranId,
-				hari: 0
+				hari: jadwalSumber.hari,
+				waktuMulai: jadwalSumber.waktuMulai
 			},
 			select: { id: true }
 		});
@@ -100,7 +101,8 @@ export async function simpanPresensiTkaAction(
 				kelasId: jurnalAwal.jadwal.kelasId,
 				mapelId: jurnalAwal.jadwal.mapelId,
 				tahunAjaranId: jurnalAwal.jadwal.tahunAjaranId,
-				hari: 0
+				hari: jurnalAwal.jadwal.hari,
+				waktuMulai: jurnalAwal.jadwal.waktuMulai
 			},
 			select: { id: true }
 		});
@@ -196,7 +198,8 @@ export async function updateJurnalTkaAction(
 				kelasId: jurnalAwal.jadwal.kelasId,
 				mapelId: jurnalAwal.jadwal.mapelId,
 				tahunAjaranId: jurnalAwal.jadwal.tahunAjaranId,
-				hari: 0
+				hari: jurnalAwal.jadwal.hari,
+				waktuMulai: jurnalAwal.jadwal.waktuMulai
 			},
 			select: { id: true }
 		});

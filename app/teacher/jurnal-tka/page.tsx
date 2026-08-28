@@ -29,7 +29,7 @@ export default async function JurnalTkaPage() {
 				where: {
 					guruId: currentUser.guru.id,
 					tahunAjaranId: tahunAjaranAktif.id,
-					hari: 0, // KUNCI UTAMA: Jadwal TKA memiliki hari = 0
+					mapel: { isTka: true }
 				},
 				include: {
 					mapel: true,
