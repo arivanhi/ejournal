@@ -133,7 +133,7 @@ export default function RiwayatClient({
 	const [selectedJadwalIds, setSelectedJadwalIds] = useState<string[]>([]);
 	const [massStartDate, setMassStartDate] = useState<string>("");
 	const [massEndDate, setMassEndDate] = useState<string>("");
-	const [modalKelasFilter, setModalKelasFilter] = useState("Semua Kelas"); // Tambahan state khusus Modal
+	const [modalKelasFilter, setModalKelasFilter] = useState<string[]>([]); // Tambahan state khusus Modal
 
 	const kelasTabs = useMemo(() => {
 		if (!filteredJadwal) return ["Semua Kelas"];
@@ -170,8 +170,10 @@ export default function RiwayatClient({
 	// Filter Jadwal khusus untuk Modal (Mengikuti Pilihan Dropdown Modal) & Digabung
 	const modalFilteredJadwal = useMemo(() => {
 		let filtered = filteredJadwal;
-		if (modalKelasFilter !== "Semua Kelas") {
-			filtered = filteredJadwal.filter((j) => j.kelas?.nama === modalKelasFilter);
+		if (modalKelasFilter.length > 0) {
+			filtered = filteredJadwal.filter((j) => modalKelasFilter.includes(j.kelas?.nama));
+		} else {
+			filtered = [];
 		}
 
 		const groups: Record<string, any> = {};
@@ -393,7 +395,7 @@ export default function RiwayatClient({
 
 				const opt = {
 					margin: 0,
-					filename: `Ekspor_Massal_Jurnal_${modalKelasFilter.replace(/ /g, '_')}.pdf`,
+					filename: `Ekspor_Massal_Jurnal_${modalKelasFilter.length > 2 ? 'Beberapa_Kelas' : modalKelasFilter.join('_').replace(/ /g, '_')}.pdf`,
 					image: { type: "jpeg", quality: 1 },
 					html2canvas: { scale: 2, useCORS: true },
 					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
@@ -948,24 +950,53 @@ export default function RiwayatClient({
 								</div>
 							</div>
 
-							{/* PERBAIKAN: Dropdown untuk Memilih Kelas */}
+							{/* Filter Kelas Berupa Checkbox */}
 							<div style={{ marginBottom: "1.5rem" }}>
-								<label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "#0f172a", marginBottom: "0.5rem" }}>
-									Filter Berdasarkan Kelas:
-								</label>
-								<select
-									className={styles.filterSelect}
-									style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", border: "1px solid #cbd5e1" }}
-									value={modalKelasFilter}
-									onChange={(e) => {
-										setModalKelasFilter(e.target.value);
-										setSelectedJadwalIds([]); // Reset Checklist jika kelas berubah
-									}}
-								>
-									{kelasTabs.map(tab => (
-										<option key={tab} value={tab}>{tab}</option>
+								<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+									<label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "#0f172a" }}>
+										Filter Berdasarkan Kelas:
+									</label>
+									{activeTabKelas === "Semua Kelas" && (
+										<label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", color: "#0a2540" }}>
+											<input
+												type="checkbox"
+												checked={
+													modalKelasFilter.length > 0 &&
+													modalKelasFilter.length === kelasTabs.filter(t => t !== "Semua Kelas").length
+												}
+												onChange={(e) => {
+													if (e.target.checked) {
+														setModalKelasFilter(kelasTabs.filter(t => t !== "Semua Kelas"));
+													} else {
+														setModalKelasFilter([]);
+													}
+													setSelectedJadwalIds([]);
+												}}
+											/>
+											Pilih Semua Kelas
+										</label>
+									)}
+								</div>
+								
+								<div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+									{(activeTabKelas === "Semua Kelas" ? kelasTabs.filter(t => t !== "Semua Kelas") : [activeTabKelas]).map(tab => (
+										<label key={tab} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", backgroundColor: "white", borderRadius: "0.375rem", border: "1px solid #e2e8f0", cursor: "pointer", fontSize: "0.875rem" }}>
+											<input
+												type="checkbox"
+												checked={modalKelasFilter.includes(tab)}
+												onChange={(e) => {
+													if (e.target.checked) {
+														setModalKelasFilter(prev => [...prev, tab]);
+													} else {
+														setModalKelasFilter(prev => prev.filter(t => t !== tab));
+													}
+													setSelectedJadwalIds([]); // Reset Checklist Mapel
+												}}
+											/>
+											{tab}
+										</label>
 									))}
-								</select>
+								</div>
 							</div>
 
 							<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
@@ -1003,8 +1034,8 @@ export default function RiwayatClient({
 													{j.mapel.nama} <span style={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 400 }}>({j.hariList.map((h: string) => ({ "1": "Senin", "2": "Selasa", "3": "Rabu", "4": "Kamis", "5": "Jumat", "6": "Sabtu", "7": "Minggu" }[String(h)] || h)).join(", ")})</span>
 												</div>
 
-												{/* Hanya Tampilkan Nama Kelas Jika Sedang di Tab 'Semua Kelas' */}
-												{modalKelasFilter === "Semua Kelas" && (
+												{/* Tampilkan Nama Kelas Jika Ada Kelas Terpilih */}
+												{modalKelasFilter.length > 0 && (
 													<div style={{ fontSize: "0.8rem", color: "#64748b" }}>Kelas: {j.kelas.nama}</div>
 												)}
 											</div>
@@ -1070,7 +1101,7 @@ export default function RiwayatClient({
 									style={{ borderColor: "#10b981", color: "#10b981" }}
 									onClick={() => {
 										// Inisialisasi Modal Massal
-										setModalKelasFilter(activeTabKelas);
+										setModalKelasFilter(activeTabKelas === "Semua Kelas" ? kelasTabs.filter(t => t !== "Semua Kelas") : [activeTabKelas]);
 										setSelectedJadwalIds([]);
 										setIsMassPdfModalOpen(true);
 									}}
