@@ -30,6 +30,7 @@ export default async function JurnalPage() {
 					guruId: currentUser.guru.id,
 					tahunAjaranId: tahunAjaranAktif.id,
 					hari: { not: 0 },
+					mapel: { isTka: false }
 				},
 				include: {
 					mapel: true,

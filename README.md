@@ -60,6 +60,20 @@ docker compose up -d --build
 
 ## 📝 Changelog (Pembaruan Terkini)
 
+### v1.5.0 - Manajemen TKA & Presensi Dispensasi
+- **Manajemen TKA (Tugas Karya Akhir):**
+  - **Pengaturan Tempat Kelas:** Admin kini dapat menetapkan "Tempat/Ruangan" spesifik (misal: Ruang Multimedia) pada Rombel TKA di halaman manajemen TKA.
+  - **Pengaturan Jadwal Spesifik Mapel TKA:** Admin dapat mengatur jadwal secara rinci (Hari dan Jam Ke-) untuk setiap Mata Pelajaran TKA menggunakan antarmuka kalender *tabbed* (Senin-Jumat). Mendukung pembuatan jadwal beruntun maupun acak.
+  - **Sinkronisasi Jurnal Guru TKA:**
+    - Perubahan jadwal akan otomatis ditarik ke aplikasi guru.
+    - Jam beruntun pada hari yang sama akan otomatis digabungkan (*grouping*, misal: "Jam 1-2") layaknya Jurnal Reguler.
+    - Indikator lokasi/tempat kelas TKA (ikon 📍) kini ditampilkan secara jelas di *Card* mata pelajaran dan *Header* detail jurnal.
+    - Sinkronisasi lintas guru dalam Tim Fasilitator TKA (*Team Teaching*) dioptimalkan. Pembuatan jurnal atau pengisian presensi oleh satu guru akan otomatis mendeteksi dan mengaplikasikannya ke seluruh guru di jadwal (hari & jam) yang sama.
+- **Presensi Status Dispensasi (D):**
+  - Menambahkan opsi status kehadiran **Dispensasi (D)** pada pengaturan presensi manual di akun Guru.
+  - Siswa dengan status Dispensasi akan diperlakukan seakan-akan **Hadir** (dalam perhitungan jam alfa/akumulasi absensi).
+  - Terdapat tombol dan *Badge* khusus berwarna *Teal/Cyan* untuk penanda status Dispensasi di *interface* presensi guru.
+
 ### v1.4.0 - Ekspor Laporan Massal & Manajemen Rating Guru
 - **Ekspor Laporan Massal (Akun Guru):**
   - Menambahkan tombol "Ekspor PDF" di halaman Riwayat Jurnal.
