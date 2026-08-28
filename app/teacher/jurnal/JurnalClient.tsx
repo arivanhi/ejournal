@@ -384,7 +384,7 @@ export default function JurnalClient({
 		setModal(null);
 		if (res.success) {
 			if (isAutoHadir) {
-				showToast("Jurnal berhasil dibuat & Presensi siswa otomatis diisi HADIR!", "success");
+				showToast("Jurnal berhasil dibuat", "success");
 			} else {
 				showToast("Jurnal berhasil dibuat! (Silakan isi presensi secara manual)", "success");
 			}

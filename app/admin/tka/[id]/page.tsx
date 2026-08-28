@@ -32,7 +32,7 @@ export default async function TkaDetailPage({ params }: { params: Promise<{ id: 
 				include: { siswa: { include: { user: true } } },
 			},
 			jadwalPelajaran: {
-				where: { tahunAjaranId: id, hari: 0, mapel: { isTka: true } },
+				where: { tahunAjaranId: id, mapel: { isTka: true } },
 				include: { 
 					guru: { include: { user: true } },
 					mapel: true

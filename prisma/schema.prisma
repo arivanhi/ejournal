@@ -71,6 +71,7 @@ model Kelas {
   id              String              @id @default(uuid())
   nama            String              @unique // Contoh: "X-A", "XI-MIPA 1"
   isTka           Boolean             @default(false)
+  tempat          String?
   
   riwayatSiswa    RiwayatKelasSiswa[]
   jadwalPelajaran JadwalPelajaran[]

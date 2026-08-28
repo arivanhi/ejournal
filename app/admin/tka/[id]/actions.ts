@@ -98,6 +98,19 @@ export async function buatRombelAction(nama: string, tahunAjaranId: string) {
 	}
 }
 
+export async function updateTempatRombelAction(kelasId: string, tempat: string, tahunAjaranId: string) {
+	try {
+		await prisma.kelas.update({
+			where: { id: kelasId },
+			data: { tempat },
+		});
+		revalidatePath(`/admin/tka/${tahunAjaranId}`);
+		return { success: true, message: "Tempat kelas berhasil diperbarui." };
+	} catch (e: any) {
+		return { success: false, message: "Gagal memperbarui tempat kelas." };
+	}
+}
+
 export async function hapusRombelAction(kelasId: string, tahunAjaranId: string) {
 	try {
 		await prisma.kelas.delete({ where: { id: kelasId } });
@@ -217,16 +230,17 @@ export async function setTimFasilitatorMapelAction(
 export async function setMapelRombelAction(
 	kelasId: string,
 	mapelIds: string[],
-	tahunAjaranId: string
+	tahunAjaranId: string,
+	mapelSchedules: { mapelId: string, schedules: { hari: number, jam: string }[] }[] = []
 ) {
 	try {
+		console.log("==> mapelSchedules received: ", JSON.stringify(mapelSchedules, null, 2));
 		await prisma.$transaction(async (tx) => {
 			// Hapus semua mapel TKA di rombel ini sebelumnya
 			await tx.jadwalPelajaran.deleteMany({
 				where: {
 					kelasId,
 					tahunAjaranId,
-					hari: 0,
 					mapel: { isTka: true }
 				}
 			});
@@ -240,25 +254,54 @@ export async function setMapelRombelAction(
 					}
 				});
 
+				const missingTimMapelIds = mapelIds.filter(id => !timTka.some(t => t.mapelId === id));
+				if (missingTimMapelIds.length > 0) {
+					throw new Error("Gagal: Ada Mapel yang dipilih namun belum memiliki Tim Fasilitator. Harap atur Tim Guru di Tab 3 (Tim Fasilitator) terlebih dahulu!");
+				}
+
 				// Buatkan jadwal baru untuk rombel ini
 				if (timTka.length > 0) {
-					const jadwalBaru = timTka.map(tim => ({
-						kelasId,
-						mapelId: tim.mapelId,
-						tahunAjaranId,
-						guruId: tim.guruId,
-						hari: 0,
-						waktuMulai: "00:00",
-						waktuSelesai: "00:00",
-						ruang: "-",
-					}));
+					const jadwalBaru: any[] = [];
+					timTka.forEach(tim => {
+						const specificSchedules = mapelSchedules.find(m => m.mapelId === tim.mapelId)?.schedules || [];
+						
+						if (specificSchedules.length > 0) {
+							// Jika ada jadwal spesifik, buatkan entry untuk tiap hari/jam
+							specificSchedules.forEach(sched => {
+								jadwalBaru.push({
+									kelasId,
+									mapelId: tim.mapelId,
+									tahunAjaranId,
+									guruId: tim.guruId,
+									hari: sched.hari,
+									waktuMulai: sched.jam,
+									waktuSelesai: sched.jam,
+									ruang: "-",
+								});
+							});
+						} else {
+							// Jika tidak diatur, pakai fleksibel (hari = 0)
+							jadwalBaru.push({
+								kelasId,
+								mapelId: tim.mapelId,
+								tahunAjaranId,
+								guruId: tim.guruId,
+								hari: 0,
+								waktuMulai: "00:00",
+								waktuSelesai: "00:00",
+								ruang: "-",
+							});
+						}
+					});
 					await tx.jadwalPelajaran.createMany({ data: jadwalBaru });
 				}
 			}
 		});
+
 		revalidatePath(`/admin/tka/${tahunAjaranId}`);
-		return { success: true, message: "Berhasil mengatur Jadwal Mata Pelajaran untuk Rombel ini." };
+		return { success: true, message: "Mapel Pilihan TKA berhasil dijadwalkan untuk rombel ini." };
 	} catch (e: any) {
-		return { success: false, message: e.message };
+		console.error(e);
+		return { success: false, message: e.message || "Gagal menyimpan jadwal Mapel." };
 	}
 }

@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, Search, Trash2, Edit2, Users, BookOpen, UserPlus, CheckSquare, Square, CheckCircle2, ArrowLeft, UploadCloud, X } from "lucide-react";
+import { Plus, Search, Trash2, Edit2, Users, BookOpen, UserPlus, CheckSquare, Square, CheckCircle2, ArrowLeft, UploadCloud, X, MapPin } from "lucide-react";
 import * as XLSX from "xlsx";
 import styles from "../../master/adminMaster.module.css";
 import { 
 	buatMapelTkaAction, editMapelTkaAction, hapusMapelTkaAction, importMapelTkaMassalAction,
-	buatRombelAction, hapusRombelAction, updateSiswaRombelAction,
+	buatRombelAction, hapusRombelAction, updateSiswaRombelAction, updateTempatRombelAction,
 	setTimFasilitatorMapelAction, setMapelRombelAction
 } from "./actions";
 
@@ -110,22 +110,27 @@ export default function TkaClient({ tahunAjaran, mapelTkaList, guruList, rombelL
 	// STATE: ROMBEL
 	// ========================
 	const [isRombelModalOpen, setIsRombelModalOpen] = useState(false);
-	const [newRombelName, setNewRombelName] = useState("");
+	const [rombelNama, setRombelNama] = useState("");
 	
 	const [isSiswaModalOpen, setIsSiswaModalOpen] = useState(false);
-	const [selectedRombel, setSelectedRombel] = useState<any>(null);
+	const [activeRombel, setActiveRombel] = useState<any>(null);
+	const [siswaSearch, setSiswaSearch] = useState("");
 	const [selectedSiswaIds, setSelectedSiswaIds] = useState<string[]>([]);
+	
+	const [isTempatModalOpen, setIsTempatModalOpen] = useState(false);
+	const [activeRombelForTempat, setActiveRombelForTempat] = useState<any>(null);
+	const [inputTempat, setInputTempat] = useState("");
 	const [searchSiswa, setSearchSiswa] = useState("");
 	const [filterKelasSiswa, setFilterKelasSiswa] = useState("");
 	const listKelasUnik = Array.from(new Set(siswaReguler.map((s) => s.kelasAsal))).sort();
 
 	const handleBuatRombel = async () => {
-		if (!newRombelName) return;
+		if (!rombelNama) return;
 		setLoading(true);
-		const res = await buatRombelAction(newRombelName, tahunAjaran.id);
+		const res = await buatRombelAction(rombelNama, tahunAjaran.id);
 		if (res.success) {
 			setIsRombelModalOpen(false);
-			setNewRombelName("");
+			setRombelNama("");
 		} else alert(res.message);
 		setLoading(false);
 	};
@@ -139,41 +144,64 @@ export default function TkaClient({ tahunAjaran, mapelTkaList, guruList, rombelL
 	};
 
 	const openSiswaModal = (rombel: any) => {
-		setSelectedRombel(rombel);
+		setActiveRombel(rombel);
 		setSelectedSiswaIds(rombel.riwayatSiswa.map((r: any) => r.siswaId));
 		setIsSiswaModalOpen(true);
 	};
 
-	const handleSaveSiswa = async () => {
-		if (!selectedRombel) return;
+	const handleSimpanSiswaRombel = async () => {
+		if (!activeRombel) return;
 		setLoading(true);
-		const res = await updateSiswaRombelAction(selectedRombel.id, selectedSiswaIds, tahunAjaran.id);
-		if (res.success) setIsSiswaModalOpen(false);
-		else alert(res.message);
+		const res = await updateSiswaRombelAction(activeRombel.id, selectedSiswaIds, tahunAjaran.id);
+		if (res.success) {
+			alert(res.message);
+			setIsSiswaModalOpen(false);
+		} else {
+			alert(res.message);
+		}
+		setLoading(false);
+	};
+
+	const openTempatModal = (rombel: any) => {
+		setActiveRombelForTempat(rombel);
+		setInputTempat(rombel.tempat || "");
+		setIsTempatModalOpen(true);
+	};
+
+	const handleSimpanTempatRombel = async () => {
+		if (!activeRombelForTempat) return;
+		setLoading(true);
+		const res = await updateTempatRombelAction(activeRombelForTempat.id, inputTempat, tahunAjaran.id);
+		if (res.success) {
+			alert(res.message);
+			setIsTempatModalOpen(false);
+		} else {
+			alert(res.message);
+		}
 		setLoading(false);
 	};
 
 	// ========================
 	// STATE: PENUGASAN MULTI-GURU
 	// ========================
-	const [isTugasModalOpen, setIsTugasModalOpen] = useState(false);
-	const [selectedMapelId, setSelectedMapelId] = useState("");
+	const [isTimModalOpen, setIsTimModalOpen] = useState(false);
+	const [activeMapelForTim, setActiveMapelForTim] = useState<any>(null);
 	const [selectedGuruIds, setSelectedGuruIds] = useState<string[]>([]);
 
 	const openTugasModal = (mapel: any) => {
-		setSelectedMapelId(mapel.id);
+		setActiveMapelForTim(mapel);
 		const existingGurus = timFasilitatorList
 			.filter((t: any) => t.mapelId === mapel.id)
 			.map((t: any) => t.guruId);
 		setSelectedGuruIds(existingGurus);
-		setIsTugasModalOpen(true);
+		setIsTimModalOpen(true);
 	};
 
 	const handleSavePenugasan = async () => {
-		if (!selectedMapelId) return;
+		if (!activeMapelForTim) return;
 		setLoading(true);
-		const res = await setTimFasilitatorMapelAction(selectedMapelId, selectedGuruIds, tahunAjaran.id);
-		if (res.success) setIsTugasModalOpen(false);
+		const res = await setTimFasilitatorMapelAction(activeMapelForTim.id, selectedGuruIds, tahunAjaran.id);
+		if (res.success) setIsTimModalOpen(false);
 		else alert(res.message);
 		setLoading(false);
 	};
@@ -183,24 +211,97 @@ export default function TkaClient({ tahunAjaran, mapelTkaList, guruList, rombelL
 	// ========================
 	const [isJadwalModalOpen, setIsJadwalModalOpen] = useState(false);
 	const [selectedMapelIdsJadwal, setSelectedMapelIdsJadwal] = useState<string[]>([]);
+	
+	// State Sub-Modal Jadwal per Mapel
+	const [mapelSchedules, setMapelSchedules] = useState<{ mapelId: string, schedules: { hari: number, jam: string }[] }[]>([]);
+	const [isSubModalJadwalOpen, setIsSubModalJadwalOpen] = useState(false);
+	const [activeMapelForJadwal, setActiveMapelForJadwal] = useState<any>(null);
+	const [tempMapelSchedules, setTempMapelSchedules] = useState<Record<string, string[]>>({});
+	const [activeHariTab, setActiveHariTab] = useState<string>("Senin");
+	
+	const HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
+	const mapHariToInt: Record<string, number> = { "Senin": 1, "Selasa": 2, "Rabu": 3, "Kamis": 4, "Jumat": 5, "Sabtu": 6 };
+	const SLOT_WAKTU = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 
 	const openJadwalModal = (rombel: any) => {
-		setSelectedRombel(rombel);
-		// Cari mapel apa saja yang diambil rombel ini (dari jadwalPelajaran)
+		setActiveRombel(rombel);
 		const mapelIds = rombel.jadwalPelajaran.map((j: any) => j.mapelId);
-		// filter unik
 		const uniqueMapels = Array.from(new Set(mapelIds)) as string[];
 		setSelectedMapelIdsJadwal(uniqueMapels);
+		
+		// Reconstruct mapelSchedules from existing jadwalPelajaran
+		const initialSchedules: any[] = [];
+		uniqueMapels.forEach(mId => {
+			const jPelajaran = rombel.jadwalPelajaran.filter((j: any) => j.mapelId === mId && j.hari !== 0);
+			if (jPelajaran.length > 0) {
+				const schedules = jPelajaran.map((j: any) => ({ hari: j.hari, jam: j.waktuMulai }));
+				// Remove duplicates because of multiple gurus
+				const uniqueSchedules = schedules.filter((v: any, i: number, a: any) => a.findIndex((t: any) => (t.hari === v.hari && t.jam === v.jam)) === i);
+				initialSchedules.push({ mapelId: mId, schedules: uniqueSchedules });
+			}
+		});
+		setMapelSchedules(initialSchedules);
+		
 		setIsJadwalModalOpen(true);
 	};
 
 	const handleSaveJadwal = async () => {
-		if (!selectedRombel) return;
+		if (!activeRombel) return;
 		setLoading(true);
-		const res = await setMapelRombelAction(selectedRombel.id, selectedMapelIdsJadwal, tahunAjaran.id);
+		// Hanya pass jadwal untuk mapel yang saat ini terpilih
+		const filteredSchedules = mapelSchedules.filter(ms => selectedMapelIdsJadwal.includes(ms.mapelId));
+		const res = await setMapelRombelAction(activeRombel.id, selectedMapelIdsJadwal, tahunAjaran.id, filteredSchedules);
 		if (res.success) setIsJadwalModalOpen(false);
 		else alert(res.message);
 		setLoading(false);
+	};
+	
+	const openSubModalJadwal = (mapel: any) => {
+		setActiveMapelForJadwal(mapel);
+		
+		const existing = mapelSchedules.find(m => m.mapelId === mapel.id)?.schedules || [];
+		const temp: Record<string, string[]> = { "Senin": [], "Selasa": [], "Rabu": [], "Kamis": [], "Jumat": [] };
+		existing.forEach(sched => {
+			const hariString = Object.keys(mapHariToInt).find(k => mapHariToInt[k] === sched.hari);
+			if (hariString && temp[hariString]) {
+				temp[hariString].push(sched.jam);
+			}
+		});
+		setTempMapelSchedules(temp);
+		setActiveHariTab("Senin");
+		
+		setIsSubModalJadwalOpen(true);
+	};
+	
+	const handleSimpanSubModalJadwal = () => {
+		if (!activeMapelForJadwal) return;
+		
+		const newSchedules: any[] = [];
+		Object.keys(tempMapelSchedules).forEach(hariString => {
+			tempMapelSchedules[hariString].forEach(jamString => {
+				newSchedules.push({
+					hari: mapHariToInt[hariString],
+					jam: jamString
+				});
+			});
+		});
+		
+		setMapelSchedules(prev => {
+			const clone = [...prev];
+			const existingIndex = clone.findIndex(p => p.mapelId === activeMapelForJadwal.id);
+			if (existingIndex >= 0) {
+				clone[existingIndex] = { ...clone[existingIndex], schedules: newSchedules };
+			} else {
+				clone.push({ mapelId: activeMapelForJadwal.id, schedules: newSchedules });
+			}
+			return clone;
+		});
+		
+		setIsSubModalJadwalOpen(false);
+	};
+	
+	const handleHapusSchedulesMapel = (mapelId: string) => {
+		setMapelSchedules(prev => prev.filter(p => p.mapelId !== mapelId));
 	};
 
 
@@ -324,19 +425,33 @@ export default function TkaClient({ tahunAjaran, mapelTkaList, guruList, rombelL
 					<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1rem" }}>
 						{rombelList.map(r => (
 							<div key={r.id} style={{ border: "1px solid #e2e8f0", padding: "1.5rem", borderRadius: "0.5rem", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-								<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+								<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
 									<h3 style={{ margin: 0, fontSize: "1.25rem" }}>{r.nama}</h3>
 									<button onClick={() => handleHapusRombel(r.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer" }}><Trash2 size={18} /></button>
 								</div>
+								
+								<div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#475569", marginBottom: "1rem", fontSize: "0.9rem" }}>
+									<MapPin size={14} /> 
+									<span>{r.tempat || "Tempat belum diatur"}</span>
+								</div>
+
 								<p style={{ margin: "0 0 1.5rem 0", color: "#64748b" }}>
 									Anggota: <strong>{r.riwayatSiswa.length} Siswa</strong>
 								</p>
-								<button
-									onClick={() => openSiswaModal(r)}
-									style={{ width: "100%", padding: "0.5rem", background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", borderRadius: "0.375rem", cursor: "pointer", display: "flex", justifyContent: "center", gap: "0.5rem", alignItems: "center" }}
-								>
-									<Users size={16} /> Kelola Anggota Siswa
-								</button>
+								<div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+									<button
+										onClick={() => openSiswaModal(r)}
+										style={{ width: "100%", padding: "0.5rem", background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", borderRadius: "0.375rem", cursor: "pointer", display: "flex", justifyContent: "center", gap: "0.5rem", alignItems: "center" }}
+									>
+										<Users size={16} /> Kelola Anggota Siswa
+									</button>
+									<button
+										onClick={() => openTempatModal(r)}
+										style={{ width: "100%", padding: "0.5rem", background: "#f8fafc", color: "#475569", border: "1px solid #e2e8f0", borderRadius: "0.375rem", cursor: "pointer", display: "flex", justifyContent: "center", gap: "0.5rem", alignItems: "center" }}
+									>
+										<MapPin size={16} /> Atur Tempat Kelas
+									</button>
+								</div>
 							</div>
 						))}
 					</div>
@@ -412,7 +527,6 @@ export default function TkaClient({ tahunAjaran, mapelTkaList, guruList, rombelL
 					
 					<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: "1rem" }}>
 						{rombelList.map(r => {
-							// Filter unik jadwal mapel
 							const uniqueJadwalMapels = [];
 							const mapelSet = new Set();
 							for (const j of r.jadwalPelajaran) {
@@ -484,8 +598,8 @@ export default function TkaClient({ tahunAjaran, mapelTkaList, guruList, rombelL
 						<h3 style={{ marginTop: 0 }}>Buat Rombel TKA Baru</h3>
 						<input
 							type="text"
-							value={newRombelName}
-							onChange={(e) => setNewRombelName(e.target.value)}
+							value={rombelNama}
+							onChange={(e) => setRombelNama(e.target.value)}
 							placeholder="Cth: TKA - Rombel 1"
 							style={{ width: "100%", padding: "0.5rem", marginBottom: "1rem", borderRadius: "0.375rem", border: "1px solid #cbd5e1" }}
 						/>
@@ -498,11 +612,11 @@ export default function TkaClient({ tahunAjaran, mapelTkaList, guruList, rombelL
 			)}
 
 			{/* Modal Kelola Siswa */}
-			{isSiswaModalOpen && selectedRombel && (
+			{isSiswaModalOpen && activeRombel && (
 				<div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 100 }}>
 					<div style={{ background: "#fff", padding: "2rem", borderRadius: "0.5rem", width: "700px", maxWidth: "90vw", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
 						<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-							<h3 style={{ margin: 0 }}>Kelola Siswa: {selectedRombel.nama}</h3>
+							<h3 style={{ margin: 0 }}>Kelola Siswa: {activeRombel.nama}</h3>
 							<span style={{ background: "#dbeafe", color: "#1d4ed8", padding: "0.25rem 0.75rem", borderRadius: "999px", fontSize: "0.875rem", fontWeight: "bold" }}>
 								Terpilih: {selectedSiswaIds.length}
 							</span>
@@ -565,19 +679,41 @@ export default function TkaClient({ tahunAjaran, mapelTkaList, guruList, rombelL
 
 						<div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "1.5rem" }}>
 							<button onClick={() => setIsSiswaModalOpen(false)} style={{ padding: "0.5rem 1rem", border: "1px solid #cbd5e1", background: "#fff", borderRadius: "0.375rem", cursor: "pointer" }}>Batal</button>
-							<button onClick={handleSaveSiswa} disabled={loading} style={{ padding: "0.5rem 1rem", border: "none", background: "#2563eb", color: "#fff", borderRadius: "0.375rem", cursor: "pointer" }}>Simpan Anggota</button>
+							<button onClick={handleSimpanSiswaRombel} disabled={loading} style={{ padding: "0.5rem 1rem", border: "none", background: "#2563eb", color: "#fff", borderRadius: "0.375rem", cursor: "pointer" }}>Simpan Anggota</button>
 						</div>
 					</div>
 				</div>
 			)}
 
-			{/* Modal Set Multi Fasilitator */}
-			{isTugasModalOpen && (
+			{/* Modal Tempat Kelas */}
+			{isTempatModalOpen && activeRombelForTempat && (
+				<div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+					<div style={{ background: "#fff", padding: "1.5rem", borderRadius: "0.5rem", width: "400px", maxWidth: "90%" }}>
+						<h3 style={{ margin: "0 0 1rem 0" }}>Atur Tempat Kelas {activeRombelForTempat.nama}</h3>
+						<input
+							type="text"
+							value={inputTempat}
+							onChange={(e) => setInputTempat(e.target.value)}
+							placeholder="Masukkan nama ruangan (Misal: Ruang Lab 1)"
+							style={{ width: "100%", padding: "0.5rem", border: "1px solid #ccc", borderRadius: "0.375rem", marginBottom: "1rem" }}
+						/>
+						<div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
+							<button onClick={() => setIsTempatModalOpen(false)} style={{ padding: "0.5rem 1rem", border: "1px solid #ccc", background: "#fff", borderRadius: "0.375rem", cursor: "pointer" }}>Batal</button>
+							<button onClick={handleSimpanTempatRombel} disabled={loading} style={{ padding: "0.5rem 1rem", border: "none", background: "#2563eb", color: "#fff", borderRadius: "0.375rem", cursor: "pointer" }}>
+								{loading ? "Menyimpan..." : "Simpan Tempat"}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Modal Assign Tim Fasilitator ke Mapel */}
+			{isTimModalOpen && activeMapelForTim && (
 				<div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 100 }}>
 					<div style={{ background: "#fff", padding: "2rem", borderRadius: "0.5rem", width: "600px", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
 						<h3 style={{ margin: "0 0 0.5rem 0" }}>Tugaskan Tim Fasilitator</h3>
 						<p style={{ margin: "0 0 1.5rem 0", color: "#64748b", fontSize: "0.875rem" }}>
-							Mapel Pilihan: <strong>{mapelTkaList.find(m => m.id === selectedMapelId)?.nama}</strong>
+							Mapel Pilihan: <strong>{activeMapelForTim.nama}</strong>
 						</p>
 
 						<div style={{ flex: 1, overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "0.375rem" }}>
@@ -615,41 +751,148 @@ export default function TkaClient({ tahunAjaran, mapelTkaList, guruList, rombelL
 			)}
 
 			{/* Modal Jadwal Mapel Rombel */}
-			{isJadwalModalOpen && selectedRombel && (
+			{isJadwalModalOpen && activeRombel && (
 				<div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 100 }}>
 					<div style={{ background: "#fff", padding: "2rem", borderRadius: "0.5rem", width: "500px", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
 						<h3 style={{ margin: "0 0 0.5rem 0" }}>Atur Mata Pelajaran Rombel</h3>
 						<p style={{ margin: "0 0 1.5rem 0", color: "#64748b", fontSize: "0.875rem" }}>
-							Pilih Mapel Pilihan TKA apa saja yang diambil oleh rombel <strong>{selectedRombel.nama}</strong>.
+							Pilih Mapel Pilihan TKA apa saja yang diambil oleh rombel <strong>{activeRombel.nama}</strong>.
 						</p>
 
 						<div style={{ flex: 1, overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "0.375rem", padding: "1rem" }}>
 							{mapelTkaList.map((m) => {
 								const isSelected = selectedMapelIdsJadwal.includes(m.id);
+								const currentSchedules = mapelSchedules.find(ms => ms.mapelId === m.id)?.schedules || [];
 								return (
-									<label key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", marginBottom: "1rem", cursor: "pointer" }}>
-										<input
-											type="checkbox"
-											checked={isSelected}
-											onChange={() => {
-												if (isSelected) setSelectedMapelIdsJadwal(prev => prev.filter(id => id !== m.id));
-												else setSelectedMapelIdsJadwal(prev => [...prev, m.id]);
+									<div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", paddingBottom: "0.75rem", borderBottom: "1px solid #f1f5f9" }}>
+										<label style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer", flex: 1 }}>
+											<input
+												type="checkbox"
+												checked={isSelected}
+												onChange={(e) => {
+													if (e.target.checked) setSelectedMapelIdsJadwal(prev => [...prev, m.id]);
+													else {
+														setSelectedMapelIdsJadwal(prev => prev.filter(id => id !== m.id));
+														handleHapusSchedulesMapel(m.id);
+													}
+												}}
+												style={{ transform: "scale(1.2)" }}
+											/>
+											<div>
+												<div style={{ fontWeight: 600 }}>{m.nama}</div>
+												<div style={{ color: "#64748b", fontSize: "0.875rem" }}>{m.kode}</div>
+												
+												{isSelected && currentSchedules.length > 0 && (
+													<div style={{ marginTop: "0.25rem", fontSize: "0.75rem", color: "#16a34a", background: "#dcfce7", padding: "0.2rem 0.5rem", borderRadius: "0.25rem", display: "inline-block" }}>
+														{currentSchedules.length} Slot Jadwal Diatur
+													</div>
+												)}
+											</div>
+										</label>
+										<button 
+											onClick={() => openSubModalJadwal(m)}
+											disabled={!isSelected}
+											style={{ 
+												padding: "0.4rem 0.75rem", 
+												border: `1px solid ${isSelected ? "#3b82f6" : "#cbd5e1"}`, 
+												background: isSelected ? "#eff6ff" : "#f8fafc", 
+												color: isSelected ? "#1d4ed8" : "#94a3b8", 
+												borderRadius: "0.375rem", 
+												cursor: isSelected ? "pointer" : "not-allowed",
+												fontSize: "0.875rem",
+												display: "flex",
+												alignItems: "center",
+												gap: "0.25rem"
 											}}
-											style={{ marginTop: "0.25rem", width: "16px", height: "16px" }}
-										/>
-										<div>
-											<div style={{ fontWeight: "bold", fontSize: "0.9rem" }}>{m.nama}</div>
-											<div style={{ color: "#64748b", fontSize: "0.75rem" }}>{m.kode}</div>
-										</div>
-									</label>
+										>
+											<BookOpen size={14} /> Atur Jadwal (Opsional)
+										</button>
+									</div>
 								);
 							})}
-							{mapelTkaList.length === 0 && <p style={{ margin: 0, fontSize: "0.875rem", color: "#94a3b8" }}>Belum ada Mapel TKA.</p>}
 						</div>
 
 						<div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "1.5rem" }}>
 							<button onClick={() => setIsJadwalModalOpen(false)} style={{ padding: "0.5rem 1rem", border: "1px solid #cbd5e1", background: "#fff", borderRadius: "0.375rem", cursor: "pointer" }}>Batal</button>
 							<button onClick={handleSaveJadwal} disabled={loading} style={{ padding: "0.5rem 1rem", border: "none", background: "#2563eb", color: "#fff", borderRadius: "0.375rem", cursor: "pointer" }}>Simpan Jadwal</button>
+						</div>
+					</div>
+				</div>
+			)}
+			
+			{/* Sub-Modal Pengaturan Jam Ke */}
+			{isSubModalJadwalOpen && activeMapelForJadwal && (
+				<div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 110 }}>
+					<div style={{ background: "#fff", padding: "1.5rem", borderRadius: "0.5rem", width: "500px", maxWidth: "90vh", display: "flex", flexDirection: "column" }}>
+						<h3 style={{ margin: "0 0 0.5rem 0" }}>Pengaturan Waktu Mapel</h3>
+						<p style={{ margin: "0 0 1rem 0", color: "#64748b", fontSize: "0.875rem" }}>
+							Tentukan hari dan jam pelajaran untuk <strong>{activeMapelForJadwal.nama}</strong>. Anda bisa mengatur jadwal berbeda di setiap harinya.
+						</p>
+						
+						<div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", borderBottom: "1px solid #e2e8f0", paddingBottom: "0.5rem", overflowX: "auto" }}>
+							{HARI.map(h => {
+								const hasSchedules = tempMapelSchedules[h] && tempMapelSchedules[h].length > 0;
+								return (
+									<button
+										key={h}
+										onClick={() => setActiveHariTab(h)}
+										style={{
+											padding: "0.4rem 0.75rem",
+											border: "none",
+											borderRadius: "0.375rem",
+											background: activeHariTab === h ? "#eff6ff" : "transparent",
+											color: activeHariTab === h ? "#2563eb" : "#64748b",
+											fontWeight: activeHariTab === h ? 600 : 400,
+											cursor: "pointer",
+											display: "flex",
+											alignItems: "center",
+											gap: "0.25rem",
+											whiteSpace: "nowrap"
+										}}
+									>
+										{h}
+										{hasSchedules && (
+											<span style={{ background: "#dcfce7", color: "#16a34a", padding: "0.1rem 0.4rem", borderRadius: "999px", fontSize: "0.7rem", fontWeight: "bold" }}>
+												{tempMapelSchedules[h].length}
+											</span>
+										)}
+									</button>
+								);
+							})}
+						</div>
+						
+						<div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "0.375rem", marginBottom: "1.5rem" }}>
+							<label style={{ fontWeight: 600, marginBottom: "0.75rem", display: "block" }}>Pilih Jam Pelajaran di hari {activeHariTab}:</label>
+							<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+								{SLOT_WAKTU.map(slot => {
+									const isChecked = tempMapelSchedules[activeHariTab]?.includes(slot) || false;
+									return (
+										<label key={slot} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", background: "#fff", padding: "0.5rem", borderRadius: "0.25rem", border: "1px solid #e2e8f0" }}>
+											<input 
+												type="checkbox"
+												checked={isChecked}
+												onChange={(e) => {
+													setTempMapelSchedules(prev => {
+														const clone = { ...prev };
+														if (e.target.checked) {
+															clone[activeHariTab] = [...(clone[activeHariTab] || []), slot];
+														} else {
+															clone[activeHariTab] = (clone[activeHariTab] || []).filter(s => s !== slot);
+														}
+														return clone;
+													});
+												}}
+											/>
+											<span style={{ fontSize: "0.875rem" }}>Jam ke-{slot}</span>
+										</label>
+									);
+								})}
+							</div>
+						</div>
+						
+						<div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+							<button onClick={() => setIsSubModalJadwalOpen(false)} style={{ padding: "0.5rem 1rem", border: "1px solid #cbd5e1", background: "#fff", borderRadius: "0.375rem", cursor: "pointer" }}>Batal</button>
+							<button onClick={handleSimpanSubModalJadwal} style={{ padding: "0.5rem 1rem", border: "none", background: "#2563eb", color: "#fff", borderRadius: "0.375rem", cursor: "pointer" }}>Simpan Sesi</button>
 						</div>
 					</div>
 				</div>
