@@ -639,10 +639,10 @@ export async function tambahKelasAction(nama: string) {
 				const guruId = guruDummy.guru?.id;
 				if (guruId) {
 					await prisma.jadwalPelajaran.create({
-						data: { guruId, mapelId: mapelLiterasi.id, kelasId: newKelas.id, tahunAjaranId: tahunAjaranAktif.id, hari: 2, waktuMulai: "1", waktuSelesai: "-", ruang: "" }
+						data: { guruId, mapelId: mapelLiterasi.id, kelasId: newKelas.id, tahunAjaranId: tahunAjaranAktif.id, hari: 2, waktuMulai: "1", waktuSelesai: "-", ruang: newKelas.nama }
 					});
 					await prisma.jadwalPelajaran.create({
-						data: { guruId, mapelId: mapelNumerasi.id, kelasId: newKelas.id, tahunAjaranId: tahunAjaranAktif.id, hari: 4, waktuMulai: "1", waktuSelesai: "-", ruang: "" }
+						data: { guruId, mapelId: mapelNumerasi.id, kelasId: newKelas.id, tahunAjaranId: tahunAjaranAktif.id, hari: 4, waktuMulai: "1", waktuSelesai: "-", ruang: newKelas.nama }
 					});
 				}
 			}

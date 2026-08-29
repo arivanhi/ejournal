@@ -42,6 +42,8 @@ export async function GET() {
       const wali = kelas.waliKelas[0]; // Ambil wali kelas pertama (karena relasi many-to-many tapi logikanya 1 kelas 1 wali)
       if (!wali) continue;
 
+      const ruangKelas = kelas.tempat || kelas.nama;
+
       // Cek jadwal Literasi (Selasa = 2)
       const existingLit = await prisma.jadwalPelajaran.findFirst({
         where: {
@@ -60,11 +62,23 @@ export async function GET() {
             kelasId: kelas.id,
             tahunAjaranId: activeTahunAjar.id,
             hari: 2, // Selasa
-            waktuMulai: "07:00",
-            waktuSelesai: "07:45"
+            waktuMulai: "1",
+            waktuSelesai: "-",
+            ruang: ruangKelas
           }
         });
         countLit++;
+      } else {
+        const updateData: any = {};
+        if (!existingLit.ruang || existingLit.ruang.trim() === "") updateData.ruang = ruangKelas;
+        if (existingLit.guruId !== wali.guruId) updateData.guruId = wali.guruId;
+        
+        if (Object.keys(updateData).length > 0) {
+          await prisma.jadwalPelajaran.update({
+            where: { id: existingLit.id },
+            data: updateData
+          });
+        }
       }
 
       // Cek jadwal Numerasi (Kamis = 4)
@@ -85,11 +99,23 @@ export async function GET() {
             kelasId: kelas.id,
             tahunAjaranId: activeTahunAjar.id,
             hari: 4, // Kamis
-            waktuMulai: "07:00",
-            waktuSelesai: "07:45"
+            waktuMulai: "1",
+            waktuSelesai: "-",
+            ruang: ruangKelas
           }
         });
         countNum++;
+      } else {
+        const updateData: any = {};
+        if (!existingNum.ruang || existingNum.ruang.trim() === "") updateData.ruang = ruangKelas;
+        if (existingNum.guruId !== wali.guruId) updateData.guruId = wali.guruId;
+        
+        if (Object.keys(updateData).length > 0) {
+          await prisma.jadwalPelajaran.update({
+            where: { id: existingNum.id },
+            data: updateData
+          });
+        }
       }
     }
 
