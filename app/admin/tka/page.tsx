@@ -19,7 +19,7 @@ export default async function PemilihanPeriodeTKA() {
 	return (
 		<div className={styles.pageContainer}>
 			<div>
-				<h1 className={styles.pageTitle}>Fasilitator TKA</h1>
+				<h1 className={styles.pageTitle}>Manajemen TKA</h1>
 				<p className={styles.pageSubtitle}>Pilih periode akademik untuk mengelola rombongan belajar dan fasilitator TKA.</p>
 			</div>
 

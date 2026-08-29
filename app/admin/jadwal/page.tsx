@@ -36,6 +36,7 @@ export default async function JadwalPage({
 
 	// 3. Ambil Kelas + Hitung Siswa + Nama Wali Kelas (Berdasarkan Tahun yang dipilih)
 	const kelasListDb = await prisma.kelas.findMany({
+		where: { isTka: false },
 		orderBy: { nama: "asc" },
 		include: {
 			riwayatSiswa: tahunAjaranTerpilih ? { where: { tahunAjaranId: tahunAjaranTerpilih.id } } : false,
@@ -56,6 +57,8 @@ export default async function JadwalPage({
 				where: {
 					tahunAjaranId: tahunAjaranTerpilih.id,
 					hari: 0,
+					mapel: { isTka: false },
+					kelas: { isTka: false },
 				},
 				include: { guru: { include: { user: true } }, mapel: true },
 			})
@@ -75,6 +78,8 @@ export default async function JadwalPage({
 				where: {
 					tahunAjaranId: tahunAjaranTerpilih.id,
 					hari: { notIn: [0] },
+					mapel: { isTka: false },
+					kelas: { isTka: false },
 				},
 				include: { guru: { include: { user: true } }, mapel: true },
 			})

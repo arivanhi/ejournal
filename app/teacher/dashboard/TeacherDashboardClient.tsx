@@ -50,7 +50,6 @@ export default function TeacherDashboardClient({
 	jurnalBelumTerisi,
 	aktivitasTerkini,
 }: DashboardProps) {
-	const [activeSession, setActiveSession] = useState<any | null>(null);
 	const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
 	// Logika hari ini untuk default tab
@@ -135,70 +134,15 @@ export default function TeacherDashboardClient({
 
 	// --- 2. TIMER & PENGECEKAN SESI AKTIF REAL-TIME ---
 	useEffect(() => {
-		// Map durasi standar Jam ke-1 sampai ke-10 (dalam menit) untuk cek "Sesi Aktif"
-		const JAM_MAP = [
-			{ jam: 1, start: 7 * 60 + 0, end: 7 * 60 + 45 }, // 07:00 - 07:45
-			{ jam: 2, start: 7 * 60 + 45, end: 8 * 60 + 30 }, // 07:45 - 08:30
-			{ jam: 3, start: 8 * 60 + 30, end: 9 * 60 + 15 }, // 08:30 - 09:15
-			{ jam: 4, start: 9 * 60 + 15, end: 10 * 60 + 0 }, // 09:15 - 10:00
-			{ jam: 5, start: 10 * 60 + 30, end: 11 * 60 + 15 }, // 10:30 - 11:15
-			{ jam: 6, start: 11 * 60 + 15, end: 12 * 60 + 0 }, // 11:15 - 12:00
-			{ jam: 7, start: 13 * 60 + 0, end: 13 * 60 + 45 }, // 13:00 - 13:45
-			{ jam: 8, start: 13 * 60 + 45, end: 14 * 60 + 30 }, // 13:45 - 14:30
-			{ jam: 9, start: 14 * 60 + 30, end: 15 * 60 + 15 }, // 14:30 - 15:15
-			{ jam: 10, start: 15 * 60 + 15, end: 16 * 60 + 0 }, // 15:15 - 16:00
-		];
-
-		const checkActiveSession = (now: Date) => {
-			const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-			const currentDay = days[now.getDay()];
-			const currentMinutesTotal = now.getHours() * 60 + now.getMinutes();
-
-			const ongoing = groupedJadwal.find((j) => {
-				if (j.hari.toLowerCase() !== currentDay.toLowerCase()) return false;
-
-				// Logika 1: Jika menggunakan data rentang sesi baru (misal Jam 2-4)
-				if (j.jams && j.jams.length > 0) {
-					const firstJam = JAM_MAP.find((m) => m.jam === j.jams[0]);
-					const lastJam = JAM_MAP.find((m) => m.jam === j.jams[j.jams.length - 1]);
-					if (firstJam && lastJam) {
-						return currentMinutesTotal >= firstJam.start && currentMinutesTotal <= lastJam.end;
-					}
-				}
-
-				// Logika 2: Jika masih menggunakan format lama (07:00 - 08:30)
-				if (j.waktuMulai && j.waktuMulai.includes("-")) {
-					const timeParts = j.waktuMulai.split(" - ");
-					if (timeParts.length === 2) {
-						const [startHour, startMin] = timeParts[0].split(":");
-						const [endHour, endMin] = timeParts[1].split(":");
-						const startTotal = parseInt(startHour) * 60 + parseInt(startMin);
-						const endTotal = parseInt(endHour) * 60 + parseInt(endMin);
-						return currentMinutesTotal >= startTotal && currentMinutesTotal <= endTotal;
-					}
-				}
-
-				return false;
-			});
-
-			setActiveSession(ongoing || null);
-		};
-
 		// Jalankan Timer 1 detik
 		setCurrentTime(new Date());
-		checkActiveSession(new Date());
 
 		const interval = setInterval(() => {
-			const now = new Date();
-			setCurrentTime(now);
-			// Cek jadwal aktif setiap menit (detik 0)
-			if (now.getSeconds() === 0) {
-				checkActiveSession(now);
-			}
+			setCurrentTime(new Date());
 		}, 1000);
 
 		return () => clearInterval(interval);
-	}, [groupedJadwal]);
+	}, []);
 
 	// Format Tanggal dan Jam untuk Hero Banner
 	const todayFormatted =
@@ -289,34 +233,6 @@ export default function TeacherDashboardClient({
 					<div className={styles.gridLayout}>
 						{/* KIRI: Kontainer Tabel & Live Session */}
 						<div>
-							{/* BANNER SESI AKTIF (Hanya Muncul Jika Jam Cocok) */}
-							{activeSession && (
-								<div className={styles.activeSessionCard}>
-									<div className={styles.activeSessionInfo}>
-										<div className={styles.activeIndicator}>
-											<div className={styles.pulseDot}></div>
-											<div className={styles.activeLabel}>LIVE</div>
-										</div>
-										<div className={styles.activeDetails}>
-											<h3>
-												{activeSession.mapelNama} - {activeSession.kelasNama}
-											</h3>
-											<div className={styles.activeMeta}>
-												<span>
-													<Clock size={16} /> {activeSession.displayJam} {/* Menampilkan "Jam 2-4" */}
-												</span>
-												<span>
-													<MapPin size={16} /> {activeSession.ruang}
-												</span>
-											</div>
-										</div>
-									</div>
-									<Link href={`/teacher/jurnal?jadwalId=${activeSession.id}`} className={styles.btnActionActive}>
-										Buat Jurnal Sesi Ini <ArrowRight size={16} />
-									</Link>
-								</div>
-							)}
-
 							<div className={styles.cardBox}>
 								<div className={styles.cardHeader}>
 									<h3 className={styles.cardTitle}>Jadwal Mengajar Keseluruhan</h3>

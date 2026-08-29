@@ -22,7 +22,7 @@ cp .env.example .env
 docker compose up -d --build
 
 # 4. Tunggu beberapa menit hingga database siap, lalu sinkronkan database Prisma
-docker exec -it ejournal_nextjs npx prisma db push
+docker exec -it -u root ejournal_nextjs sh -c "npx --yes prisma db push"
 
 # 5. Buat data master awal (Admin, Role, dll) jika database masih kosong
 # (Opsional) Sesuaikan script seed atau hubungi pengembang.
@@ -43,7 +43,7 @@ git pull origin main
 docker compose up -d --build
 
 # 4. (Hanya jika ada perubahan skema Database/Prisma)
-# docker exec -it ejournal_nextjs npx prisma db push
+# docker exec -it -u root ejournal_nextjs sh -c "npx --yes prisma db push"
 ```
 
 *Catatan: Perintah `docker compose up -d --build` akan membangun ulang aplikasi (menerapkan perubahan UI/UX, CSS, dan logika baru) secara otomatis. Database MySQL tidak akan terhapus karena menggunakan volume `db_data`.*
