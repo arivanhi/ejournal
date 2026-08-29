@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { ensureVirtualJadwal } from "@/lib/virtualJadwal";
 import TeacherDashboardClient from "./TeacherDashboardClient";
 
 export const dynamic = "force-dynamic";
@@ -38,18 +39,46 @@ export default async function TeacherDashboardPage() {
 	}
 
 	// 2. Ambil JADWAL KESELURUHAN (Diurutkan berdasarkan Hari dan Jam)
-	const jadwalKeseluruhanDb =
-		guru && tahunAjaranAktif
-			? await prisma.jadwalPelajaran.findMany({
-					where: {
-						guruId: guru.id,
-						tahunAjaranId: tahunAjaranAktif.id,
-						hari: { not: 0 }, // Ambil semua yang bukan pemetaan dasar
-					},
-					include: { mapel: true, kelas: true },
-					orderBy: [{ hari: "asc" }, { waktuMulai: "asc" }],
-				})
-			: [];
+	let jadwalKeseluruhanDb: any[] = [];
+	
+	if (guru && tahunAjaranAktif) {
+		// Pastikan jadwal virtual untuk Literasi & Numerasi sudah ter-generate
+		await ensureVirtualJadwal(guru.id, tahunAjaranAktif.id);
+
+		jadwalKeseluruhanDb = await prisma.jadwalPelajaran.findMany({
+			where: {
+				guruId: guru.id,
+				tahunAjaranId: tahunAjaranAktif.id,
+				hari: { not: 0 }, // Ambil semua yang bukan pemetaan dasar
+			},
+			include: { mapel: true, kelas: true },
+			orderBy: [{ hari: "asc" }, { waktuMulai: "asc" }],
+		});
+
+		// Deduplicate in case of race condition creating multiple virtual schedules
+		const uniqueJadwal = new Map();
+		for (const j of jadwalKeseluruhanDb) {
+			const key = `${j.kelasId}-${j.hari}-${j.waktuMulai}`;
+			if (!uniqueJadwal.has(key)) {
+				uniqueJadwal.set(key, j);
+			} else if (j.id < uniqueJadwal.get(key).id) {
+				// Keep the oldest one just in case
+				uniqueJadwal.set(key, j);
+			}
+		}
+		jadwalKeseluruhanDb = Array.from(uniqueJadwal.values());
+
+		// Filter out jadwal virtual yang sudah yatim piatu (jika guru tidak lagi mengajar jam 1)
+		jadwalKeseluruhanDb = jadwalKeseluruhanDb.filter(j => {
+			if (j.waktuMulai === "LIT") {
+				return jadwalKeseluruhanDb.some(other => other.kelasId === j.kelasId && other.hari === 2 && other.waktuMulai === "1");
+			}
+			if (j.waktuMulai === "NUM") {
+				return jadwalKeseluruhanDb.some(other => other.kelasId === j.kelasId && other.hari === 4 && other.waktuMulai === "1");
+			}
+			return true;
+		});
+	}
 
 	const mapHariText = ["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
 	const jadwalKeseluruhan = jadwalKeseluruhanDb.map((j) => ({

@@ -61,7 +61,7 @@ export default async function MasterPage() {
 		nis: s.nis,
 		nama: s.user.nama,
 		jenisKelamin: s.jenisKelamin,
-		kelasSkarang: s.riwayatKelas[0]?.kelas.nama || "Belum Diassign",
+		kelasSkarang: s.riwayatKelas.find(r => !r.isTka)?.kelas.nama || s.riwayatKelas[0]?.kelas.nama || "Belum Diassign",
 	}));
 
 	const dataGuru = guruFromDb.map((u) => ({

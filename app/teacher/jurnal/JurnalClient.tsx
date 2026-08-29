@@ -289,10 +289,12 @@ export default function JurnalClient({
 			const updatedJadwal = groupedJadwal.find((j) => j.id === activeJadwal.id);
 			if (updatedJadwal) {
 				setActiveJadwal(updatedJadwal);
-				if (updatedJadwal.waktuRentang && updatedJadwal.waktuRentang.includes("-")) {
+				if (updatedJadwal.waktuRentang && updatedJadwal.waktuRentang.includes(" - ")) {
 					const times = updatedJadwal.waktuRentang.split(" - ");
-					setWaktuMulai(times[0].trim());
-					setWaktuSelesai(times[1].trim());
+					if (times.length === 2) {
+						setWaktuMulai(times[0].trim());
+						setWaktuSelesai(times[1].trim());
+					}
 				}
 			}
 		}
@@ -346,10 +348,12 @@ export default function JurnalClient({
 		setMateri("");
 		setTugas("");
 
-		if (jadwal.waktuRentang && jadwal.waktuRentang.includes("-")) {
+		if (jadwal.waktuRentang && jadwal.waktuRentang.includes(" - ")) {
 			const times = jadwal.waktuRentang.split(" - ");
-			setWaktuMulai(times[0].trim());
-			setWaktuSelesai(times[1].trim());
+			if (times.length === 2) {
+				setWaktuMulai(times[0].trim());
+				setWaktuSelesai(times[1].trim());
+			}
 		}
 		setViewMode("detail");
 	};
@@ -546,8 +550,9 @@ export default function JurnalClient({
 		setEditMateri(jurnalItem.materiBab);
 		setEditTugas(jurnalItem.tugas || "");
 
-		setEditWaktuMulai(jurnalItem.waktuMulai || activeJadwal.waktuRentang.split(" - ")[0].trim());
-		setEditWaktuSelesai(jurnalItem.waktuSelesai || activeJadwal.waktuRentang.split(" - ")[1].trim());
+		const times = activeJadwal.waktuRentang ? activeJadwal.waktuRentang.split(" - ") : [];
+		setEditWaktuMulai(jurnalItem.waktuMulai || (times.length === 2 ? times[0].trim() : ""));
+		setEditWaktuSelesai(jurnalItem.waktuSelesai || (times.length === 2 ? times[1].trim() : ""));
 		setIsEditModalOpen(true);
 	};
 

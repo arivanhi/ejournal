@@ -58,7 +58,18 @@ docker compose up -d --build
 
 ---
 
-## 📝 Changelog (Pembaruan Terkini)
+## 🚀 Changelog (Pembaruan Terkini)
+
+### v1.6.0 - Integrasi Literasi & Numerasi (Lino) & Perbaikan Sistem
+- **Sistem Literasi & Numerasi Terpadu:**
+  - Jurnal Guru kini secara otomatis menampilkan mata pelajaran "Literasi" dan "Numerasi" tanpa perlu jadwal khusus dari Admin.
+  - Untuk Kelas X, tugas pendamping disematkan secara otomatis pada guru mata pelajaran yang mengajar di Jam Ke-1 (Selasa untuk Literasi, Kamis untuk Numerasi). Jika kosong, tugas dialihkan ke Wali Kelas.
+  - Untuk Kelas XI dan XII, tugas pendamping secara *default* diserahkan ke Wali Kelas masing-masing.
+  - Filter khusus di aplikasi *Admin Jadwal* dan *Portal Siswa* agar jadwal virtual (LIT/NUM) tidak mengganggu tampilan reguler.
+- **Peningkatan Stabilitas & Perbaikan *Bug*:**
+  - Penambahan mekanisme *Map Deduplication* di Jurnal Guru untuk mencegah duplikasi jadwal *virtual* yang diakibatkan oleh *race condition* (akses serentak).
+  - Memperbaiki perhitungan pemisahan teks waktu (*string split*) agar tidak *error* (gagal `trim`) ketika jadwal virtual dikelola.
+  - Perbaikan bug manajemen Kelas TKA: mencegah tertimpanya Kelas Reguler siswa oleh Rombel TKA di *Portal Siswa* (Jadwal, Dasbor, dan Profil) maupun Master Data. Siswa kini memiliki keanggotaan kelas jamak yang sah (Reguler + TKA).
 
 ### v1.5.0 - Manajemen TKA & Presensi Dispensasi
 - **Manajemen TKA (Tugas Karya Akhir):**

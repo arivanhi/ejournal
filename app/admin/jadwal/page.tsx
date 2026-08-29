@@ -80,16 +80,40 @@ export default async function JadwalPage({
 					hari: { notIn: [0] },
 					mapel: { isTka: false },
 					kelas: { isTka: false },
+					waktuMulai: { notIn: ["LIT", "NUM"] },
 				},
-				include: { guru: { include: { user: true } }, mapel: true },
+				include: { 
+					guru: { include: { user: true } }, 
+					mapel: true,
+					kelas: { include: { waliKelas: { include: { guru: { include: { user: true } } } } } } 
+				},
 			})
 		: [];
 
 	const mapHariText = ["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
-	const jadwalExisting = jadwalDb.map((j) => ({
-		...j,
-		hari: mapHariText[j.hari] || "Senin",
-	}));
+	const jadwalExisting = jadwalDb.map((j) => {
+		const isLitNum = j.mapel.nama.toLowerCase().includes("literasi") || j.mapel.nama.toLowerCase().includes("numerasi");
+		const isKelasXIOrXII = j.kelas.nama.toUpperCase().startsWith("XI") || j.kelas.nama.toUpperCase().startsWith("XII");
+		let namaGuru = j.guru.user.nama;
+
+		if (isLitNum && isKelasXIOrXII) {
+			if (j.kelas.waliKelas && j.kelas.waliKelas.length > 0) {
+				namaGuru = j.kelas.waliKelas[0].guru.user.nama;
+			}
+		}
+
+		return {
+			...j,
+			hari: mapHariText[j.hari] || "Senin",
+			guru: {
+				...j.guru,
+				user: {
+					...j.guru.user,
+					nama: namaGuru
+				}
+			}
+		};
+	});
 
 	return (
 		<JadwalClient

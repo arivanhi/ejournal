@@ -611,7 +611,43 @@ export async function tambahKelasAction(nama: string) {
 		if (existing) {
 			return { success: false, message: `Kelas dengan nama "${nama}" sudah ada.` };
 		}
-		await prisma.kelas.create({ data: { nama } });
+		const newKelas = await prisma.kelas.create({ data: { nama } });
+		
+		if (nama.toUpperCase().startsWith("XI")) {
+			const tahunAjaranAktif = await prisma.tahunAjaran.findFirst({ where: { isActive: true } });
+			if (tahunAjaranAktif) {
+				let mapelLiterasi = await prisma.mataPelajaran.findFirst({ where: { nama: { contains: "Literasi" } } });
+				if (!mapelLiterasi) mapelLiterasi = await prisma.mataPelajaran.create({ data: { kode: "LIT", nama: "Literasi" } });
+				
+				let mapelNumerasi = await prisma.mataPelajaran.findFirst({ where: { nama: { contains: "Numerasi" } } });
+				if (!mapelNumerasi) mapelNumerasi = await prisma.mataPelajaran.create({ data: { kode: "NUM", nama: "Numerasi" } });
+				
+				let guruDummy = await prisma.user.findFirst({ where: { nama: { contains: "Tim Literasi" } }, include: { guru: true } });
+				if (!guruDummy) {
+					guruDummy = await prisma.user.create({
+						data: {
+							username: "TIM_LITNUM",
+							nama: "Tim Literasi & Numerasi",
+							password: "dummy",
+							role: "GURU",
+							guru: { create: { npp: "TIM_LITNUM", jenisKelamin: "L" } }
+						},
+						include: { guru: true }
+					});
+				}
+				
+				const guruId = guruDummy.guru?.id;
+				if (guruId) {
+					await prisma.jadwalPelajaran.create({
+						data: { guruId, mapelId: mapelLiterasi.id, kelasId: newKelas.id, tahunAjaranId: tahunAjaranAktif.id, hari: 2, waktuMulai: "1", waktuSelesai: "-", ruang: "" }
+					});
+					await prisma.jadwalPelajaran.create({
+						data: { guruId, mapelId: mapelNumerasi.id, kelasId: newKelas.id, tahunAjaranId: tahunAjaranAktif.id, hari: 4, waktuMulai: "1", waktuSelesai: "-", ruang: "" }
+					});
+				}
+			}
+		}
+
 		revalidatePath("/admin/master");
 		return { success: true, message: "Kelas berhasil ditambahkan!" };
 	} catch (error) {

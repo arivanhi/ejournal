@@ -29,6 +29,21 @@ export async function assignWaliKelasAction(guruId: string, kelasId: string | nu
 
 				// 4. Update Role user menjadi WALI_KELAS
 				await tx.user.update({ where: { id: guru.userId }, data: { role: "WALI_KELAS" } });
+
+				// 5. Update jadwal Literasi & Numerasi for XI and XII
+				const targetKelas = await tx.kelas.findUnique({ where: { id: kelasId } });
+				if (targetKelas && (targetKelas.nama.toUpperCase().startsWith("XI") || targetKelas.nama.toUpperCase().startsWith("XII"))) {
+					const mapelLitNum = await tx.mataPelajaran.findMany({
+						where: { OR: [{ nama: { contains: "Literasi" } }, { nama: { contains: "Numerasi" } }] }
+					});
+					const mapelIds = mapelLitNum.map(m => m.id);
+					if (mapelIds.length > 0) {
+						await tx.jadwalPelajaran.updateMany({
+							where: { kelasId: targetKelas.id, mapelId: { in: mapelIds } },
+							data: { guruId: guru.id }
+						});
+					}
+				}
 			} else {
 				// 5. Jika kelasId null (artinya dicopot tugas walinya), kembalikan role jadi GURU
 				await tx.user.update({ where: { id: guru.userId }, data: { role: "GURU" } });

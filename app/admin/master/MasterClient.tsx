@@ -1284,17 +1284,19 @@ export default function MasterClient({
 										)}
 
 										{activeTab === "kelas" && (
-											<div className={styles.formGroup}>
-												<label className={styles.formLabel}>Nama Kelas</label>
-												<input
-													type="text"
-													required
-													value={namaKelas}
-													onChange={(e) => setNamaKelas(e.target.value)}
-													className={styles.formInput}
-													placeholder="Contoh: X MIPA 1"
-												/>
-											</div>
+											<>
+												<div className={styles.formGroup}>
+													<label className={styles.formLabel}>Nama Kelas</label>
+													<input
+														type="text"
+														required
+														value={namaKelas}
+														onChange={(e) => setNamaKelas(e.target.value)}
+														className={styles.formInput}
+														placeholder="Contoh: X MIPA 1"
+													/>
+												</div>
+											</>
 										)}
 
 										{modalMode === "create" && activeTab !== "mapel" && activeTab !== "tahunAjar" && activeTab !== "kelas" && (
