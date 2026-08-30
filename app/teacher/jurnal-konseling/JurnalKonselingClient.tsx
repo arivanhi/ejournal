@@ -388,7 +388,7 @@ export default function JurnalKonselingClient({
 									<tr key={item.id}>
 										<td style={{ textAlign: 'center' }}>{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</td>
 										<td>{hariTanggal}</td>
-										<td style={{ whiteSpace: 'pre-wrap', fontSize: '13px', textAlign: 'center' }}>{sasaran}</td>
+										<td style={{ whiteSpace: 'pre-wrap', fontSize: '13px' }}>{sasaran}</td>
 										<td>{item.jenisBimbingan}</td>
 										<td style={{ whiteSpace: 'pre-wrap' }}>{item.materi}</td>
 										<td style={{ whiteSpace: 'pre-wrap' }}>{item.penilaianSegera}</td>
@@ -659,7 +659,7 @@ export default function JurnalKonselingClient({
 												<tr key={item.id}>
 													<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{no}</td>
 													<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{tgl}</td>
-													<td style={{ border: "1px solid #cbd5e1", padding: "8px", whiteSpace: "pre-wrap" }}>{formatSasaran(item.sasaranSiswa)}</td>
+													<td style={{ border: "1px solid #cbd5e1", padding: "8px", whiteSpace: "pre-wrap", textAlign: 'center' }}>{formatSasaran(item.sasaranSiswa)}</td>
 													<td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>{item.jenisBimbingan}</td>
 													<td style={{ border: "1px solid #cbd5e1", padding: "8px", whiteSpace: "pre-wrap" }}>{item.materi}</td>
 													<td style={{ border: "1px solid #cbd5e1", padding: "8px", whiteSpace: "pre-wrap" }}>{item.penilaianSegera}</td>
