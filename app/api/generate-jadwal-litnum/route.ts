@@ -44,13 +44,13 @@ export async function GET() {
 
       const ruangKelas = kelas.tempat || kelas.nama;
 
-      // Cek jadwal Literasi (Selasa = 2)
+      // Cek jadwal Literasi (Kamis = 4)
       const existingLit = await prisma.jadwalPelajaran.findFirst({
         where: {
           kelasId: kelas.id,
           tahunAjaranId: activeTahunAjar.id,
           mapelId: litMapel.id,
-          hari: 2
+          hari: 4
         }
       });
 
@@ -61,7 +61,7 @@ export async function GET() {
             mapelId: litMapel.id,
             kelasId: kelas.id,
             tahunAjaranId: activeTahunAjar.id,
-            hari: 2, // Selasa
+            hari: 4, // Kamis
             waktuMulai: "1",
             waktuSelesai: "-",
             ruang: ruangKelas
@@ -81,13 +81,13 @@ export async function GET() {
         }
       }
 
-      // Cek jadwal Numerasi (Kamis = 4)
+      // Cek jadwal Numerasi (Selasa = 2)
       const existingNum = await prisma.jadwalPelajaran.findFirst({
         where: {
           kelasId: kelas.id,
           tahunAjaranId: activeTahunAjar.id,
           mapelId: numMapel.id,
-          hari: 4
+          hari: 2
         }
       });
 
@@ -98,7 +98,7 @@ export async function GET() {
             mapelId: numMapel.id,
             kelasId: kelas.id,
             tahunAjaranId: activeTahunAjar.id,
-            hari: 4, // Kamis
+            hari: 2, // Selasa
             waktuMulai: "1",
             waktuSelesai: "-",
             ruang: ruangKelas

@@ -261,7 +261,7 @@ model PresensiSiswa {
   siswaId    String
   status     StatusHadir  @default(A)
   waktuScan  DateTime?    // Null jika dia absen manual oleh guru (bukan scan QR)
-  nilaiTugas Int?         // <-- TAMBAHAN BARU
+  nilaiTugas Float?         // <-- TAMBAHAN BARU
   alasanIzin String?      // <-- Alasan izin jika status Izin
   isDispensasi Boolean    @default(false)
   isTerlambat  Boolean    @default(false)

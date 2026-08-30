@@ -34,28 +34,8 @@ export async function ensureVirtualJadwal(guruId: string, tahunAjaranId: string)
 		const isKamis = j.hari === 4;
 
 		if (isSelasa) {
-			const existingLit = await prisma.jadwalPelajaran.findFirst({
-				where: { guruId, tahunAjaranId, kelasId: j.kelasId, hari: 2, waktuMulai: "LIT" }
-			});
-			if (!existingLit) {
-				await prisma.jadwalPelajaran.create({
-					data: {
-						guruId, 
-						tahunAjaranId, 
-						kelasId: j.kelasId, 
-						hari: 2, 
-						waktuMulai: "LIT", 
-						waktuSelesai: "LIT", 
-						mapelId: mapelLit.id, 
-						ruang: j.ruang
-					}
-				});
-			}
-		}
-
-		if (isKamis) {
 			const existingNum = await prisma.jadwalPelajaran.findFirst({
-				where: { guruId, tahunAjaranId, kelasId: j.kelasId, hari: 4, waktuMulai: "NUM" }
+				where: { guruId, tahunAjaranId, kelasId: j.kelasId, hari: 2, waktuMulai: "NUM" }
 			});
 			if (!existingNum) {
 				await prisma.jadwalPelajaran.create({
@@ -63,10 +43,30 @@ export async function ensureVirtualJadwal(guruId: string, tahunAjaranId: string)
 						guruId, 
 						tahunAjaranId, 
 						kelasId: j.kelasId, 
-						hari: 4, 
+						hari: 2, 
 						waktuMulai: "NUM", 
 						waktuSelesai: "NUM", 
 						mapelId: mapelNum.id, 
+						ruang: j.ruang
+					}
+				});
+			}
+		}
+
+		if (isKamis) {
+			const existingLit = await prisma.jadwalPelajaran.findFirst({
+				where: { guruId, tahunAjaranId, kelasId: j.kelasId, hari: 4, waktuMulai: "LIT" }
+			});
+			if (!existingLit) {
+				await prisma.jadwalPelajaran.create({
+					data: {
+						guruId, 
+						tahunAjaranId, 
+						kelasId: j.kelasId, 
+						hari: 4, 
+						waktuMulai: "LIT", 
+						waktuSelesai: "LIT", 
+						mapelId: mapelLit.id, 
 						ruang: j.ruang
 					}
 				});

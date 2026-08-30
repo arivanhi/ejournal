@@ -70,10 +70,10 @@ export default async function TeacherDashboardPage() {
 
 		// Filter out jadwal virtual yang sudah yatim piatu (jika guru tidak lagi mengajar jam 1)
 		jadwalKeseluruhanDb = jadwalKeseluruhanDb.filter(j => {
-			if (j.waktuMulai === "LIT") {
+			if (j.waktuMulai === "NUM") {
 				return jadwalKeseluruhanDb.some(other => other.kelasId === j.kelasId && other.hari === 2 && other.waktuMulai === "1");
 			}
-			if (j.waktuMulai === "NUM") {
+			if (j.waktuMulai === "LIT") {
 				return jadwalKeseluruhanDb.some(other => other.kelasId === j.kelasId && other.hari === 4 && other.waktuMulai === "1");
 			}
 			return true;

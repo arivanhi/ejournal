@@ -1759,12 +1759,13 @@ export default function JurnalTkaClient({
 															<td style={{ textAlign: "center" }}>
 																<input
 																	type="number"
+																	step="0.01"
 																	className={styles.formInput}
 																	style={{ width: "80px", padding: "0.25rem 0.5rem", textAlign: "center", margin: "0 auto" }}
 																	placeholder="0-100"
 																	value={nilaiTugasEdits[siswa.id] === undefined ? "" : nilaiTugasEdits[siswa.id]}
 																	onChange={(e) => {
-																		const val = e.target.value === "" ? undefined : parseInt(e.target.value);
+																		const val = e.target.value === "" ? undefined : parseFloat(e.target.value);
 																		if (val !== undefined && (val < 0 || val > 100)) return;
 																		setNilaiTugasEdits({ ...nilaiTugasEdits, [siswa.id]: val as any });
 																	}}
