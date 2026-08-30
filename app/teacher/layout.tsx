@@ -19,5 +19,27 @@ export default async function TeacherLayout({ children }: { children: React.Reac
 		redirect("/login");
 	}
 
-	return <TeacherLayoutClient user={user}>{children}</TeacherLayoutClient>;
+	let isGuruBK = false;
+	if (user.role === "GURU" || user.role === "WALI_KELAS") {
+		const guru = await prisma.guru.findUnique({
+			where: { userId: user.id },
+		});
+		if (guru) {
+			const jadwalBK = await prisma.jadwalPelajaran.findFirst({
+				where: {
+					guruId: guru.id,
+					mapel: {
+						OR: [
+							{ nama: { contains: "BK" } },
+							{ nama: { contains: "Konseling" } },
+							{ kode: { contains: "BK" } },
+						],
+					},
+				},
+			});
+			if (jadwalBK) isGuruBK = true;
+		}
+	}
+
+	return <TeacherLayoutClient user={user} isGuruBK={isGuruBK}>{children}</TeacherLayoutClient>;
 }

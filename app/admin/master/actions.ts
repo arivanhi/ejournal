@@ -612,16 +612,16 @@ export async function tambahKelasAction(nama: string) {
 			return { success: false, message: `Kelas dengan nama "${nama}" sudah ada.` };
 		}
 		const newKelas = await prisma.kelas.create({ data: { nama } });
-		
+
 		if (nama.toUpperCase().startsWith("XI")) {
 			const tahunAjaranAktif = await prisma.tahunAjaran.findFirst({ where: { isActive: true } });
 			if (tahunAjaranAktif) {
 				let mapelLiterasi = await prisma.mataPelajaran.findFirst({ where: { nama: { contains: "Literasi" } } });
 				if (!mapelLiterasi) mapelLiterasi = await prisma.mataPelajaran.create({ data: { kode: "LIT", nama: "Literasi" } });
-				
+
 				let mapelNumerasi = await prisma.mataPelajaran.findFirst({ where: { nama: { contains: "Numerasi" } } });
 				if (!mapelNumerasi) mapelNumerasi = await prisma.mataPelajaran.create({ data: { kode: "NUM", nama: "Numerasi" } });
-				
+
 				let guruDummy = await prisma.user.findFirst({ where: { nama: { contains: "Tim Literasi" } }, include: { guru: true } });
 				if (!guruDummy) {
 					guruDummy = await prisma.user.create({
@@ -635,7 +635,7 @@ export async function tambahKelasAction(nama: string) {
 						include: { guru: true }
 					});
 				}
-				
+
 				const guruId = guruDummy.guru?.id;
 				if (guruId) {
 					await prisma.jadwalPelajaran.create({

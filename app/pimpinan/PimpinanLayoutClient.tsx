@@ -11,6 +11,7 @@ export default function PimpinanLayoutClient({ children, user }: { children: Rea
 		{ name: "Jurnal Mengajar", icon: BookOpen, path: "/pimpinan/jurnal" },
 		{ name: "Rating Guru", icon: Star, path: "/pimpinan/rating" },
 		{ name: "Laporan Rekapitulasi", icon: FileBarChart, path: "/pimpinan/report" },
+		{ name: "Laporan Konseling", icon: BookOpen, path: "/pimpinan/konseling" },
 		{ name: "Setelan", icon: Settings, path: "/pimpinan/setelan" },
 	];
 

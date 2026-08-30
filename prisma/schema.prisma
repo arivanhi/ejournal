@@ -65,6 +65,7 @@ model TahunAjaran {
   laporanPdca       LaporanPdca[]
   ratingGuru        RatingGuru[]
   timFasilitatorTka TimFasilitatorTka[]
+  jurnalKonseling   JurnalKonseling[]
 }
 
 model Kelas {
@@ -170,6 +171,7 @@ model Guru {
   waliKelasDi       KelasWali[]
   ratingGuru        RatingGuru[]
   timFasilitatorTka TimFasilitatorTka[]
+  jurnalKonseling   JurnalKonseling[]
 }
 
 model KelasWali {
@@ -194,6 +196,7 @@ model Siswa {
   riwayatKelas RiwayatKelasSiswa[]
   presensi     PresensiSiswa[]
   ratingGuru   RatingGuru[]
+  sasaranKonseling JurnalKonselingSiswa[]
 }
 
 // Relasi historis agar data absen aman saat siswa pindah kelas
@@ -291,4 +294,31 @@ model RatingGuru {
   tahunAjaran     TahunAjaran   @relation(fields: [tahunAjaranId], references: [id], onDelete: Cascade)
 
   @@unique([siswaId, guruId, mapelId, tahunAjaranId]) // 1 siswa max 1 rating per guru per mapel per tahun ajaran
+}
+
+model JurnalKonseling {
+  id              String   @id @default(cuid())
+  tanggal         DateTime
+  guruId          String
+  guru            Guru     @relation(fields: [guruId], references: [id], onDelete: Cascade)
+
+  jenisBimbingan  String   
+  materi          String   @db.Text
+  penilaianSegera String   @db.Text
+  
+  tahunAjaranId   String
+  tahunAjaran     TahunAjaran @relation(fields: [tahunAjaranId], references: [id], onDelete: Cascade)
+  
+  sasaranSiswa    JurnalKonselingSiswa[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model JurnalKonselingSiswa {
+  id                String   @id @default(cuid())
+  jurnalKonselingId String
+  jurnalKonseling   JurnalKonseling @relation(fields: [jurnalKonselingId], references: [id], onDelete: Cascade)
+  siswaId           String
+  siswa             Siswa    @relation(fields: [siswaId], references: [id], onDelete: Cascade)
 }
