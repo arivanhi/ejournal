@@ -139,3 +139,29 @@ export async function getSiswaByKelas(kelasIds: string[], tahunAjaranId: string)
 		return [];
 	}
 }
+
+export async function getKepsekData() {
+	try {
+		const kepsek = await prisma.user.findFirst({
+			where: { role: "KEPSEK" },
+			include: { pimpinan: true },
+		});
+		return kepsek;
+	} catch (error) {
+		console.error("Error getKepsekData:", error);
+		return null;
+	}
+}
+
+export async function getGuruData(guruId: string) {
+	try {
+		const guru = await prisma.guru.findUnique({
+			where: { id: guruId },
+			include: { user: true },
+		});
+		return guru;
+	} catch (error) {
+		console.error("Error getGuruData:", error);
+		return null;
+	}
+}

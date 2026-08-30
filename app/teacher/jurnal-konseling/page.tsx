@@ -22,6 +22,15 @@ export default async function JurnalKonselingPage({ searchParams }: { searchPara
 
 	if (!currentUser || !currentUser.guru) redirect("/teacher/dashboard");
 
+	const guru = await prisma.guru.findUnique({
+		where: { id: currentUser.guru.id },
+		include: { user: true }
+	});
+
+	const kepsek = await prisma.user.findFirst({
+		where: { role: "KEPSEK" },
+	});
+
 	// Get all Tahun Ajaran
 	const daftarTahunAjaran = await prisma.tahunAjaran.findMany({
 		orderBy: { nama: "desc" },
@@ -109,6 +118,8 @@ export default async function JurnalKonselingPage({ searchParams }: { searchPara
 			selectedTaId={selectedTaId}
 			daftarKelas={daftarKelasAssign}
 			guruId={currentUser.guru.id}
+			guruData={guru ? { nama: guru.user.nama, nip: guru.user.username } : null}
+			kepsekData={kepsek ? { nama: kepsek.nama, nip: kepsek.username } : null}
 		/>
 	);
 }

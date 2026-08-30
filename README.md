@@ -60,6 +60,16 @@ docker compose up -d --build
 
 ## 🚀 Changelog (Pembaruan Terkini)
 
+### v1.7.0 - Modul Bimbingan dan Konseling (BK)
+- **Dasbor Guru BK & Wali Kelas:**
+  - **Jurnal Konseling**: Guru BK kini dapat mencatat jurnal layanan bimbingan (pribadi, sosial, belajar, karir) untuk satu atau beberapa kelas sekaligus.
+  - **Sasaran Terintegrasi**: Form sasaran siswa akan otomatis memfilter dan menyesuaikan dengan kelas yang dipilih (dicentang) oleh Guru BK. Mendukung pemanggilan banyak siswa sekaligus dalam satu sesi layanan.
+  - **Akses Wali Kelas**: Wali kelas secara *real-time* mendapatkan akses pantauan histori konseling khusus untuk siswa di kelas asuhannya saja (meminimalisir penumpukan data dari kelas lain).
+- **Laporan & Manajemen Konseling:**
+  - **UI Modern & Edit Cepat**: Tampilan tabel Jurnal Konseling kini menggunakan desain *modern card* (seperti Data Master). Dilengkapi fitur sunting (Edit) instan dengan pengisian data otomatis (*auto-fill*).
+  - **Ekspor PDF Berkualitas**: Laporan layanan Konseling BK dapat diunduh menjadi PDF presisi berdasarkan rentang waktu yang dipilih (*Date Picker*). Didukung halaman sampul (*Cover*), *Chunking Pagination*, serta tanda tangan (NIP/Nama) Kepala Sekolah dan Guru BK yang disesuaikan secara dinamis langsung dari *database*.
+  - Modul pantauan jurnal konseling ini juga dapat diakses oleh Kepala Sekolah melalui akun Pimpinan.
+
 ### v1.6.0 - Integrasi Literasi & Numerasi (Lino) & Perbaikan Sistem
 - **Sistem Literasi & Numerasi Terpadu:**
   - Jurnal Guru kini secara otomatis menampilkan mata pelajaran "Literasi" dan "Numerasi" tanpa perlu jadwal khusus dari Admin.
