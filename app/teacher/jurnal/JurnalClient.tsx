@@ -1745,7 +1745,7 @@ export default function JurnalClient({
 																	<>
 																		{alasanIzinEdits[siswa.id] && <div>{alasanIzinEdits[siswa.id]}</div>}
 																		{fileBuktiEdits[siswa.id] && (
-																			<a href={fileBuktiEdits[siswa.id]} target="_blank" rel="noreferrer" style={{ color: "#2563eb", textDecoration: "underline", fontSize: "0.8rem", display: "inline-block" }}>
+																			<a href={fileBuktiEdits[siswa.id]} target="_blank" rel="noreferrer" style={{ color: "#2563eb", textDecoration: "none", fontSize: "0.8rem", display: "inline-block", fontWeight: 500 }}>
 																				Lihat Surat
 																			</a>
 																		)}
