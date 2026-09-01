@@ -221,7 +221,7 @@ export default function TkaClient({ tahunAjaran, mapelTkaList, guruList, rombelL
 	
 	const HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 	const mapHariToInt: Record<string, number> = { "Senin": 1, "Selasa": 2, "Rabu": 3, "Kamis": 4, "Jumat": 5, "Sabtu": 6 };
-	const SLOT_WAKTU = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
+	const SLOT_WAKTU = ["1", "2", "3", "4", "5", "6"];
 
 	const openJadwalModal = (rombel: any) => {
 		setActiveRombel(rombel);

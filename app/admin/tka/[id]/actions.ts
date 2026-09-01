@@ -130,10 +130,6 @@ export async function updateSiswaRombelAction(kelasId: string, siswaIds: string[
 			});
 
 			if (siswaIds.length > 0) {
-				// Hapus siswa ini dari rombel TKA manapun di tahun ini agar tidak ada duplikasi
-				await tx.riwayatKelasSiswa.deleteMany({
-					where: { siswaId: { in: siswaIds }, tahunAjaranId, isTka: true },
-				});
 				await tx.riwayatKelasSiswa.createMany({
 					data: siswaIds.map((id) => ({
 						siswaId: id,

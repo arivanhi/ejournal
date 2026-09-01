@@ -211,8 +211,8 @@ model RiwayatKelasSiswa {
   kelas         Kelas       @relation(fields: [kelasId], references: [id], onDelete: Cascade)
   tahunAjaran   TahunAjaran @relation(fields: [tahunAjaranId], references: [id], onDelete: Cascade)
 
-  // Menjamin 1 siswa hanya berada di 1 kelas reguler dan 1 rombel TKA pada tahun ajaran yang sama
-  @@unique([siswaId, tahunAjaranId, isTka]) 
+  // Menjamin 1 siswa tidak masuk ke kelas yang sama lebih dari 1 kali di tahun ajaran yang sama
+  @@unique([siswaId, tahunAjaranId, kelasId]) 
 }
 
 // =======================
