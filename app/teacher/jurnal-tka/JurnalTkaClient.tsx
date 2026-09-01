@@ -1747,10 +1747,28 @@ export default function JurnalTkaClient({
 															</span>
 														</td>
 														<td>
-															<div style={{ fontSize: "0.875rem", color: "#64748b", whiteSpace: "pre-line" }}>
-																{currentStatus === "D" || currentStatus === "S" || currentStatus === "I"
-																	? (alasanIzinEdits[siswa.id] && <div style={{ marginBottom: "0.25rem" }}>{alasanIzinEdits[siswa.id]}</div>)
-																	: null}
+															<div style={{ fontSize: "0.875rem", color: "#64748b", whiteSpace: "pre-line", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+																{currentStatus === "D" || currentStatus === "S" || currentStatus === "I" ? (
+																	<>
+																		{alasanIzinEdits[siswa.id] && <div>{alasanIzinEdits[siswa.id]}</div>}
+																		{fileBuktiEdits[siswa.id] && (
+																			<a href={fileBuktiEdits[siswa.id]} target="_blank" rel="noreferrer" style={{ color: "#2563eb", textDecoration: "underline", fontSize: "0.8rem", display: "inline-block" }}>
+																				Lihat Surat
+																			</a>
+																		)}
+																		<button
+																			onClick={() => {
+																				setCurrentSiswaIzin({ id: siswa.id, nama: siswa.user?.nama || "Siswa" });
+																				setInputAlasan(alasanIzinEdits[siswa.id] || "");
+																				setFileInputKey(Date.now());
+																				setIsModalIzinOpen(true);
+																			}}
+																			style={{ color: "#10b981", background: "none", border: "none", fontSize: "0.8rem", cursor: "pointer", padding: 0, textAlign: "left", display: "inline-flex", alignItems: "center", gap: "0.25rem", width: "fit-content" }}
+																		>
+																			<Edit size={12} /> Edit Alasan/Surat
+																		</button>
+																	</>
+																) : null}
 																{isTerlambatEdits[siswa.id]
 																	? (
 																		<div>
