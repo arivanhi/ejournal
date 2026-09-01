@@ -769,6 +769,10 @@ export default function JurnalTkaClient({
 											onChange={async (e) => {
 												if (e.target.files && e.target.files[0]) {
 													const file = e.target.files[0];
+													if (file.size > 10 * 1024 * 1024) {
+														alert("Ukuran file maksimal 10MB!");
+														return;
+													}
 													setUploadingBukti(true);
 													const formData = new FormData();
 													formData.append("file", file);
