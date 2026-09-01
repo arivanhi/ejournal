@@ -130,6 +130,11 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 	const [pdfClasses, setPdfClasses] = useState<any[]>([]);
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+	// State Modal Detail Kehadiran Siswa
+	const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+	const [selectedSiswaDetail, setSelectedSiswaDetail] = useState<any>(null);
+	const [loadingDetail, setLoadingDetail] = useState(false);
+
 	const HARI_MAP = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
 	const showToast = (message: string) => {
@@ -142,6 +147,26 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 		setActiveTab("presensi");
 		setViewMode("detail");
 		setSearchSiswa("");
+	};
+
+	const handleRowClick = async (siswa: any) => {
+		setSelectedSiswaDetail({ ...siswa, history: null, summary: null });
+		setIsDetailModalOpen(true);
+		setLoadingDetail(true);
+		try {
+			const res = await fetch(`/api/kehadiran/siswa/${siswa.id}`);
+			const data = await res.json();
+			if (data.success) {
+				setSelectedSiswaDetail((prev: any) => ({ ...prev, history: data.data, summary: data.summary }));
+			} else {
+				showToast(data.message || "Gagal mengambil data detail.");
+			}
+		} catch (err) {
+			console.error(err);
+			showToast("Terjadi kesalahan jaringan.");
+		} finally {
+			setLoadingDetail(false);
+		}
 	};
 
 	const filteredKelas = dataKelas.filter((k: any) => {
@@ -919,9 +944,17 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 																	statusBadge = <span className={styles.badgeRedLight}>Alpa</span>;
 
 																return (
-																	<tr key={siswa.id}>
+																	<tr 
+																		key={siswa.id} 
+																		onClick={() => handleRowClick(siswa)}
+																		style={{ cursor: "pointer" }}
+																		className={styles.tableRowHover}
+																		title="Klik untuk melihat detail riwayat kehadiran"
+																	>
 																		<td style={{ textAlign: "center" }}>{startIndex + index + 1}</td>
-																		<td style={{ fontWeight: 600, color: "#0f172a" }}>{siswa.nama}</td>
+																		<td style={{ fontWeight: 600, color: "#0f172a" }}>
+																			{siswa.nama}
+																		</td>
 																		<td style={{ color: "#64748b" }}>{siswa.nisn || "-"}</td>
 																		<td style={{ textAlign: "center", fontWeight: 700, color: "#10b981", backgroundColor: "#f8fafc" }}>
 																			{siswa.detailKehadiran.H}
@@ -1015,6 +1048,117 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 					</div>
 				)}
 			</div>
+
+			{/* MODAL DETAIL RIWAYAT SISWA */}
+			{isDetailModalOpen && selectedSiswaDetail && (
+				<div className={styles.modalOverlay}>
+					<div className={styles.modalContainer} style={{ maxWidth: "800px", width: "95%", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+						<div className={styles.modalHeader}>
+							<div style={{ display: "flex", flexDirection: "column" }}>
+								<h3 className={styles.modalTitle}>Detail Kehadiran: {selectedSiswaDetail.nama}</h3>
+								<span style={{ fontSize: "0.875rem", color: "#64748b" }}>NISN: {selectedSiswaDetail.nisn} | Kelas: {selectedKelas?.nama}</span>
+							</div>
+							<button className={styles.modalCloseBtn} onClick={() => setIsDetailModalOpen(false)}>
+								<X size={20} />
+							</button>
+						</div>
+
+						<div className={styles.modalBody} style={{ padding: "1.5rem", overflowY: "auto", flex: 1 }}>
+							{loadingDetail ? (
+								<div style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
+									<div className={styles.spinner}></div>
+									<p style={{ marginTop: "1rem" }}>Memuat riwayat kehadiran...</p>
+								</div>
+							) : selectedSiswaDetail.history ? (
+								<>
+									{/* SUMMARY WIDGETS */}
+									<div style={{ display: "flex", gap: "1rem", marginBottom: "2rem", flexWrap: "wrap" }}>
+										<div style={{ flex: 1, minWidth: "100px", padding: "1rem", backgroundColor: "#f0fdf4", borderRadius: "0.5rem", textAlign: "center" }}>
+											<div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#16a34a" }}>{selectedSiswaDetail.summary?.H || 0}</div>
+											<div style={{ fontSize: "0.75rem", color: "#15803d", fontWeight: 600 }}>HADIR</div>
+										</div>
+										<div style={{ flex: 1, minWidth: "100px", padding: "1rem", backgroundColor: "#fef3c7", borderRadius: "0.5rem", textAlign: "center" }}>
+											<div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#d97706" }}>{selectedSiswaDetail.summary?.S || 0}</div>
+											<div style={{ fontSize: "0.75rem", color: "#b45309", fontWeight: 600 }}>SAKIT</div>
+										</div>
+										<div style={{ flex: 1, minWidth: "100px", padding: "1rem", backgroundColor: "#ffedd5", borderRadius: "0.5rem", textAlign: "center" }}>
+											<div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#ea580c" }}>{selectedSiswaDetail.summary?.I || 0}</div>
+											<div style={{ fontSize: "0.75rem", color: "#c2410c", fontWeight: 600 }}>IZIN</div>
+										</div>
+										<div style={{ flex: 1, minWidth: "100px", padding: "1rem", backgroundColor: "#fef2f2", borderRadius: "0.5rem", textAlign: "center" }}>
+											<div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#dc2626" }}>{selectedSiswaDetail.summary?.A || 0}</div>
+											<div style={{ fontSize: "0.75rem", color: "#b91c1c", fontWeight: 600 }}>ALPA</div>
+										</div>
+										<div style={{ flex: 1, minWidth: "100px", padding: "1rem", backgroundColor: "#f3f4f6", borderRadius: "0.5rem", textAlign: "center" }}>
+											<div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#4b5563" }}>{selectedSiswaDetail.summary?.T || 0}</div>
+											<div style={{ fontSize: "0.75rem", color: "#374151", fontWeight: 600 }}>TERLAMBAT</div>
+										</div>
+										<div style={{ flex: 1, minWidth: "100px", padding: "1rem", backgroundColor: "#eff6ff", borderRadius: "0.5rem", textAlign: "center" }}>
+											<div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#2563eb" }}>{selectedSiswaDetail.summary?.D || 0}</div>
+											<div style={{ fontSize: "0.75rem", color: "#1d4ed8", fontWeight: 600 }}>DISPENSASI</div>
+										</div>
+									</div>
+
+									{/* TABLE HISTORY */}
+									{selectedSiswaDetail.history.length === 0 ? (
+										<div style={{ textAlign: "center", padding: "2rem", color: "#94a3b8" }}>Belum ada rekaman presensi semester ini.</div>
+									) : (
+										<div className={styles.tableWrapper}>
+											<table className={styles.dataTable}>
+												<thead>
+													<tr>
+														<th style={{ width: "15%" }}>Tanggal</th>
+														<th style={{ width: "15%" }}>Mata Pelajaran</th>
+														<th style={{ width: "15%" }}>Guru</th>
+														<th style={{ width: "15%" }}>Status</th>
+														<th style={{ width: "30%" }}>Alasan</th>
+														<th style={{ width: "10%" }}>Berkas</th>
+													</tr>
+												</thead>
+												<tbody>
+													{selectedSiswaDetail.history.map((h: any) => {
+														let badgeStyle = styles.badgeNeutral;
+														if (h.statusLabel === "Hadir") badgeStyle = styles.badgeGreenLight;
+														if (h.statusLabel === "Sakit") badgeStyle = styles.badgeYellowLight;
+														if (h.statusLabel === "Izin") badgeStyle = styles.badgeYellowLight;
+														if (h.statusLabel === "Alpa") badgeStyle = styles.badgeRedLight;
+														if (h.statusLabel === "Terlambat") badgeStyle = styles.badgeBlueLight;
+														if (h.statusLabel === "Dispensasi") badgeStyle = styles.badgeBlueLight;
+														
+														return (
+															<tr key={h.id}>
+																<td>
+																	{new Date(h.tanggal).toLocaleDateString("id-ID", {
+																		weekday: "short",
+																		day: "2-digit",
+																		month: "short",
+																		year: "numeric"
+																	})}
+																</td>
+																<td>{h.mapel}</td>
+																<td>{h.guru}</td>
+																<td><span className={badgeStyle}>{h.statusLabel}</span></td>
+																<td>{h.alasan}</td>
+																<td>
+																	{h.fileBukti ? (
+																		<a href={h.fileBukti} target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }} title="Lihat Berkas">
+																			<FileText size={20} />
+																		</a>
+																	) : "-"}
+																</td>
+															</tr>
+														);
+													})}
+												</tbody>
+											</table>
+										</div>
+									)}
+								</>
+							) : null}
+						</div>
+					</div>
+				</div>
+			)}
 		</>
 	);
 }

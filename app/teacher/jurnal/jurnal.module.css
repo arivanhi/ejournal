@@ -504,7 +504,7 @@
 	border-bottom-color: #0a2540;
 }
 
-/* === VIEW 3: DETAIL PRESENSI (REFACTOR RESPONSIVE) === */
+/* === VIEW 3: DETAIL PRESENSI === */
 .presensiHeader {
 	display: flex;
 	justify-content: space-between;
@@ -775,10 +775,13 @@
 	}
 }
 
-/* === TOAST NOTIFICATION === */
+/* ==========================================================================
+   TOAST NOTIFICATION (Diperbarui)
+   ========================================================================== */
 .toastContainer {
 	position: fixed;
-	bottom: 2rem;
+	top: 2rem;
+	/* Mengubah posisi menjadi di Atas Kanan untuk Desktop */
 	right: 2rem;
 	z-index: 10000;
 	display: flex;
@@ -834,6 +837,18 @@
 	}
 }
 
+@keyframes slideDownMobile {
+	from {
+		transform: translateY(-100%);
+		opacity: 0;
+	}
+
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+
 /* === RESPONSIVE UTAMA === */
 .formGrid {
 	display: grid;
@@ -869,7 +884,7 @@
 }
 
 /* ==========================================================================
-   RESPONSIVE KHUSUS MOBILE (FIX VIEW 3)
+   RESPONSIVE KHUSUS MOBILE 
    ========================================================================== */
 @media (max-width: 768px) {
 	.dashboardContainer {
@@ -879,7 +894,26 @@
 		overflow-x: hidden;
 	}
 
-	/* Fix Header Presensi (Tidak tergencet) */
+	/* Fix Toast Mobile (Geser menjadi Atas Tengah) */
+	.toastContainer {
+		top: 1rem;
+		bottom: auto;
+		left: 50%;
+		right: auto;
+		transform: translateX(-50%);
+		width: 90%;
+		align-items: center;
+	}
+
+	.toast {
+		width: 100%;
+		min-width: unset;
+		justify-content: center;
+		/* Memastikan teks dan ikon di tengah */
+		animation: slideDownMobile 0.3s cubic-bezier(0.16, 1, 0.3, 1), fadeOut 0.5s ease-in forwards 3s;
+	}
+
+	/* Fix Header Presensi */
 	.presensiHeader {
 		flex-direction: column;
 		align-items: flex-start;
@@ -890,7 +924,7 @@
 		justify-content: center;
 	}
 
-	/* Fix Summary Cards (Ikon di atas, Text di bawah) */
+	/* Fix Summary Cards */
 	.summaryCard {
 		flex-direction: column;
 		text-align: center;
@@ -908,7 +942,7 @@
 		margin-bottom: 0.5rem;
 	}
 
-	/* Fix Table Toolbar & Search Bar (Full Width) */
+	/* Fix Table Toolbar & Search Bar */
 	.tableToolbar {
 		flex-direction: column;
 		align-items: flex-start;
@@ -918,6 +952,7 @@
 
 	.searchWrapper {
 		width: 100%;
+		flex-direction: column;
 	}
 
 	.searchContainer {
@@ -933,6 +968,5 @@
 
 	.tableStyle {
 		min-width: 700px;
-		/* Force table to scroll instead of squishing */
 	}
 }

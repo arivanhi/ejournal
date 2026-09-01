@@ -54,6 +54,7 @@ export default async function KehadiranPage() {
 	endOfDay.setHours(23, 59, 59, 999);
 
 	const semuaKelasRaw = await prisma.kelas.findMany({
+		where: { nama: { startsWith: "X" } },
 		include: {
 			waliKelas: { include: { guru: { include: { user: true } } } },
 			riwayatSiswa: {

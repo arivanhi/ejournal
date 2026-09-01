@@ -1,3 +1,4 @@
+// app/teacher/jurnal/ClientUI.tsx
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -623,7 +624,7 @@ export default function JurnalClient({
 
 	return (
 		<>
-			{/* === TOAST NOTIFICATION === */}
+			{/* === TOAST NOTIFICATION (Posisi Baru: Atas Kanan) === */}
 			<div className={styles.toastContainer}>
 				{toasts.map((toast) => (
 					<div
@@ -1406,208 +1407,203 @@ export default function JurnalClient({
 				)}
 
 				{/* === VIEW 3: DETAIL PRESENSI (MANUAL) === */}
-				{viewMode === "presensi" && activeJurnal && activeJadwal && (
-					<div>
-						<div style={{ fontSize: "0.875rem", color: "#64748b", marginBottom: "1rem" }}>
-							Jurnal Mengajar &gt; {activeJadwal.mapel.nama} {activeJadwal.kelas.nama} &gt;{" "}
-							<span style={{ fontWeight: 600, color: "#0f172a" }}>Detail Presensi</span>
-						</div>
+				{viewMode === "presensi" && activeJurnal && activeJadwal && (() => {
+					// --- LOGIKA FILTER, SORTING, DAN PAGINATION DIEKSTRAK KE SINI ---
+					let sortedData = [...activeJadwal.kelas.riwayatSiswa];
 
-						{/* PERBAIKAN 1: BUNGKUS HEADER PRESENSI DENGAN CLASS CSS AGAR RESPONSIVE */}
-						<div className={styles.presensiHeader}>
-							<div>
-								<h2 className={styles.presensiTitle}>
-									Presensi Manual - {activeJadwal.mapel.nama} {activeJadwal.kelas.nama}
-								</h2>
-								<div className={styles.presensiSubtitle}>
-									<CalendarDays size={16} />
-									{new Date(activeJurnal.tanggal).toLocaleDateString("id-ID", {
-										weekday: "long",
-										day: "numeric",
-										month: "long",
-										year: "numeric",
-									})}{" "}
-									| {activeJadwal.displaySesi}  ({activeJurnal.waktuMulai && activeJurnal.waktuSelesai
-										? `${activeJurnal.waktuMulai} - ${activeJurnal.waktuSelesai}`
-										: activeJadwal.waktuRentang}{" "}
-									WIB)
-								</div>
-							</div>
-							<button
-								className={`${styles.btnOutlineFull} ${styles.btnExportMobile}`}
-								onClick={handleDownloadPdf}
-								disabled={isDownloading}
-							>
-								<Download size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: "0.5rem" }} />{" "}
-								{isDownloading ? "Memproses PDF..." : "Export PDF"}
-							</button>
-						</div>
+					if (search) {
+						sortedData = sortedData.filter((rs: any) => {
+							const searchTerm = search.toLowerCase();
+							const namaMatch = (rs.siswa.user?.nama || "").toLowerCase().includes(searchTerm);
+							const nisMatch = (rs.siswa.nis || "").toLowerCase().includes(searchTerm);
+							return namaMatch || nisMatch;
+						});
+					}
 
-						{/* PERBAIKAN 2: REFACTOR STATS GRID DENGAN CSS CLASS */}
-						<div className={styles.statsGrid}>
-							<div className={styles.summaryCard}>
-								<div className={styles.iconCircleBlue}>
-									<Users size={24} color="#3b82f6" />
-								</div>
-								<div className={styles.statTextContainer}>
-									<div className={styles.statLabel}>Total Siswa</div>
-									<div className={styles.statValueBlue}>
-										{activeJadwal.kelas?.riwayatSiswa?.length || 0}
+					sortedData.sort((a, b) => {
+						let valA: any = "";
+						let valB: any = "";
+
+						switch (sortColumn) {
+							case "nis":
+								valA = a.siswa.nis;
+								valB = b.siswa.nis;
+								break;
+							case "nama":
+								valA = (a.siswa.user?.nama || "").toLowerCase();
+								valB = (b.siswa.user?.nama || "").toLowerCase();
+								break;
+							case "jk":
+								valA = a.siswa.jenisKelamin;
+								valB = b.siswa.jenisKelamin;
+								break;
+							case "status":
+								valA = presensiEdits[a.siswa.id] || "A";
+								valB = presensiEdits[b.siswa.id] || "A";
+								break;
+							case "nilai":
+								valA = nilaiTugasEdits[a.siswa.id] || -1;
+								valB = nilaiTugasEdits[b.siswa.id] || -1;
+								break;
+						}
+
+						if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+						if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+						return 0;
+					});
+
+					const totalItems = sortedData.length;
+					const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+					const startIndex = (currentPageRekap - 1) * itemsPerPage;
+					const paginatedData = sortedData.slice(startIndex, startIndex + itemsPerPage);
+
+					// --- LOGIKA ADVANCED PAGINATION ---
+					const getPageNumbers = () => {
+						const delta = 1;
+						const range = [];
+						for (let i = Math.max(2, currentPageRekap - delta); i <= Math.min(totalPages - 1, currentPageRekap + delta); i++) {
+							range.push(i);
+						}
+						if (currentPageRekap - delta > 2) range.unshift("...");
+						if (currentPageRekap + delta < totalPages - 1) range.push("...");
+
+						range.unshift(1);
+						if (totalPages > 1) range.push(totalPages);
+						return range;
+					};
+
+					return (
+						<div>
+							<div style={{ fontSize: "0.875rem", color: "#64748b", marginBottom: "1rem" }}>
+								Jurnal Mengajar &gt; {activeJadwal.mapel.nama} {activeJadwal.kelas.nama} &gt;{" "}
+								<span style={{ fontWeight: 600, color: "#0f172a" }}>Detail Presensi</span>
+							</div>
+
+							<div className={styles.presensiHeader}>
+								<div>
+									<h2 className={styles.presensiTitle}>
+										Presensi Manual - {activeJadwal.mapel.nama} {activeJadwal.kelas.nama}
+									</h2>
+									<div className={styles.presensiSubtitle}>
+										<CalendarDays size={16} />
+										{new Date(activeJurnal.tanggal).toLocaleDateString("id-ID", {
+											weekday: "long",
+											day: "numeric",
+											month: "long",
+											year: "numeric",
+										})}{" "}
+										| {activeJadwal.displaySesi}  ({activeJurnal.waktuMulai && activeJurnal.waktuSelesai
+											? `${activeJurnal.waktuMulai} - ${activeJurnal.waktuSelesai}`
+											: activeJadwal.waktuRentang}{" "}
+										WIB)
 									</div>
 								</div>
+								<button
+									className={`${styles.btnOutlineFull} ${styles.btnExportMobile}`}
+									onClick={handleDownloadPdf}
+									disabled={isDownloading}
+								>
+									<Download size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: "0.5rem" }} />{" "}
+									{isDownloading ? "Memproses PDF..." : "Export PDF"}
+								</button>
 							</div>
-							<div className={styles.summaryCard}>
-								<div className={styles.iconCircleGreen}>
-									<CheckCircle2 size={24} color="#10b981" />
-								</div>
-								<div className={styles.statTextContainer}>
-									<div className={styles.statLabel}>Hadir</div>
-									<div className={styles.statValueGreen}>
-										{activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H" || presensiEdits[rs.siswa.id] === "D")
-											.length || 0}
+
+							<div className={styles.statsGrid}>
+								<div className={styles.summaryCard}>
+									<div className={styles.iconCircleBlue}>
+										<Users size={24} color="#3b82f6" />
+									</div>
+									<div className={styles.statTextContainer}>
+										<div className={styles.statLabel}>Total Siswa</div>
+										<div className={styles.statValueBlue}>
+											{activeJadwal.kelas?.riwayatSiswa?.length || 0}
+										</div>
 									</div>
 								</div>
-							</div>
-							<div className={styles.summaryCard}>
-								<div className={styles.iconCircleYellow}>
-									<Clock size={24} color="#f59e0b" />
-								</div>
-								<div className={styles.statTextContainer}>
-									<div className={styles.statLabel}>Izin/Sakit</div>
-									<div className={styles.statValueYellow}>
-										{activeJadwal.kelas?.riwayatSiswa?.filter(
-											(rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
-										).length || 0}
+								<div className={styles.summaryCard}>
+									<div className={styles.iconCircleGreen}>
+										<CheckCircle2 size={24} color="#10b981" />
+									</div>
+									<div className={styles.statTextContainer}>
+										<div className={styles.statLabel}>Hadir</div>
+										<div className={styles.statValueGreen}>
+											{activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H" || presensiEdits[rs.siswa.id] === "D")
+												.length || 0}
+										</div>
 									</div>
 								</div>
-							</div>
-							<div className={styles.summaryCard}>
-								<div className={styles.iconCircleRed}>
-									<X size={24} color="#ef4444" />
-								</div>
-								<div className={styles.statTextContainer}>
-									<div className={styles.statLabel}>Alpha/Belum</div>
-									<div className={styles.statValueRed}>
-										{(activeJadwal.kelas?.riwayatSiswa?.length || 0) -
-											(activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H" || presensiEdits[rs.siswa.id] === "D")
-												.length || 0) -
-											(activeJadwal.kelas?.riwayatSiswa?.filter(
+								<div className={styles.summaryCard}>
+									<div className={styles.iconCircleYellow}>
+										<Clock size={24} color="#f59e0b" />
+									</div>
+									<div className={styles.statTextContainer}>
+										<div className={styles.statLabel}>Izin/Sakit</div>
+										<div className={styles.statValueYellow}>
+											{activeJadwal.kelas?.riwayatSiswa?.filter(
 												(rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
-											).length || 0)}
+											).length || 0}
+										</div>
+									</div>
+								</div>
+								<div className={styles.summaryCard}>
+									<div className={styles.iconCircleRed}>
+										<X size={24} color="#ef4444" />
+									</div>
+									<div className={styles.statTextContainer}>
+										<div className={styles.statLabel}>Alpha/Belum</div>
+										<div className={styles.statValueRed}>
+											{(activeJadwal.kelas?.riwayatSiswa?.length || 0) -
+												(activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H" || presensiEdits[rs.siswa.id] === "D")
+													.length || 0) -
+												(activeJadwal.kelas?.riwayatSiswa?.filter(
+													(rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S",
+												).length || 0)}
+										</div>
 									</div>
 								</div>
 							</div>
-						</div>
 
-						<div className={styles.tableCard}>
-							{/* PERBAIKAN 3: REFACTOR TABLE TOOLBAR & SEARCH BAR */}
-							<div className={styles.tableToolbar}>
-								<div className={styles.tableTitle}>Daftar Kehadiran</div>
-								<div className={styles.searchWrapper} style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-									<button
-										onClick={handleMassalHadirClick}
-										className={styles.btnOutlineFull}
-										style={{ padding: "0.5rem 1rem", height: "100%" }}
-									>
-										<UserCheck size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: "0.25rem" }} /> Tandai Semua Hadir
-									</button>
-									<div className={styles.searchContainer}>
-										<Search size={16} className={styles.searchIcon} />
-										<input
-											type="text"
-											placeholder="Cari nama siswa..."
-											value={search}
-											onChange={(e) => setSearch(e.target.value)}
-											className={styles.searchInput}
-										/>
+							<div className={styles.tableCard}>
+								<div className={styles.tableToolbar}>
+									<div className={styles.tableTitle}>Daftar Kehadiran</div>
+									<div className={styles.searchWrapper} style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+										<button
+											onClick={handleMassalHadirClick}
+											className={styles.btnOutlineFull}
+											style={{ padding: "0.5rem 1rem", height: "100%" }}
+										>
+											<UserCheck size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: "0.25rem" }} /> Tandai Semua Hadir
+										</button>
+										<div className={styles.searchContainer}>
+											<Search size={16} className={styles.searchIcon} />
+											<input
+												type="text"
+												placeholder="Cari nama siswa..."
+												value={search}
+												onChange={(e) => {
+													setSearch(e.target.value);
+													setCurrentPageRekap(1); // Reset halaman ke 1 saat mencari
+												}}
+												className={styles.searchInput}
+											/>
+										</div>
 									</div>
 								</div>
-							</div>
-							<div style={{ overflowX: "auto", width: "100%" }}>
-								<table className={styles.tableStyle}>
-									<thead>
-										<tr>
-											<th>No</th>
-											<th
-												style={{ cursor: "pointer" }}
-												onClick={() => {
-													if (sortColumn === "nis") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-													else { setSortColumn("nis"); setSortDirection("asc"); }
-												}}
-											>
-												<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-													NIS
-													{sortColumn === "nis" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
-														<div style={{ display: "flex", flexDirection: "column", opacity: 0.3 }}>
-															<ArrowUp size={10} style={{ marginBottom: "-4px" }} />
-															<ArrowDown size={10} />
-														</div>
-													)}
-												</div>
-											</th>
-											<th
-												style={{ cursor: "pointer" }}
-												onClick={() => {
-													if (sortColumn === "nama") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-													else { setSortColumn("nama"); setSortDirection("asc"); }
-												}}
-											>
-												<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-													Nama Siswa
-													{sortColumn === "nama" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
-														<div style={{ display: "flex", flexDirection: "column", opacity: 0.3 }}>
-															<ArrowUp size={10} style={{ marginBottom: "-4px" }} />
-															<ArrowDown size={10} />
-														</div>
-													)}
-												</div>
-											</th>
-											<th
-												style={{ cursor: "pointer" }}
-												onClick={() => {
-													if (sortColumn === "jk") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-													else { setSortColumn("jk"); setSortDirection("asc"); }
-												}}
-											>
-												<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-													L/P
-													{sortColumn === "jk" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
-														<div style={{ display: "flex", flexDirection: "column", opacity: 0.3 }}>
-															<ArrowUp size={10} style={{ marginBottom: "-4px" }} />
-															<ArrowDown size={10} />
-														</div>
-													)}
-												</div>
-											</th>
-											<th
-												style={{ cursor: "pointer" }}
-												onClick={() => {
-													if (sortColumn === "status") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-													else { setSortColumn("status"); setSortDirection("asc"); }
-												}}
-											>
-												<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-													Status Terakhir
-													{sortColumn === "status" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
-														<div style={{ display: "flex", flexDirection: "column", opacity: 0.3 }}>
-															<ArrowUp size={10} style={{ marginBottom: "-4px" }} />
-															<ArrowDown size={10} />
-														</div>
-													)}
-												</div>
-											</th>
-											<th>Alasan</th>
-											{activeJurnal.tugas && (
+								<div style={{ overflowX: "auto", width: "100%" }}>
+									<table className={styles.tableStyle}>
+										<thead>
+											<tr>
+												<th>No</th>
 												<th
-													style={{ cursor: "pointer", textAlign: "center", width: "120px" }}
+													style={{ cursor: "pointer" }}
 													onClick={() => {
-														if (sortColumn === "nilai") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-														else { setSortColumn("nilai"); setSortDirection("asc"); }
+														if (sortColumn === "nis") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+														else { setSortColumn("nis"); setSortDirection("asc"); }
 													}}
 												>
-													<div style={{ display: "flex", alignItems: "center", gap: "0.25rem", justifyContent: "center" }}>
-														Nilai Tugas
-														{sortColumn === "nilai" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
+													<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+														NIS
+														{sortColumn === "nis" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
 															<div style={{ display: "flex", flexDirection: "column", opacity: 0.3 }}>
 																<ArrowUp size={10} style={{ marginBottom: "-4px" }} />
 																<ArrowDown size={10} />
@@ -1615,408 +1611,447 @@ export default function JurnalClient({
 														)}
 													</div>
 												</th>
-											)}
-											<th style={{ textAlign: "center", width: "150px" }}>Aksi Manual</th>
-										</tr>
-									</thead>
-									<tbody>
-										{(() => {
-											let sortedData = [...activeJadwal.kelas.riwayatSiswa];
+												<th
+													style={{ cursor: "pointer" }}
+													onClick={() => {
+														if (sortColumn === "nama") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+														else { setSortColumn("nama"); setSortDirection("asc"); }
+													}}
+												>
+													<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+														Nama Siswa
+														{sortColumn === "nama" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
+															<div style={{ display: "flex", flexDirection: "column", opacity: 0.3 }}>
+																<ArrowUp size={10} style={{ marginBottom: "-4px" }} />
+																<ArrowDown size={10} />
+															</div>
+														)}
+													</div>
+												</th>
+												<th
+													style={{ cursor: "pointer" }}
+													onClick={() => {
+														if (sortColumn === "jk") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+														else { setSortColumn("jk"); setSortDirection("asc"); }
+													}}
+												>
+													<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+														L/P
+														{sortColumn === "jk" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
+															<div style={{ display: "flex", flexDirection: "column", opacity: 0.3 }}>
+																<ArrowUp size={10} style={{ marginBottom: "-4px" }} />
+																<ArrowDown size={10} />
+															</div>
+														)}
+													</div>
+												</th>
+												<th
+													style={{ cursor: "pointer" }}
+													onClick={() => {
+														if (sortColumn === "status") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+														else { setSortColumn("status"); setSortDirection("asc"); }
+													}}
+												>
+													<div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+														Status Terakhir
+														{sortColumn === "status" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
+															<div style={{ display: "flex", flexDirection: "column", opacity: 0.3 }}>
+																<ArrowUp size={10} style={{ marginBottom: "-4px" }} />
+																<ArrowDown size={10} />
+															</div>
+														)}
+													</div>
+												</th>
+												<th>Alasan</th>
+												{activeJurnal.tugas && (
+													<th
+														style={{ cursor: "pointer", textAlign: "center", width: "120px" }}
+														onClick={() => {
+															if (sortColumn === "nilai") setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+															else { setSortColumn("nilai"); setSortDirection("asc"); }
+														}}
+													>
+														<div style={{ display: "flex", alignItems: "center", gap: "0.25rem", justifyContent: "center" }}>
+															Nilai Tugas
+															{sortColumn === "nilai" ? (sortDirection === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />) : (
+																<div style={{ display: "flex", flexDirection: "column", opacity: 0.3 }}>
+																	<ArrowUp size={10} style={{ marginBottom: "-4px" }} />
+																	<ArrowDown size={10} />
+																</div>
+															)}
+														</div>
+													</th>
+												)}
+												<th style={{ textAlign: "center", width: "150px" }}>Aksi Manual</th>
+											</tr>
+										</thead>
+										<tbody>
+											{totalItems === 0 ? (
+												<tr>
+													<td colSpan={activeJurnal.tugas ? 8 : 7} style={{ textAlign: "center", padding: "3rem", color: "#64748b", fontStyle: "italic" }}>
+														Tidak ada siswa yang cocok dengan pencarian "{search}".
+													</td>
+												</tr>
+											) : (
+												paginatedData.map((rs: any, index: number) => {
+													const siswa = rs.siswa;
+													const originalAbsensi = activeJurnal.presensi?.find((p: any) => p.siswaId === siswa.id);
+													const currentStatus = presensiEdits[siswa.id] || "";
 
-											// Gunakan fungsi filter di sini
-											if (search) {
-												sortedData = sortedData.filter((rs: any) => {
-													const searchTerm = search.toLowerCase();
-													const namaMatch = (rs.siswa.user?.nama || "").toLowerCase().includes(searchTerm);
-													const nisMatch = (rs.siswa.nis || "").toLowerCase().includes(searchTerm);
-													return namaMatch || nisMatch;
-												});
-											}
+													let badgeStyle = { bg: "#f1f5f9", text: "#64748b", label: "Belum Absen" };
+													if (currentStatus === "H") badgeStyle = { bg: "#d1fae5", text: "#047857", label: "Hadir" };
+													else if (currentStatus === "D") badgeStyle = { bg: "#d1fae5", text: "#047857", label: "Hadir Dispensasi" };
+													else if (currentStatus === "I") badgeStyle = { bg: "#fef3c7", text: "#b45309", label: "Izin" };
+													else if (currentStatus === "S") badgeStyle = { bg: "#dbeafe", text: "#1d4ed8", label: "Sakit" };
+													else if (currentStatus === "A") badgeStyle = { bg: "#fee2e2", text: "#b91c1c", label: "Alpha" };
 
-											sortedData.sort((a, b) => {
-												let valA: any = "";
-												let valB: any = "";
-
-												switch (sortColumn) {
-													case "nis":
-														valA = a.siswa.nis;
-														valB = b.siswa.nis;
-														break;
-													case "nama":
-														valA = (a.siswa.user?.nama || "").toLowerCase();
-														valB = (b.siswa.user?.nama || "").toLowerCase();
-														break;
-													case "jk":
-														valA = a.siswa.jenisKelamin;
-														valB = b.siswa.jenisKelamin;
-														break;
-													case "status":
-														valA = presensiEdits[a.siswa.id] || "A";
-														valB = presensiEdits[b.siswa.id] || "A";
-														break;
-													case "nilai":
-														valA = nilaiTugasEdits[a.siswa.id] || -1;
-														valB = nilaiTugasEdits[b.siswa.id] || -1;
-														break;
-												}
-
-												if (valA < valB) return sortDirection === "asc" ? -1 : 1;
-												if (valA > valB) return sortDirection === "asc" ? 1 : -1;
-												return 0;
-											});
-
-											const totalItems = sortedData.length;
-											const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-											const startIndex = (currentPageRekap - 1) * itemsPerPage;
-											const paginatedData = sortedData.slice(startIndex, startIndex + itemsPerPage);
-
-											if (totalItems === 0) {
-												return (
-													<tr>
-														<td colSpan={activeJurnal.tugas ? 8 : 7} style={{ textAlign: "center", padding: "3rem", color: "#64748b", fontStyle: "italic" }}>
-															Tidak ada siswa yang cocok dengan pencarian "{search}".
-														</td>
-													</tr>
-												);
-											}
-
-											return paginatedData.map((rs: any, index: number) => {
-												const siswa = rs.siswa;
-												const originalAbsensi = activeJurnal.presensi?.find((p: any) => p.siswaId === siswa.id);
-												const currentStatus = presensiEdits[siswa.id] || "";
-
-												let badgeStyle = { bg: "#f1f5f9", text: "#64748b", label: "Belum Absen" };
-												if (currentStatus === "H") badgeStyle = { bg: "#d1fae5", text: "#047857", label: "Hadir" };
-												else if (currentStatus === "D") badgeStyle = { bg: "#d1fae5", text: "#047857", label: "Hadir Dispensasi" };
-												else if (currentStatus === "I") badgeStyle = { bg: "#fef3c7", text: "#b45309", label: "Izin" };
-												else if (currentStatus === "S") badgeStyle = { bg: "#dbeafe", text: "#1d4ed8", label: "Sakit" };
-												else if (currentStatus === "A") badgeStyle = { bg: "#fee2e2", text: "#b91c1c", label: "Alpha" };
-
-												return (
-													<tr key={siswa.id}>
-														<td>{startIndex + index + 1}</td>
-														<td style={{ fontWeight: 500 }}>{siswa.nis}</td>
-														<td style={{ fontWeight: 600, color: "#0f172a" }}>
-															<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-																{siswa.user?.nama || "Nama Siswa"}
-																<button
-																	style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex" }}
-																	onClick={() => {
-																		const isCurrentlyLate = isTerlambatEdits[siswa.id];
-																		setIsTerlambatEdits({ ...isTerlambatEdits, [siswa.id]: !isCurrentlyLate });
-																		if (!isCurrentlyLate) {
-																			// Turning it ON, open modal
-																			setCurrentSiswaTerlambat({ id: siswa.id, nama: siswa.user?.nama || "Siswa" });
-																			setInputAlasanTerlambat(alasanTerlambatEdits[siswa.id] || "");
-																			setIsModalTerlambatOpen(true);
-																		} else {
-																			// Turning it OFF, clear reason and show toast
-																			setAlasanTerlambatEdits({ ...alasanTerlambatEdits, [siswa.id]: "" });
-																			showToast("Keterlambatan dibatalkan", "success");
+													return (
+														<tr key={siswa.id}>
+															<td>{startIndex + index + 1}</td>
+															<td style={{ fontWeight: 500 }}>{siswa.nis}</td>
+															<td style={{ fontWeight: 600, color: "#0f172a" }}>
+																<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+																	{siswa.user?.nama || "Nama Siswa"}
+																	<button
+																		style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex" }}
+																		onClick={() => {
+																			const isCurrentlyLate = isTerlambatEdits[siswa.id];
+																			setIsTerlambatEdits({ ...isTerlambatEdits, [siswa.id]: !isCurrentlyLate });
+																			if (!isCurrentlyLate) {
+																				setCurrentSiswaTerlambat({ id: siswa.id, nama: siswa.user?.nama || "Siswa" });
+																				setInputAlasanTerlambat(alasanTerlambatEdits[siswa.id] || "");
+																				setIsModalTerlambatOpen(true);
+																			} else {
+																				setAlasanTerlambatEdits({ ...alasanTerlambatEdits, [siswa.id]: "" });
+																				showToast("Keterlambatan dibatalkan", "success");
+																			}
+																		}}
+																		title={isTerlambatEdits[siswa.id] ? "Siswa ini ditandai terlambat (Klik untuk batalkan)" : "Tandai siswa terlambat"}
+																	>
+																		<AlertTriangle size={16} color={isTerlambatEdits[siswa.id] ? "#ef4444" : "#cbd5e1"} />
+																	</button>
+																</div>
+															</td>
+															<td>{siswa.jenisKelamin === "Laki-laki" ? "L" : "P"}</td>
+															<td>
+																<span
+																	style={{
+																		background: badgeStyle.bg,
+																		color: badgeStyle.text,
+																		padding: "0.35rem 0.75rem",
+																		borderRadius: "0.375rem",
+																		fontSize: "0.75rem",
+																		fontWeight: 700,
+																	}}
+																>
+																	{badgeStyle.label}{" "}
+																	{originalAbsensi?.waktuScan && currentStatus === (originalAbsensi.isDispensasi ? "D" : originalAbsensi.status)
+																		? `(${new Date(originalAbsensi.waktuScan).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })})`
+																		: ""}
+																</span>
+															</td>
+															<td>
+																<div style={{ fontSize: "0.875rem", color: "#64748b", whiteSpace: "pre-line", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+																	{currentStatus === "D" || currentStatus === "S" || currentStatus === "I" ? (
+																		<>
+																			{alasanIzinEdits[siswa.id] && <div>{alasanIzinEdits[siswa.id]}</div>}
+																			{fileBuktiEdits[siswa.id] && (
+																				<a href={fileBuktiEdits[siswa.id]?.replace('/storage/', '/api/file/')} target="_blank" rel="noreferrer" style={{ color: "#2563eb", textDecoration: "none", fontSize: "0.8rem", display: "inline-block", fontWeight: 500 }}>
+																					Lihat Surat
+																				</a>
+																			)}
+																			<button
+																				onClick={() => {
+																					setCurrentSiswaIzin({ id: siswa.id, nama: siswa.user?.nama || "Siswa" });
+																					setInputAlasan(alasanIzinEdits[siswa.id] || "");
+																					setFileInputKey(Date.now());
+																					setIsModalIzinOpen(true);
+																				}}
+																				style={{ color: "#10b981", background: "none", border: "none", fontSize: "0.8rem", cursor: "pointer", padding: 0, textAlign: "left", display: "inline-flex", alignItems: "center", gap: "0.25rem", width: "fit-content" }}
+																			>
+																				<Edit size={12} /> Edit Alasan/Surat
+																			</button>
+																		</>
+																	) : null}
+																	{isTerlambatEdits[siswa.id]
+																		? (
+																			<div>
+																				<span style={{ color: "#ef4444", fontWeight: 600 }}>Terlambat:</span> {alasanTerlambatEdits[siswa.id] || "-"}
+																			</div>
+																		) : null}
+																</div>
+															</td>
+															{activeJurnal.tugas && (
+																<td style={{ textAlign: "center" }}>
+																	<input
+																		type="number"
+																		step="0.01"
+																		className={styles.formInput}
+																		style={{ width: "80px", padding: "0.25rem 0.5rem", textAlign: "center", margin: "0 auto" }}
+																		placeholder="0-100"
+																		value={nilaiTugasEdits[siswa.id] === undefined ? "" : nilaiTugasEdits[siswa.id]}
+																		onChange={(e) => {
+																			const val = e.target.value === "" ? undefined : parseFloat(e.target.value);
+																			if (val !== undefined && (val < 0 || val > 100)) return;
+																			setNilaiTugasEdits({ ...nilaiTugasEdits, [siswa.id]: val as any });
+																		}}
+																	/>
+																</td>
+															)}
+															<td style={{ textAlign: "center" }}>
+																<select
+																	className={styles.filterSelect}
+																	style={{
+																		width: "100%",
+																		padding: "0.4rem",
+																		cursor: "pointer",
+																		fontWeight: 600,
+																		color: badgeStyle.text,
+																		borderColor: badgeStyle.text,
+																	}}
+																	value={currentStatus}
+																	onChange={(e) => {
+																		const newStatus = e.target.value;
+																		setPresensiEdits({ ...presensiEdits, [siswa.id]: newStatus });
+																		if (newStatus === "I" || newStatus === "S" || newStatus === "D") {
+																			setCurrentSiswaIzin({ id: siswa.id, nama: siswa.user?.nama || "Siswa" });
+																			setInputAlasan(alasanIzinEdits[siswa.id] || "");
+																			setFileInputKey(Date.now());
+																			setIsModalIzinOpen(true);
 																		}
 																	}}
-																	title={isTerlambatEdits[siswa.id] ? "Siswa ini ditandai terlambat (Klik untuk batalkan)" : "Tandai siswa terlambat"}
 																>
-																	<AlertTriangle size={16} color={isTerlambatEdits[siswa.id] ? "#ef4444" : "#cbd5e1"} />
-																</button>
-															</div>
-														</td>
-														<td>{siswa.jenisKelamin === "Laki-laki" ? "L" : "P"}</td>
-														<td>
-															<span
-																style={{
-																	background: badgeStyle.bg,
-																	color: badgeStyle.text,
-																	padding: "0.35rem 0.75rem",
-																	borderRadius: "0.375rem",
-																	fontSize: "0.75rem",
-																	fontWeight: 700,
-																}}
-															>
-																{badgeStyle.label}{" "}
-																{originalAbsensi?.waktuScan && currentStatus === (originalAbsensi.isDispensasi ? "D" : originalAbsensi.status)
-																	? `(${new Date(originalAbsensi.waktuScan).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })})`
-																	: ""}
-															</span>
-														</td>
-														<td>
-															<div style={{ fontSize: "0.875rem", color: "#64748b", whiteSpace: "pre-line", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-																{currentStatus === "D" || currentStatus === "S" || currentStatus === "I" ? (
-																	<>
-																		{alasanIzinEdits[siswa.id] && <div>{alasanIzinEdits[siswa.id]}</div>}
-																		{fileBuktiEdits[siswa.id] && (
-																			<a href={fileBuktiEdits[siswa.id]?.replace('/storage/', '/api/file/')} target="_blank" rel="noreferrer" style={{ color: "#2563eb", textDecoration: "none", fontSize: "0.8rem", display: "inline-block", fontWeight: 500 }}>
-																				Lihat Surat
-																			</a>
-																		)}
-																		<button
-																			onClick={() => {
-																				setCurrentSiswaIzin({ id: siswa.id, nama: siswa.user?.nama || "Siswa" });
-																				setInputAlasan(alasanIzinEdits[siswa.id] || "");
-																				setFileInputKey(Date.now());
-																				setIsModalIzinOpen(true);
-																			}}
-																			style={{ color: "#10b981", background: "none", border: "none", fontSize: "0.8rem", cursor: "pointer", padding: 0, textAlign: "left", display: "inline-flex", alignItems: "center", gap: "0.25rem", width: "fit-content" }}
-																		>
-																			<Edit size={12} /> Edit Alasan/Surat
-																		</button>
-																	</>
-																) : null}
-																{isTerlambatEdits[siswa.id]
-																	? (
-																		<div>
-																			<span style={{ color: "#ef4444", fontWeight: 600 }}>Terlambat:</span> {alasanTerlambatEdits[siswa.id] || "-"}
-																		</div>
-																	) : null}
-															</div>
-														</td>
-														{activeJurnal.tugas && (
-															<td style={{ textAlign: "center" }}>
-																<input
-																	type="number"
-																	step="0.01"
-																	className={styles.formInput}
-																	style={{ width: "80px", padding: "0.25rem 0.5rem", textAlign: "center", margin: "0 auto" }}
-																	placeholder="0-100"
-																	value={nilaiTugasEdits[siswa.id] === undefined ? "" : nilaiTugasEdits[siswa.id]}
-																	onChange={(e) => {
-																		const val = e.target.value === "" ? undefined : parseFloat(e.target.value);
-																		if (val !== undefined && (val < 0 || val > 100)) return;
-																		setNilaiTugasEdits({ ...nilaiTugasEdits, [siswa.id]: val as any });
-																	}}
-																/>
+																	<option value="" disabled>
+																		Pilih Aksi
+																	</option>
+																	<option value="H">Hadir</option>
+																	<option value="D">Dispensasi</option>
+																	<option value="I">Izin</option>
+																	<option value="S">Sakit</option>
+																	<option value="A">Alpha</option>
+																</select>
 															</td>
-														)}
-														<td style={{ textAlign: "center" }}>
-															<select
-																className={styles.filterSelect}
-																style={{
-																	width: "100%",
-																	padding: "0.4rem",
-																	cursor: "pointer",
-																	fontWeight: 600,
-																	color: badgeStyle.text,
-																	borderColor: badgeStyle.text,
-																}}
-																value={currentStatus}
-																onChange={(e) => {
-																	const newStatus = e.target.value;
-																	setPresensiEdits({ ...presensiEdits, [siswa.id]: newStatus });
-																	if (newStatus === "I" || newStatus === "S" || newStatus === "D") {
-																		setCurrentSiswaIzin({ id: siswa.id, nama: siswa.user?.nama || "Siswa" });
-																		setInputAlasan(alasanIzinEdits[siswa.id] || "");
-																		setFileInputKey(Date.now());
-																		setIsModalIzinOpen(true);
-																	}
-																}}
-															>
-																<option value="" disabled>
-																	Pilih Aksi
-																</option>
-																<option value="H">Hadir</option>
-																<option value="D">Dispensasi</option>
-																<option value="I">Izin</option>
-																<option value="S">Sakit</option>
-																<option value="A">Alpha</option>
-															</select>
-														</td>
-													</tr>
-												);
-											});
-										})()}
-									</tbody>
-								</table>
+														</tr>
+													);
+												})
+											)}
+										</tbody>
+									</table>
+								</div>
+
+								{/* PAGINATION UI REKAP TAMPILAN BARU */}
+								<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", padding: "1rem", backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
+									<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
+										Menampilkan {totalItems > 0 ? startIndex + 1 : 0}-{Math.min(currentPageRekap * itemsPerPage, totalItems)} dari {totalItems} data
+									</span>
+									<div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
+										<button
+											disabled={currentPageRekap === 1}
+											onClick={() => setCurrentPageRekap(currentPageRekap - 1)}
+											style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPageRekap === 1 ? "#f8fafc" : "white", color: currentPageRekap === 1 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPageRekap === 1 ? "not-allowed" : "pointer", transition: "all 0.2s" }}
+										>
+											Prev
+										</button>
+
+										{getPageNumbers().map((p, idx) => (
+											<button
+												key={idx}
+												disabled={p === "..."}
+												onClick={() => typeof p === "number" && setCurrentPageRekap(p)}
+												style={{
+													minWidth: "2rem",
+													padding: "0.375rem 0.5rem",
+													borderRadius: "0.375rem",
+													fontSize: "0.875rem",
+													fontWeight: p === currentPageRekap ? 700 : 500,
+													backgroundColor: p === currentPageRekap ? "#1e3a8a" : p === "..." ? "transparent" : "white",
+													color: p === currentPageRekap ? "white" : p === "..." ? "#64748b" : "#334155",
+													border: p === "..." ? "none" : p === currentPageRekap ? "1px solid #1e3a8a" : "1px solid #e2e8f0",
+													cursor: p === "..." ? "default" : "pointer",
+													transition: "all 0.2s"
+												}}
+											>
+												{p}
+											</button>
+										))}
+
+										<button
+											disabled={currentPageRekap >= totalPages || totalItems === 0}
+											onClick={() => setCurrentPageRekap(currentPageRekap + 1)}
+											style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPageRekap >= totalPages || totalItems === 0 ? "#f8fafc" : "white", color: currentPageRekap >= totalPages || totalItems === 0 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPageRekap >= totalPages || totalItems === 0 ? "not-allowed" : "pointer", transition: "all 0.2s" }}
+										>
+											Next
+										</button>
+									</div>
+								</div>
 							</div>
 
-							{/* PAGINATION UI REKAP */}
-							<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", padding: "1rem", backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
-								<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
-									Menampilkan {activeJadwal.kelas?.riwayatSiswa && activeJadwal.kelas.riwayatSiswa.length > 0 ? (currentPageRekap - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPageRekap * itemsPerPage, (activeJadwal.kelas?.riwayatSiswa || []).length)} dari {(activeJadwal.kelas?.riwayatSiswa || []).length} data
-								</span>
-								<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
-									<button
-										disabled={currentPageRekap === 1}
-										onClick={() => setCurrentPageRekap(currentPageRekap - 1)}
-										style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPageRekap === 1 ? "#f1f5f9" : "white", color: currentPageRekap === 1 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPageRekap === 1 ? "not-allowed" : "pointer" }}
-									>
-										Prev
-									</button>
-									<button
-										disabled={currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0}
-										onClick={() => setCurrentPageRekap(currentPageRekap + 1)}
-										style={{ padding: "0.375rem 0.75rem", borderRadius: "0.375rem", fontSize: "0.875rem", fontWeight: 500, backgroundColor: currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0 ? "#f1f5f9" : "white", color: currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0 ? "#94a3b8" : "#334155", border: "1px solid #e2e8f0", cursor: currentPageRekap >= Math.ceil((activeJadwal.kelas?.riwayatSiswa || []).length / itemsPerPage) || (activeJadwal.kelas?.riwayatSiswa || []).length === 0 ? "not-allowed" : "pointer" }}
-									>
-										Next
-									</button>
+							<div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
+								<button
+									className={styles.btnOutlineFull}
+									style={{ width: "auto" }}
+									onClick={() => setViewMode("detail")}
+								>
+									Batal & Kembali
+								</button>
+								<button
+									className={styles.btnPrimaryFull}
+									style={{ width: "auto", display: "flex", alignItems: "center", gap: "0.5rem" }}
+									onClick={triggerModalSimpanPresensi}
+								>
+									<Save size={16} /> Simpan Perubahan Presensi
+								</button>
+							</div>
+
+							{/* ================================================================= */}
+							{/* AREA TERSEMBUNYI UNTUK CETAK PDF (SISTEM PAGINATION MANUAL) */}
+							{/* ================================================================= */}
+							<div style={{ display: "none" }}>
+								<div id="pdf-presensi-content" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
+									{(() => {
+										let sortedData = [...activeJadwal.kelas.riwayatSiswa];
+										sortedData.sort((a, b) => (a.siswa.user?.nama || "").localeCompare(b.siswa.user?.nama || ""));
+
+										const siswaChunks = chunkArray(sortedData, MAX_ROWS);
+										const totalPages = siswaChunks.length;
+
+										return siswaChunks.map((chunk, chunkIdx) => {
+											const isLastPage = chunkIdx === totalPages - 1;
+
+											const hCount = activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H" || presensiEdits[rs.siswa.id] === "D").length || 0;
+											const isCount = activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S").length || 0;
+											const aCount = (activeJadwal.kelas?.riwayatSiswa?.length || 0) - hCount - isCount;
+
+											return (
+												<div key={`page-${chunkIdx}`}>
+													<PageContainer isLast={isLastPage}>
+														<KopSurat />
+
+														{chunkIdx === 0 && (
+															<table style={{ width: "100%", marginBottom: "20px", fontSize: "11pt", borderCollapse: "collapse" }}>
+																<tbody>
+																	<tr>
+																		<td style={{ width: "20%", padding: "4px 0", fontWeight: "bold" }}>Mata Pelajaran</td>
+																		<td style={{ width: "5%", padding: "4px 0" }}>:</td>
+																		<td style={{ width: "75%", padding: "4px 0" }}>{activeJadwal.mapel.nama}</td>
+																	</tr>
+																	<tr>
+																		<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kelas</td>
+																		<td style={{ padding: "4px 0" }}>:</td>
+																		<td style={{ padding: "4px 0" }}>{activeJadwal.kelas.nama}</td>
+																	</tr>
+																	<tr>
+																		<td style={{ padding: "4px 0", fontWeight: "bold" }}>Topik Jurnal</td>
+																		<td style={{ padding: "4px 0" }}>:</td>
+																		<td style={{ padding: "4px 0" }}>{activeJurnal.materiBab || "-"}</td>
+																	</tr>
+																	<tr>
+																		<td style={{ padding: "4px 0", fontWeight: "bold" }}>Tugas</td>
+																		<td style={{ padding: "4px 0" }}>:</td>
+																		<td style={{ padding: "4px 0" }}>{activeJurnal.tugas || "-"}</td>
+																	</tr>
+																	<tr>
+																		<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kendala KBM</td>
+																		<td style={{ padding: "4px 0" }}>:</td>
+																		<td style={{ padding: "4px 0" }}>{activeJurnal.catatan || "-"}</td>
+																	</tr>
+																	<tr>
+																		<td style={{ padding: "4px 0", fontWeight: "bold" }}>Tanggal & Waktu</td>
+																		<td style={{ padding: "4px 0" }}>:</td>
+																		<td style={{ padding: "4px 0" }}>
+																			{new Date(activeJurnal.tanggal).toLocaleDateString("id-ID", {
+																				weekday: "long",
+																				day: "numeric",
+																				month: "long",
+																				year: "numeric",
+																			})}{" "}
+																			/ {activeJadwal.displaySesi} ({activeJurnal.waktuMulai && activeJurnal.waktuSelesai
+																				? `${activeJurnal.waktuMulai} - ${activeJurnal.waktuSelesai}`
+																				: activeJadwal.waktuRentang}{" "}
+																			WIB)
+																		</td>
+																	</tr>
+																	<tr>
+																		<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kehadiran</td>
+																		<td style={{ padding: "4px 0" }}>:</td>
+																		<td style={{ padding: "4px 0" }}>
+																			Hadir: {hCount} | Izin/Sakit: {isCount} | Alpha: {aCount}
+																		</td>
+																	</tr>
+																</tbody>
+															</table>
+														)}
+														{chunkIdx > 0 && (
+															<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>
+																Daftar Kehadiran (Lanjutan)
+															</h3>
+														)}
+
+														<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt" }}>
+															<thead style={{ display: "table-header-group" }}>
+																<tr>
+																	<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "5%" }}>No</th>
+																	<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "20%" }}>NIS</th>
+																	<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "45%" }}>Nama Siswa</th>
+																	<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "15%" }}>Status</th>
+																	{activeJurnal.tugas && (
+																		<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "15%" }}>Nilai Tugas</th>
+																	)}
+																</tr>
+															</thead>
+															<tbody>
+																{chunk.map((rs: any, index: number) => {
+																	const globalIdx = (chunkIdx * MAX_ROWS) + index + 1;
+																	const siswa = rs.siswa;
+																	const currentStatus = presensiEdits[siswa.id] || "A";
+
+																	let statusLabel = "Alpha";
+																	if (currentStatus === "H") statusLabel = "Hadir";
+																	else if (currentStatus === "D") {
+																		statusLabel = "Hadir Dispensasi";
+																		if (alasanIzinEdits[siswa.id]) statusLabel += ` (${alasanIzinEdits[siswa.id]})`;
+																	}
+																	else if (currentStatus === "I") {
+																		statusLabel = "Izin";
+																		if (alasanIzinEdits[siswa.id]) statusLabel += ` (${alasanIzinEdits[siswa.id]})`;
+																	}
+																	else if (currentStatus === "S") {
+																		statusLabel = "Sakit";
+																		if (alasanIzinEdits[siswa.id]) statusLabel += ` (${alasanIzinEdits[siswa.id]})`;
+																	}
+
+																	if (isTerlambatEdits[siswa.id]) {
+																		statusLabel += ` [Terlambat: ${alasanTerlambatEdits[siswa.id] || "-"}]`;
+																	}
+
+																	return (
+																		<tr key={siswa.id}>
+																			<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{globalIdx}</td>
+																			<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{siswa.nis}</td>
+																			<td style={{ border: "1px solid #000", padding: "6px" }}>{siswa.user?.nama}</td>
+																			<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{statusLabel}</td>
+																			{activeJurnal.tugas && (
+																				<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
+																					{nilaiTugasEdits[siswa.id] !== undefined ? nilaiTugasEdits[siswa.id] : "-"}
+																				</td>
+																			)}
+																		</tr>
+																	);
+																})}
+															</tbody>
+														</table>
+														<PageFooter current={chunkIdx + 1} total={totalPages} />
+													</PageContainer>
+													{!isLastPage && <div className="html2pdf__page-break"></div>}
+												</div>
+											);
+										});
+									})()}
 								</div>
 							</div>
 						</div>
-
-						<div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
-							<button
-								className={styles.btnOutlineFull}
-								style={{ width: "auto" }}
-								onClick={() => setViewMode("detail")}
-							>
-								Batal & Kembali
-							</button>
-							<button
-								className={styles.btnPrimaryFull}
-								style={{ width: "auto", display: "flex", alignItems: "center", gap: "0.5rem" }}
-								onClick={triggerModalSimpanPresensi}
-							>
-								<Save size={16} /> Simpan Perubahan Presensi
-							</button>
-						</div>
-
-						{/* ================================================================= */}
-						{/* AREA TERSEMBUNYI UNTUK CETAK PDF (SISTEM PAGINATION MANUAL) */}
-						{/* ================================================================= */}
-						<div style={{ display: "none" }}>
-							<div id="pdf-presensi-content" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
-								{(() => {
-									let sortedData = [...activeJadwal.kelas.riwayatSiswa];
-									sortedData.sort((a, b) => (a.siswa.user?.nama || "").localeCompare(b.siswa.user?.nama || ""));
-
-									const siswaChunks = chunkArray(sortedData, MAX_ROWS);
-									const totalPages = siswaChunks.length;
-
-									return siswaChunks.map((chunk, chunkIdx) => {
-										const isLastPage = chunkIdx === totalPages - 1;
-
-										const hCount = activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "H" || presensiEdits[rs.siswa.id] === "D").length || 0;
-										const isCount = activeJadwal.kelas?.riwayatSiswa?.filter((rs: any) => presensiEdits[rs.siswa.id] === "I" || presensiEdits[rs.siswa.id] === "S").length || 0;
-										const aCount = (activeJadwal.kelas?.riwayatSiswa?.length || 0) - hCount - isCount;
-
-										return (
-											<div key={`page-${chunkIdx}`}>
-												<PageContainer isLast={isLastPage}>
-													<KopSurat />
-
-													{chunkIdx === 0 && (
-														<table style={{ width: "100%", marginBottom: "20px", fontSize: "11pt", borderCollapse: "collapse" }}>
-															<tbody>
-																<tr>
-																	<td style={{ width: "20%", padding: "4px 0", fontWeight: "bold" }}>Mata Pelajaran</td>
-																	<td style={{ width: "5%", padding: "4px 0" }}>:</td>
-																	<td style={{ width: "75%", padding: "4px 0" }}>{activeJadwal.mapel.nama}</td>
-																</tr>
-																<tr>
-																	<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kelas</td>
-																	<td style={{ padding: "4px 0" }}>:</td>
-																	<td style={{ padding: "4px 0" }}>{activeJadwal.kelas.nama}</td>
-																</tr>
-																<tr>
-																	<td style={{ padding: "4px 0", fontWeight: "bold" }}>Topik Jurnal</td>
-																	<td style={{ padding: "4px 0" }}>:</td>
-																	<td style={{ padding: "4px 0" }}>{activeJurnal.materiBab || "-"}</td>
-																</tr>
-																<tr>
-																	<td style={{ padding: "4px 0", fontWeight: "bold" }}>Tugas</td>
-																	<td style={{ padding: "4px 0" }}>:</td>
-																	<td style={{ padding: "4px 0" }}>{activeJurnal.tugas || "-"}</td>
-																</tr>
-																<tr>
-																	<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kendala KBM</td>
-																	<td style={{ padding: "4px 0" }}>:</td>
-																	<td style={{ padding: "4px 0" }}>{activeJurnal.catatan || "-"}</td>
-																</tr>
-																<tr>
-																	<td style={{ padding: "4px 0", fontWeight: "bold" }}>Tanggal & Waktu</td>
-																	<td style={{ padding: "4px 0" }}>:</td>
-																	<td style={{ padding: "4px 0" }}>
-																		{new Date(activeJurnal.tanggal).toLocaleDateString("id-ID", {
-																			weekday: "long",
-																			day: "numeric",
-																			month: "long",
-																			year: "numeric",
-																		})}{" "}
-																		/ {activeJadwal.displaySesi} ({activeJurnal.waktuMulai && activeJurnal.waktuSelesai
-																			? `${activeJurnal.waktuMulai} - ${activeJurnal.waktuSelesai}`
-																			: activeJadwal.waktuRentang}{" "}
-																		WIB)
-																	</td>
-																</tr>
-																<tr>
-																	<td style={{ padding: "4px 0", fontWeight: "bold" }}>Kehadiran</td>
-																	<td style={{ padding: "4px 0" }}>:</td>
-																	<td style={{ padding: "4px 0" }}>
-																		Hadir: {hCount} | Izin/Sakit: {isCount} | Alpha: {aCount}
-																	</td>
-																</tr>
-															</tbody>
-														</table>
-													)}
-													{chunkIdx > 0 && (
-														<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>
-															Daftar Kehadiran (Lanjutan)
-														</h3>
-													)}
-
-													<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt" }}>
-														<thead style={{ display: "table-header-group" }}>
-															<tr>
-																<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "5%" }}>No</th>
-																<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "20%" }}>NIS</th>
-																<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "45%" }}>Nama Siswa</th>
-																<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "15%" }}>Status</th>
-																{activeJurnal.tugas && (
-																	<th style={{ border: "1px solid #000", padding: "8px", backgroundColor: "#f1f5f9", width: "15%" }}>Nilai Tugas</th>
-																)}
-															</tr>
-														</thead>
-														<tbody>
-															{chunk.map((rs: any, index: number) => {
-																const globalIdx = (chunkIdx * MAX_ROWS) + index + 1;
-																const siswa = rs.siswa;
-																const currentStatus = presensiEdits[siswa.id] || "A";
-
-																let statusLabel = "Alpha";
-																if (currentStatus === "H") statusLabel = "Hadir";
-																else if (currentStatus === "D") {
-																	statusLabel = "Hadir Dispensasi";
-																	if (alasanIzinEdits[siswa.id]) statusLabel += ` (${alasanIzinEdits[siswa.id]})`;
-																}
-																else if (currentStatus === "I") {
-																	statusLabel = "Izin";
-																	if (alasanIzinEdits[siswa.id]) statusLabel += ` (${alasanIzinEdits[siswa.id]})`;
-																}
-																else if (currentStatus === "S") {
-																	statusLabel = "Sakit";
-																	if (alasanIzinEdits[siswa.id]) statusLabel += ` (${alasanIzinEdits[siswa.id]})`;
-																}
-
-																if (isTerlambatEdits[siswa.id]) {
-																	statusLabel += ` [Terlambat: ${alasanTerlambatEdits[siswa.id] || "-"}]`;
-																}
-
-																return (
-																	<tr key={siswa.id}>
-																		<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{globalIdx}</td>
-																		<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{siswa.nis}</td>
-																		<td style={{ border: "1px solid #000", padding: "6px" }}>{siswa.user?.nama}</td>
-																		<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>{statusLabel}</td>
-																		{activeJurnal.tugas && (
-																			<td style={{ border: "1px solid #000", padding: "6px", textAlign: "center" }}>
-																				{nilaiTugasEdits[siswa.id] !== undefined ? nilaiTugasEdits[siswa.id] : "-"}
-																			</td>
-																		)}
-																	</tr>
-																);
-															})}
-														</tbody>
-													</table>
-													<PageFooter current={chunkIdx + 1} total={totalPages} />
-												</PageContainer>
-												{!isLastPage && <div className="html2pdf__page-break"></div>}
-											</div>
-										);
-									});
-								})()}
-							</div>
-						</div>
-					</div>
-				)}
+					);
+				})()}
 			</div>
 		</>
 	);
