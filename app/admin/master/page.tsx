@@ -72,6 +72,7 @@ export default async function MasterPage() {
 		jenisKelamin: u.guru?.jenisKelamin || "-",
 		status: u.guru?.status ?? true,
 		role: u.role,
+		isKoorBk: u.guru?.isKoorBk || false,
 	}));
 
 	const dataMapel = mapelFromDb.map((m) => ({

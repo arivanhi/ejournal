@@ -24,6 +24,23 @@ export async function resetPasswordAction(userId: string) {
 }
 
 // ==========================================
+// FITUR KOOR BK
+// ==========================================
+export async function toggleKoorBkAction(guruId: string, isKoorBk: boolean) {
+	try {
+		await prisma.guru.update({
+			where: { userId: guruId },
+			data: { isKoorBk },
+		});
+		revalidatePath("/admin/master");
+		return { success: true, message: `Status Koor BK berhasil ${isKoorBk ? "diaktifkan" : "dinonaktifkan"}.` };
+	} catch (error) {
+		console.error("Error toggle Koor BK:", error);
+		return { success: false, message: "Terjadi kesalahan saat mengubah status Koor BK." };
+	}
+}
+
+// ==========================================
 // CRUD SISWA
 // ==========================================
 export async function tambahSiswaAction(formData: {

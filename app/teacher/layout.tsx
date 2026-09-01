@@ -20,11 +20,13 @@ export default async function TeacherLayout({ children }: { children: React.Reac
 	}
 
 	let isGuruBK = false;
+	let isKoorBk = false;
 	if (user.role === "GURU" || user.role === "WALI_KELAS") {
 		const guru = await prisma.guru.findUnique({
 			where: { userId: user.id },
 		});
 		if (guru) {
+			isKoorBk = guru.isKoorBk;
 			const jadwalBK = await prisma.jadwalPelajaran.findFirst({
 				where: {
 					guruId: guru.id,
@@ -41,5 +43,5 @@ export default async function TeacherLayout({ children }: { children: React.Reac
 		}
 	}
 
-	return <TeacherLayoutClient user={user} isGuruBK={isGuruBK}>{children}</TeacherLayoutClient>;
+	return <TeacherLayoutClient user={user} isGuruBK={isGuruBK} isKoorBk={isKoorBk}>{children}</TeacherLayoutClient>;
 }

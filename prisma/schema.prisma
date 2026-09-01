@@ -164,6 +164,7 @@ model Guru {
   npp             String            @unique
   jenisKelamin    String            // <--- TAMBAHAN BARU
   status          Boolean           @default(true) // <--- TAMBAHAN BARU
+  isKoorBk        Boolean           @default(false)
   userId          String            @unique
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   

@@ -3,7 +3,7 @@
 import { LayoutDashboard, Clock, FileText, CheckCircle, Users, Settings, BookOpen } from "lucide-react";
 import ResponsiveLayout from "../components/ResponsiveLayout";
 
-export default function TeacherLayoutClient({ children, user, isGuruBK = false }: { children: React.ReactNode; user: any; isGuruBK?: boolean }) {
+export default function TeacherLayoutClient({ children, user, isGuruBK = false, isKoorBk = false }: { children: React.ReactNode; user: any; isGuruBK?: boolean; isKoorBk?: boolean }) {
 	const menuItems = [
 		{ name: "Dashboard", icon: LayoutDashboard, path: "/teacher/dashboard" },
 		{ name: "Isi Jurnal", icon: FileText, path: "/teacher/jurnal" },
@@ -15,6 +15,7 @@ export default function TeacherLayoutClient({ children, user, isGuruBK = false }
 			{ name: "Data Siswa", icon: Users, path: "/teacher/data-siswa" },
 			{ name: "Konseling Kelas", icon: Users, path: "/teacher/konseling-kelas" }
 		] : []),
+		...(isKoorBk ? [{ name: "Kehadiran Siswa", icon: Users, path: "/teacher/kehadiran-koor" }] : []),
 		{ name: "Setelan", icon: Settings, path: "/teacher/setelan" },
 	];
 

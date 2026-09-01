@@ -40,6 +40,7 @@ import {
 	tambahKelasAction,
 	editKelasAction,
 	hapusKelasAction,
+	toggleKoorBkAction,
 } from "./actions";
 
 interface SiswaProps {
@@ -59,6 +60,7 @@ interface GuruProps {
 	jenisKelamin: string;
 	status: boolean;
 	role: string;
+	isKoorBk: boolean;
 }
 interface MapelProps {
 	id: string;
@@ -122,13 +124,15 @@ export default function MasterClient({
 	initialTahunAjar: TahunAjarProps[];
 	initialKelas: KelasProps[];
 }) {
-	const [activeTab, setActiveTab] = useState<"siswa" | "guru" | "mapel" | "tahunAjar" | "kelas">("siswa");
+	const [activeTab, setActiveTab] = useState<"siswa" | "guru" | "mapel" | "tahunAjar" | "kelas" | "koorBk">("siswa");
 
 	// States untuk Modal
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 	const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 	const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+	const [isKoorBkModalOpen, setIsKoorBkModalOpen] = useState(false);
+	const [selectedKoorBkGuru, setSelectedKoorBkGuru] = useState("");
 	const [modalMode, setModalMode] = useState<"create" | "edit">("create");
 
 	// States untuk Data & Centang Massal
@@ -266,12 +270,16 @@ export default function MasterClient({
 		return a.nama < b.nama ? (sortOrder === "asc" ? -1 : 1) : a.nama > b.nama ? (sortOrder === "asc" ? 1 : -1) : 0;
 	});
 
+	const sortedKoorBk = sortedGuru.filter((g) => g.isKoorBk);
+
 	// Pagination Logic
 	const totalItems =
 		activeTab === "siswa"
 			? sortedSiswa.length
 			: activeTab === "guru"
 				? sortedGuru.length
+			: activeTab === "koorBk"
+				? sortedKoorBk.length
 				: activeTab === "mapel"
 					? sortedMapel.length
 					: activeTab === "tahunAjar"
@@ -281,6 +289,7 @@ export default function MasterClient({
 	const startIndex = (currentPage - 1) * itemsPerPage;
 	const paginatedSiswa = sortedSiswa.slice(startIndex, startIndex + itemsPerPage);
 	const paginatedGuru = sortedGuru.slice(startIndex, startIndex + itemsPerPage);
+	const paginatedKoorBk = sortedKoorBk.slice(startIndex, startIndex + itemsPerPage);
 	const paginatedMapel = sortedMapel.slice(startIndex, startIndex + itemsPerPage);
 	const paginatedTahunAjar = sortedTahunAjar.slice(startIndex, startIndex + itemsPerPage);
 	const paginatedKelas = sortedKelas.slice(startIndex, startIndex + itemsPerPage);
@@ -292,6 +301,8 @@ export default function MasterClient({
 					? sortedSiswa.map((s) => s.id)
 					: activeTab === "guru"
 						? sortedGuru.map((g) => g.id)
+					: activeTab === "koorBk"
+						? sortedKoorBk.map((g) => g.id)
 						: activeTab === "mapel"
 							? sortedMapel.map((m) => m.id)
 							: activeTab === "tahunAjar"
@@ -306,7 +317,7 @@ export default function MasterClient({
 		else setSelectedIds((prev) => prev.filter((selectedId) => selectedId !== id));
 	};
 
-	const handleTabChange = (tab: "siswa" | "guru" | "mapel" | "tahunAjar" | "kelas") => {
+	const handleTabChange = (tab: "siswa" | "guru" | "mapel" | "tahunAjar" | "kelas" | "koorBk") => {
 		setActiveTab(tab);
 		resetForm();
 		setSelectedIds([]);
@@ -332,6 +343,17 @@ export default function MasterClient({
 		setNamaTahun("");
 		setIsActiveTahun(true);
 		setNamaKelas("");
+	};
+
+	// --- Handlers KOOR BK ---
+	const handleToggleKoorBk = async (guruId: string, currentVal: boolean) => {
+		const res = await toggleKoorBkAction(guruId, !currentVal);
+		if (res.success) {
+			setToast({ show: true, message: res.message, type: "success" });
+		} else {
+			setToast({ show: true, message: res.message, type: "error" });
+		}
+		setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 3000);
 	};
 
 	// --- LOGIKA RESET PASSWORD ---
@@ -565,7 +587,7 @@ export default function MasterClient({
 		setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 3000);
 	};
 
-	const titleLabels = { siswa: "Siswa", guru: "Staf & Guru", mapel: "Mata Pelajaran", tahunAjar: "Tahun Ajar", kelas: "Kelas" };
+	const titleLabels = { siswa: "Siswa", guru: "Staf & Guru", mapel: "Mata Pelajaran", tahunAjar: "Tahun Ajar", kelas: "Kelas", koorBk: "Koor BK" };
 
 	return (
 		<>
@@ -583,7 +605,7 @@ export default function MasterClient({
 							</button>
 						)}
 
-						{activeTab !== "tahunAjar" && activeTab !== "kelas" && (
+						{activeTab !== "tahunAjar" && activeTab !== "kelas" && activeTab !== "koorBk" && (
 							<button className={styles.btnSecondary} onClick={() => setIsUploadModalOpen(true)}>
 								<Users size={16} />
 								{activeTab === "siswa"
@@ -594,15 +616,17 @@ export default function MasterClient({
 							</button>
 						)}
 
-						<button
-							className={styles.btnPrimary}
-							onClick={() => {
-								resetForm();
-								setIsModalOpen(true);
-							}}
-						>
-							<Plus size={16} /> Tambah {titleLabels[activeTab]}
-						</button>
+						{activeTab === "koorBk" && (
+							<button
+								className={styles.btnPrimary}
+								onClick={() => {
+									setSelectedKoorBkGuru("");
+									setIsKoorBkModalOpen(true);
+								}}
+							>
+								<Plus size={16} /> Pilih Koor BK
+							</button>
+						)}
 					</div>
 				</div>
 
@@ -619,6 +643,12 @@ export default function MasterClient({
 						onClick={() => handleTabChange("guru")}
 					>
 						Data Staf & Guru
+					</button>
+					<button
+						className={`${styles.tabButton} ${activeTab === "koorBk" ? styles.tabButtonActive : ""}`}
+						onClick={() => handleTabChange("koorBk")}
+					>
+						Koor BK
 					</button>
 					<button
 						className={`${styles.tabButton} ${activeTab === "mapel" ? styles.tabButtonActive : ""}`}
@@ -643,7 +673,7 @@ export default function MasterClient({
 				{/* MAIN CONTENT CARD */}
 				<div className={styles.contentCard}>
 					{/* FILTER SECTION */}
-					{activeTab !== "tahunAjar" && (
+					{activeTab !== "tahunAjar" && activeTab !== "kelas" && (
 						<div className={styles.filterSection}>
 							{activeTab === "siswa" && (
 								<div className={styles.filterGroup}>
@@ -663,7 +693,7 @@ export default function MasterClient({
 									</select>
 								</div>
 							)}
-							{activeTab === "guru" && (
+							{(activeTab === "guru" || activeTab === "koorBk") && (
 								<div className={styles.filterGroup}>
 									<label className={styles.filterLabel}>Status Guru</label>
 									<select
@@ -732,11 +762,13 @@ export default function MasterClient({
 															? sortedSiswa.length
 															: activeTab === "guru"
 																? sortedGuru.length
+															: activeTab === "koorBk"
+																? sortedKoorBk.length
 																: sortedMapel.length)
 												}
 											/>
 										</th>
-										{activeTab === "siswa" || activeTab === "guru" ? (
+										{activeTab === "siswa" || activeTab === "guru" || activeTab === "koorBk" ? (
 											<>
 												<th
 													style={{ cursor: "pointer" }}
@@ -757,6 +789,7 @@ export default function MasterClient({
 													</div>
 												</th>
 												{activeTab === "guru" && <th style={{ cursor: "pointer" }}>Jabatan</th>}
+												{activeTab === "koorBk" && <th style={{ cursor: "pointer" }}>Status Koor BK</th>}
 												<th
 													style={{ cursor: "pointer" }}
 													onClick={() => handleSort(activeTab === "siswa" ? "kelas" : "status")}
@@ -765,6 +798,7 @@ export default function MasterClient({
 														{activeTab === "siswa" ? "Kelas Saat Ini" : "Status"} <ArrowUpDown size={12} />
 													</div>
 												</th>
+
 											</>
 										) : activeTab === "mapel" ? (
 											<>
@@ -943,7 +977,7 @@ export default function MasterClient({
 								{activeTab === "guru" &&
 									(paginatedGuru.length === 0 ? (
 										<tr>
-											<td colSpan={6} style={{ textAlign: "center", color: "#6b7280", padding: "2rem" }}>
+											<td colSpan={7} style={{ textAlign: "center", color: "#6b7280", padding: "2rem" }}>
 												Tidak ada data staf ditemukan.
 											</td>
 										</tr>
@@ -982,6 +1016,53 @@ export default function MasterClient({
 															className={styles.actionIcon}
 															style={{ color: "#ef4444" }}
 															onClick={() => confirmDelete([guru.id])}
+														/>
+													</div>
+												</td>
+											</tr>
+										))
+									))}
+
+								{/* RENDER KOOR BK */}
+								{activeTab === "koorBk" &&
+									(paginatedKoorBk.length === 0 ? (
+										<tr>
+											<td colSpan={7} style={{ textAlign: "center", color: "#6b7280", padding: "2rem" }}>
+												Belum ada Guru yang ditunjuk sebagai Koor BK.
+											</td>
+										</tr>
+									) : (
+										paginatedKoorBk.map((guru) => (
+											<tr key={guru.id}>
+												<td>
+													<input
+														type="checkbox"
+														className={styles.checkbox}
+														checked={selectedIds.includes(guru.id)}
+														onChange={(e) => handleSelectRow(guru.id, e.target.checked)}
+													/>
+												</td>
+												<td>{guru.npp}</td>
+												<td>{guru.nama}</td>
+												<td>{guru.jenisKelamin || "-"}</td>
+												<td>
+													<span style={{ fontSize: "0.875rem", fontWeight: 500, color: "#10b981", backgroundColor: "#ecfdf5", padding: "0.25rem 0.75rem", borderRadius: "9999px" }}>
+														Koor BK Aktif
+													</span>
+												</td>
+												<td>
+													<span className={guru.status ? styles.badgeActive : styles.badgeUnassigned}>
+														{guru.status ? "Aktif" : "Nonaktif"}
+													</span>
+												</td>
+												<td>
+													<div style={{ display: "flex", gap: "0.75rem", justifyContent: "center" }}>
+														<Trash2
+															size={16}
+															className={styles.actionIcon}
+															style={{ color: "#ef4444" }}
+															onClick={() => handleToggleKoorBk(guru.id, guru.isKoorBk)}
+															title="Hapus status Koor BK"
 														/>
 													</div>
 												</td>
@@ -1550,6 +1631,68 @@ export default function MasterClient({
 								</button>
 								<button type="submit" disabled={loading} className={styles.btnPrimary}>
 									{loading ? "Menyimpan..." : "Simpan Pemetaan"}
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			)}
+
+			{isKoorBkModalOpen && (
+				<div className={styles.modalOverlay}>
+					<div className={styles.modalContainer}>
+						<div className={styles.modalHeader}>
+							<h2 className={styles.modalTitle}>Pilih Koordinator BK</h2>
+							<button onClick={() => setIsKoorBkModalOpen(false)} className={styles.closeBtn}>
+								<X size={20} />
+							</button>
+						</div>
+						<form
+							onSubmit={(e) => {
+								e.preventDefault();
+								if (!selectedKoorBkGuru) {
+									setToast({ show: true, message: "Pilih Guru terlebih dahulu!", type: "error" });
+									setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
+									return;
+								}
+								handleToggleKoorBk(selectedKoorBkGuru, false);
+								setIsKoorBkModalOpen(false);
+								setSelectedKoorBkGuru("");
+							}}
+						>
+							<div className={styles.modalBody}>
+								<div className={styles.formGroup}>
+									<label className={styles.formLabel}>Pilih Guru / Staf</label>
+									<select
+										className={styles.formInput}
+										value={selectedKoorBkGuru}
+										onChange={(e) => setSelectedKoorBkGuru(e.target.value)}
+										required
+									>
+										<option value="" disabled>
+											-- Pilih Guru --
+										</option>
+										{initialGuru
+											.filter((g) => !g.isKoorBk)
+											.sort((a, b) => a.nama.localeCompare(b.nama))
+											.map((g) => (
+												<option key={g.id} value={g.id}>
+													{g.nama} ({g.npp})
+												</option>
+											))}
+									</select>
+								</div>
+							</div>
+							<div className={styles.modalFooter}>
+								<button
+									type="button"
+									onClick={() => setIsKoorBkModalOpen(false)}
+									className={styles.btnCancel}
+								>
+									Batal
+								</button>
+								<button type="submit" className={styles.btnPrimary} disabled={!selectedKoorBkGuru}>
+									Simpan Koor BK
 								</button>
 							</div>
 						</form>
