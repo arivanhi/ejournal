@@ -801,7 +801,7 @@ export default function JurnalClient({
 								</div>
 								{fileBuktiEdits[currentSiswaIzin.id] && !uploadingBukti && (
 									<div style={{ fontSize: "0.8rem", color: "#10b981", marginTop: "0.75rem", display: "flex", alignItems: "center", gap: "0.25rem", padding: "0.5rem", backgroundColor: "#ecfdf5", borderRadius: "0.375rem" }}>
-										<CheckCircle2 size={14} /> File tersimpan: <a href={fileBuktiEdits[currentSiswaIzin.id]} target="_blank" rel="noreferrer" style={{ textDecoration: "underline", fontWeight: 600 }}>Lihat Surat</a>
+										<CheckCircle2 size={14} /> File tersimpan: <a href={fileBuktiEdits[currentSiswaIzin.id]?.replace('/storage/', '/api/file/')} target="_blank" rel="noreferrer" style={{ textDecoration: "underline", fontWeight: 600 }}>Lihat Surat</a>
 									</div>
 								)}
 							</div>
@@ -1745,7 +1745,7 @@ export default function JurnalClient({
 																	<>
 																		{alasanIzinEdits[siswa.id] && <div>{alasanIzinEdits[siswa.id]}</div>}
 																		{fileBuktiEdits[siswa.id] && (
-																			<a href={fileBuktiEdits[siswa.id]} target="_blank" rel="noreferrer" style={{ color: "#2563eb", textDecoration: "none", fontSize: "0.8rem", display: "inline-block", fontWeight: 500 }}>
+																			<a href={fileBuktiEdits[siswa.id]?.replace('/storage/', '/api/file/')} target="_blank" rel="noreferrer" style={{ color: "#2563eb", textDecoration: "none", fontSize: "0.8rem", display: "inline-block", fontWeight: 500 }}>
 																				Lihat Surat
 																			</a>
 																		)}

@@ -5,15 +5,17 @@ import { existsSync, statSync } from "fs";
 
 export async function GET(
 	req: NextRequest,
-	{ params }: { params: { path: string[] } }
+	{ params }: { params: Promise<{ path: string[] }> }
 ) {
 	try {
-		const pathArray = params.path;
+		const resolvedParams = await params;
+		const pathArray = resolvedParams.path;
 		if (!pathArray || pathArray.length === 0) {
 			return new NextResponse("Not Found", { status: 404 });
 		}
 
-		const filePath = join(process.cwd(), "public", "storage", ...pathArray);
+		const decodedPathArray = pathArray.map((p) => decodeURIComponent(p));
+		const filePath = join(process.cwd(), "public", "storage", ...decodedPathArray);
 
 		if (!existsSync(filePath)) {
 			return new NextResponse("Not Found", { status: 404 });
