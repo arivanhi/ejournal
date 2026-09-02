@@ -1,21 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
+"use server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
 
-export async function POST(req: NextRequest) {
+export async function uploadFileAction(formData: FormData) {
 	try {
-		const formData = await req.formData();
 		const file = formData.get("file") as File;
 		const kelasName = formData.get("kelasName") as string;
 		const siswaName = formData.get("siswaName") as string;
 
 		if (!file) {
-			return NextResponse.json({ success: false, message: "No file uploaded" }, { status: 400 });
+			return { success: false, message: "No file uploaded" };
 		}
-
 		if (!kelasName || !siswaName) {
-			return NextResponse.json({ success: false, message: "Missing kelasName or siswaName" }, { status: 400 });
+			return { success: false, message: "Missing kelasName or siswaName" };
 		}
 
 		const bytes = await file.arrayBuffer();
@@ -44,9 +42,9 @@ export async function POST(req: NextRequest) {
 		// Return the public URL path
 		const fileUrl = `/storage/uploads/${safeKelasName}/${safeSiswaName}/${fileName}`;
 
-		return NextResponse.json({ success: true, fileUrl });
-	} catch (error) {
+		return { success: true, fileUrl };
+	} catch (error: any) {
 		console.error("Upload error:", error);
-		return NextResponse.json({ success: false, message: "Server error during upload" }, { status: 500 });
+		return { success: false, message: "Server error during upload: " + (error?.message || String(error)) };
 	}
 }

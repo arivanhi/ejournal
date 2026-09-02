@@ -44,6 +44,7 @@ import {
 	tutupPresensiQR,
 	hapusJurnalAction,
 } from "./actions";
+import { uploadFileAction } from "@/app/actions/uploadAction";
 
 type ModalConfig = {
 	isOpen: boolean;
@@ -778,11 +779,7 @@ export default function JurnalClient({
 													formData.append("siswaName", currentSiswaIzin.nama.replace(/[^a-zA-Z0-9]/g, "_"));
 
 													try {
-														const res = await fetch("/api/upload", {
-															method: "POST",
-															body: formData,
-														});
-														const data = await res.json();
+														const data = await uploadFileAction(formData);
 														if (data.success) {
 															setFileBuktiEdits({ ...fileBuktiEdits, [currentSiswaIzin.id]: data.fileUrl });
 															showToast("Berhasil upload surat bukti!", "success");
