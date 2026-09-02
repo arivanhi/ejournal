@@ -107,8 +107,10 @@ export default function PimpinanDashboardClient({
 	dataKehadiranSiswa = [],
 }: any) {
 	const [searchTerm, setSearchTerm] = useState("");
-	const [currentPage, setCurrentPage] = useState(1);
-	const itemsPerPage = 15;
+	const [jurnalTab, setJurnalTab] = useState<"sudah" | "belum">("sudah");
+	const [jurnalPage, setJurnalPage] = useState(1);
+	const [siswaPage, setSiswaPage] = useState(1);
+	const itemsPerPage = 10;
 
 	const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 	const [isDownloading, setIsDownloading] = useState(false);
@@ -120,11 +122,19 @@ export default function PimpinanDashboardClient({
 		return namaGuru.includes(keyword) || namaKelas.includes(keyword);
 	});
 
-	const totalPagesWeb = Math.max(1, Math.ceil(filteredJurnal.length / itemsPerPage));
-	const startIndex = (currentPage - 1) * itemsPerPage;
-	const currentItems = filteredJurnal.slice(startIndex, startIndex + itemsPerPage);
+	const filteredPeringatan = peringatanJamKosong.filter((alert: any) => {
+		const namaGuru = alert?.guru?.toLowerCase() || "";
+		const namaKelas = alert?.kelas?.toLowerCase() || "";
+		const keyword = searchTerm.toLowerCase();
+		return namaGuru.includes(keyword) || namaKelas.includes(keyword);
+	});
 
-	const handlePageChange = (page: number) => setCurrentPage(page);
+	// Pagination Jurnal Guru
+	const totalJurnalPages = Math.max(1, Math.ceil(jurnalTab === "sudah" ? filteredJurnal.length / itemsPerPage : filteredPeringatan.length / itemsPerPage));
+	const startJurnalIndex = (jurnalPage - 1) * itemsPerPage;
+	const currentJurnalItems = jurnalTab === "sudah" 
+		? filteredJurnal.slice(startJurnalIndex, startJurnalIndex + itemsPerPage)
+		: filteredPeringatan.slice(startJurnalIndex, startJurnalIndex + itemsPerPage);
 
 	const todayObj = new Date();
 	const todayFormatted = todayObj.toLocaleDateString("id-ID", {
@@ -150,6 +160,63 @@ export default function PimpinanDashboardClient({
 	}, [classNames, activeClassTab]);
 
 	const filteredAbsenByClass = dataKehadiranSiswa.filter((s: any) => s.kelas === activeClassTab);
+
+	// Pagination Kehadiran Siswa
+	const totalSiswaPages = Math.max(1, Math.ceil(filteredAbsenByClass.length / itemsPerPage));
+	const startSiswaIndex = (siswaPage - 1) * itemsPerPage;
+	const currentSiswaItems = filteredAbsenByClass.slice(startSiswaIndex, startSiswaIndex + itemsPerPage);
+
+	// Helper Render Pagination dengan Ellipsis
+	const renderPagination = (currentPage: number, totalPages: number, onPageChange: (page: number) => void) => {
+		const getPageNumbers = () => {
+			const delta = 1;
+			const range = [];
+			for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+				range.push(i);
+			}
+
+			if (currentPage - delta > 2) range.unshift("...");
+			if (currentPage + delta < totalPages - 1) range.push("...");
+
+			range.unshift(1);
+			if (totalPages > 1) range.push(totalPages);
+			
+			return range;
+		};
+
+		if (totalPages <= 1) return null;
+
+		const pages = getPageNumbers();
+
+		return (
+			<div className={styles.pageButtons}>
+				<button
+					className={styles.pageBtn}
+					disabled={currentPage === 1}
+					onClick={() => onPageChange(currentPage - 1)}
+				>
+					Prev
+				</button>
+				{pages.map((page, idx) => (
+					<button
+						key={idx}
+						className={`${styles.pageBtn} ${currentPage === page ? styles.pageActive : ""}`}
+						disabled={page === "..."}
+						onClick={() => (typeof page === "number" ? onPageChange(page) : undefined)}
+					>
+						{page}
+					</button>
+				))}
+				<button
+					className={styles.pageBtn}
+					disabled={currentPage === totalPages}
+					onClick={() => onPageChange(currentPage + 1)}
+				>
+					Next
+				</button>
+			</div>
+		);
+	};
 
 	// --- FUNGSI FORMAT JAM SESI DARI JADWAL ---
 	const formatJamSesi = (jadwal: any) => {
@@ -520,74 +587,235 @@ export default function PimpinanDashboardClient({
 					</div>
 				</div>
 
-				<div className={styles.twoColGrid}>
-					<div className={styles.boxCard}>
-						<div className={styles.boxHeader}>
-							<div className={styles.boxTitle}>
-								<AlertTriangle size={20} color="#f59e0b" /> Peringatan Jam Kosong
-							</div>
-							<Link href="/pimpinan/monitoring" className={styles.linkA}>
-								Lihat Semua
-							</Link>
+				<div className={styles.boxCard} style={{ marginTop: "1.5rem" }}>
+					<div className={styles.boxHeader}>
+						<div className={styles.boxTitle} style={{ color: "#0f172a", fontSize: "1.25rem" }}>
+							Riwayat Jurnal Guru Hari Ini
 						</div>
-						<div className={styles.alertList}>
-							{peringatanJamKosong.length === 0 ? (
-								<div className={styles.emptyText}>Semua kelas terpantau aman.</div>
-							) : (
-								peringatanJamKosong.map((alert: any, i: number) => (
-									<div key={i} className={styles.alertItem}>
-										<div className={styles.alertJamBox}>
-											Jam
-											<br />
-											<strong>{alert.jam}</strong>
-										</div>
-										<div className={styles.alertInfo}>
-											<div className={styles.alertClass}>
-												{alert.kelas} - {alert.mapel}
-											</div>
-											<div className={styles.alertTeacher}>Guru: {alert.guru}</div>
-										</div>
-										<div
-											className={`${styles.statusBadge} ${alert.status.includes("Tugas") ? styles.badgeYellowOutline : styles.badgeRedOutline}`}
-										>
-											{alert.status}
-										</div>
-									</div>
-								))
-							)}
+						<div className={styles.tableToolbar}>
+							<div className={styles.searchBox}>
+								<Search size={16} className={styles.searchIcon} />
+								<input
+									type="text"
+									placeholder="Cari nama guru atau kelas..."
+									className={styles.searchInput}
+									value={searchTerm}
+									onChange={(e) => {
+										setSearchTerm(e.target.value);
+										setJurnalPage(1);
+									}}
+								/>
+							</div>
 						</div>
 					</div>
 
-					<div className={styles.boxCard}>
-						<div className={styles.boxHeader}>
-							<div className={styles.boxTitle} style={{ color: "#0f172a" }}>
-								📈 Tingkat Absensi Tertinggi
-							</div>
-							<Link href="/pimpinan/kehadiran" className={styles.linkA}>
-								Lihat Semua
-							</Link>
-						</div>
-						<div className={styles.barChartContainer}>
-							{tingkatAbsensi.length === 0 ? (
-								<div className={styles.emptyText}>Belum ada data absensi hari ini.</div>
-							) : (
-								tingkatAbsensi.map((absen: any, i: number) => (
-									<div key={i} className={styles.barItem}>
-										<div className={styles.barLabels}>
-											<span className={styles.barClassName}>{absen.kelas}</span>
-											<span className={styles.barValueRed}>
-												{absen.jumlah} Siswa ({absen.persentase}%)
-											</span>
-										</div>
-										<div className={styles.barTrack}>
-											<div className={styles.barFillRed} style={{ width: `${absen.persentase}%` }}></div>
-										</div>
-									</div>
-								))
+					<div
+						style={{
+							display: "flex",
+							gap: "0.5rem",
+							borderBottom: "1px solid #e2e8f0",
+							paddingBottom: "1rem",
+							marginBottom: "1rem",
+							overflowX: "auto",
+							scrollbarWidth: "none",
+						}}
+					>
+						<button
+							onClick={() => {
+								setJurnalTab("sudah");
+								setJurnalPage(1);
+							}}
+							style={{
+								padding: "0.5rem 1rem",
+								borderRadius: "0.5rem",
+								backgroundColor: jurnalTab === "sudah" ? "#0b1c36" : "#f8fafc",
+								color: jurnalTab === "sudah" ? "#ffffff" : "#475569",
+								fontWeight: jurnalTab === "sudah" ? "600" : "500",
+								border: jurnalTab === "sudah" ? "1px solid #0b1c36" : "1px solid #e2e8f0",
+								cursor: "pointer",
+								whiteSpace: "nowrap",
+								transition: "all 0.2s ease",
+							}}
+						>
+							Sudah Mengisi Jurnal
+						</button>
+						<button
+							onClick={() => {
+								setJurnalTab("belum");
+								setJurnalPage(1);
+							}}
+							style={{
+								padding: "0.5rem 1rem",
+								borderRadius: "0.5rem",
+								backgroundColor: jurnalTab === "belum" ? "#0b1c36" : "#f8fafc",
+								color: jurnalTab === "belum" ? "#ffffff" : "#475569",
+								fontWeight: jurnalTab === "belum" ? "600" : "500",
+								border: jurnalTab === "belum" ? "1px solid #0b1c36" : "1px solid #e2e8f0",
+								cursor: "pointer",
+								whiteSpace: "nowrap",
+								transition: "all 0.2s ease",
+								display: "flex",
+								alignItems: "center",
+							}}
+						>
+							Belum Mengisi (Jam Kosong)
+							{peringatanJamKosong.length > 0 && (
+								<span
+									style={{
+										marginLeft: "8px",
+										padding: "2px 6px",
+										borderRadius: "10px",
+										backgroundColor: "#ef4444",
+										color: "white",
+										fontSize: "0.75rem",
+									}}
+								>
+									{peringatanJamKosong.length}
+								</span>
 							)}
-						</div>
-						<p className={styles.chartFootnote}>Berdasarkan data presensi jurnal terkirim hari ini.</p>
+						</button>
 					</div>
+
+					<div className={styles.tableWrapper}>
+						<div style={{ overflowX: "auto", width: "100%" }}>
+							<table className={styles.dataTable}>
+								<thead>
+									{jurnalTab === "sudah" ? (
+										<tr>
+											<th>NAMA GURU</th>
+											<th>MATA PELAJARAN</th>
+											<th>KELAS (SESI)</th>
+											<th>STATUS JURNAL</th>
+											<th>WAKTU SUBMIT</th>
+										</tr>
+									) : (
+										<tr>
+											<th>JAM KE</th>
+											<th>NAMA GURU PENGAMPU</th>
+											<th>MATA PELAJARAN</th>
+											<th>KELAS</th>
+											<th>STATUS KBM</th>
+										</tr>
+									)}
+								</thead>
+								<tbody>
+									{jurnalTab === "sudah" ? (
+										currentJurnalItems.length === 0 ? (
+											<tr>
+												<td colSpan={5} className={styles.emptyText} style={{ textAlign: "center", padding: "2rem" }}>
+													Belum ada jurnal yang masuk.
+												</td>
+											</tr>
+										) : (
+											currentJurnalItems.map((jurnal: any) => (
+												<tr key={jurnal.id}>
+													<td>
+														<div className={styles.guruProfile}>
+															<div className={styles.guruInitials}>
+																{jurnal.jadwal.guru.user.nama.substring(0, 2).toUpperCase()}
+															</div>
+															<span style={{ fontWeight: 600, color: "#1e293b" }}>{jurnal.jadwal.guru.user.nama}</span>
+														</div>
+													</td>
+													<td style={{ color: "#64748b" }}>{jurnal.jadwal.mapel.nama}</td>
+													<td>
+														{jurnal.jadwal.kelas.nama}{" "}
+														<span className={styles.badgeSesi}>{formatJamSesi(jurnal.jadwal)}</span>
+													</td>
+													<td>
+														<span className={styles.badgeGreen}>
+															<CheckCircle2 size={12} /> Lengkap
+														</span>
+													</td>
+													<td style={{ color: "#64748b" }}>
+														{new Date(jurnal.tanggal).toLocaleTimeString("id-ID", {
+															hour: "2-digit",
+															minute: "2-digit",
+														})}{" "}
+														WIB
+													</td>
+												</tr>
+											))
+										)
+									) : currentJurnalItems.length === 0 ? (
+										<tr>
+											<td colSpan={5} className={styles.emptyText} style={{ textAlign: "center", padding: "2rem" }}>
+												Semua kelas terpantau aman.
+											</td>
+										</tr>
+									) : (
+										currentJurnalItems.map((alert: any, i: number) => (
+											<tr key={i}>
+												<td style={{ fontWeight: 600, color: "#1e293b", textAlign: "center" }}>{alert.jam}</td>
+												<td>
+													<span style={{ fontWeight: 600, color: "#1e293b" }}>{alert.guru}</span>
+												</td>
+												<td style={{ color: "#64748b" }}>{alert.mapel}</td>
+												<td>{alert.kelas}</td>
+												<td>
+													<div
+														className={`${styles.statusBadge} ${alert.status.includes("Tugas") ? styles.badgeYellowOutline : styles.badgeRedOutline}`}
+														style={{
+															display: "inline-block",
+															padding: "0.25rem 0.75rem",
+															borderRadius: "9999px",
+															fontSize: "0.75rem",
+															fontWeight: 600,
+														}}
+													>
+														{alert.status}
+													</div>
+												</td>
+											</tr>
+										))
+									)}
+								</tbody>
+							</table>
+						</div>
+					</div>
+
+					<div className={styles.pagination}>
+						<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
+							Menampilkan {currentJurnalItems.length === 0 ? 0 : startJurnalIndex + 1}-
+							{Math.min(
+								startJurnalIndex + itemsPerPage,
+								jurnalTab === "sudah" ? filteredJurnal.length : filteredPeringatan.length
+							)}{" "}
+							dari {jurnalTab === "sudah" ? filteredJurnal.length : filteredPeringatan.length} data
+						</span>
+						{renderPagination(jurnalPage, totalJurnalPages, setJurnalPage)}
+					</div>
+				</div>
+
+				<div className={styles.boxCard} style={{ marginTop: "1.5rem" }}>
+					<div className={styles.boxHeader}>
+						<div className={styles.boxTitle} style={{ color: "#0f172a" }}>
+							📈 Tingkat Absensi Tertinggi
+						</div>
+						<Link href="/pimpinan/kehadiran" className={styles.linkA}>
+							Lihat Semua
+						</Link>
+					</div>
+					<div className={styles.barChartContainer}>
+						{tingkatAbsensi.length === 0 ? (
+							<div className={styles.emptyText}>Belum ada data absensi hari ini.</div>
+						) : (
+							tingkatAbsensi.map((absen: any, i: number) => (
+								<div key={i} className={styles.barItem}>
+									<div className={styles.barLabels}>
+										<span className={styles.barClassName}>{absen.kelas}</span>
+										<span className={styles.barValueRed}>
+											{absen.jumlah} Siswa ({absen.persentase}%)
+										</span>
+									</div>
+									<div className={styles.barTrack}>
+										<div className={styles.barFillRed} style={{ width: `${absen.persentase}%` }}></div>
+									</div>
+								</div>
+							))
+						)}
+					</div>
+					<p className={styles.chartFootnote}>Berdasarkan data presensi jurnal terkirim hari ini.</p>
 				</div>
 
 				<div className={styles.boxCard} style={{ marginTop: "1.5rem" }}>
@@ -622,7 +850,10 @@ export default function PimpinanDashboardClient({
 								{classNames.map((cls) => (
 									<button
 										key={cls}
-										onClick={() => setActiveClassTab(cls)}
+										onClick={() => {
+											setActiveClassTab(cls);
+											setSiswaPage(1);
+										}}
 										style={{
 											padding: "0.5rem 1rem",
 											borderRadius: "0.5rem",
@@ -652,9 +883,9 @@ export default function PimpinanDashboardClient({
 											</tr>
 										</thead>
 										<tbody>
-											{filteredAbsenByClass.map((siswa: any, idx: number) => (
+											{currentSiswaItems.map((siswa: any, idx: number) => (
 												<tr key={idx}>
-													<td style={{ textAlign: "center" }}>{idx + 1}</td>
+													<td style={{ textAlign: "center" }}>{startSiswaIndex + idx + 1}</td>
 													<td style={{ fontWeight: 500 }}>{siswa.nama}</td>
 													<td style={{ color: "#64748b" }}>{siswa.mapel}</td>
 													<td style={{ textAlign: "center" }}>
@@ -681,7 +912,15 @@ export default function PimpinanDashboardClient({
 																			: siswa.status === "I"
 																				? "#0284c7"
 																				: "#dc2626",
-																border: `1px solid ${siswa.status === "H" ? "#bbf7d0" : siswa.status === "S" ? "#fde68a" : siswa.status === "I" ? "#bae6fd" : "#fecaca"}`,
+																border: `1px solid ${
+																	siswa.status === "H"
+																		? "#bbf7d0"
+																		: siswa.status === "S"
+																			? "#fde68a"
+																			: siswa.status === "I"
+																				? "#bae6fd"
+																				: "#fecaca"
+																}`,
 															}}
 														>
 															{siswa.status === "H"
@@ -699,115 +938,17 @@ export default function PimpinanDashboardClient({
 									</table>
 								</div>
 							</div>
+
+							<div className={styles.pagination}>
+								<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
+									Menampilkan {currentSiswaItems.length === 0 ? 0 : startSiswaIndex + 1}-
+									{Math.min(startSiswaIndex + itemsPerPage, filteredAbsenByClass.length)} dari{" "}
+									{filteredAbsenByClass.length} data
+								</span>
+								{renderPagination(siswaPage, totalSiswaPages, setSiswaPage)}
+							</div>
 						</>
 					)}
-				</div>
-
-				<div className={styles.boxCard} style={{ marginTop: "1.5rem" }}>
-					<div className={styles.boxHeader}>
-						<div className={styles.boxTitle} style={{ color: "#0f172a", fontSize: "1.25rem" }}>
-							Riwayat Jurnal Guru Masuk Hari Ini
-						</div>
-						<div className={styles.tableToolbar}>
-							<div className={styles.searchBox}>
-								<Search size={16} className={styles.searchIcon} />
-								<input
-									type="text"
-									placeholder="Cari nama guru atau kelas..."
-									className={styles.searchInput}
-									value={searchTerm}
-									onChange={(e) => {
-										setSearchTerm(e.target.value);
-										setCurrentPage(1);
-									}}
-								/>
-							</div>
-						</div>
-					</div>
-
-					<div className={styles.tableWrapper}>
-						<div style={{ overflowX: "auto", width: "100%" }}>
-							<table className={styles.dataTable}>
-								<thead>
-									<tr>
-										<th>NAMA GURU</th>
-										<th>MATA PELAJARAN</th>
-										<th>KELAS (SESI)</th>
-										<th>STATUS JURNAL</th>
-										<th>WAKTU SUBMIT</th>
-									</tr>
-								</thead>
-								<tbody>
-									{currentItems.length === 0 ? (
-										<tr>
-											<td colSpan={5} className={styles.emptyText} style={{ textAlign: "center", padding: "2rem" }}>
-												Belum ada jurnal yang masuk.
-											</td>
-										</tr>
-									) : (
-										currentItems.map((jurnal: any) => (
-											<tr key={jurnal.id}>
-												<td>
-													<div className={styles.guruProfile}>
-														<div className={styles.guruInitials}>
-															{jurnal.jadwal.guru.user.nama.substring(0, 2).toUpperCase()}
-														</div>
-														<span style={{ fontWeight: 600, color: "#1e293b" }}>{jurnal.jadwal.guru.user.nama}</span>
-													</div>
-												</td>
-												<td style={{ color: "#64748b" }}>{jurnal.jadwal.mapel.nama}</td>
-												<td>
-													{jurnal.jadwal.kelas.nama}{" "}
-													<span className={styles.badgeSesi}>{formatJamSesi(jurnal.jadwal)}</span>
-												</td>
-												<td>
-													<span className={styles.badgeGreen}>
-														<CheckCircle2 size={12} /> Lengkap
-													</span>
-												</td>
-												<td style={{ color: "#64748b" }}>
-													{new Date(jurnal.tanggal).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}{" "}
-													WIB
-												</td>
-											</tr>
-										))
-									)}
-								</tbody>
-							</table>
-						</div>
-					</div>
-
-					<div className={styles.pagination}>
-						<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
-							Menampilkan {filteredJurnal.length === 0 ? 0 : startIndex + 1}-
-							{Math.min(startIndex + itemsPerPage, filteredJurnal.length)} dari {filteredJurnal.length} data
-						</span>
-						<div className={styles.pageButtons}>
-							<button
-								className={styles.pageBtn}
-								disabled={currentPage === 1}
-								onClick={() => handlePageChange(currentPage - 1)}
-							>
-								Prev
-							</button>
-							{Array.from({ length: totalPagesWeb }, (_, i) => i + 1).map((page) => (
-								<button
-									key={page}
-									className={`${styles.pageBtn} ${currentPage === page ? styles.pageActive : ""}`}
-									onClick={() => handlePageChange(page)}
-								>
-									{page}
-								</button>
-							))}
-							<button
-								className={styles.pageBtn}
-								disabled={currentPage === totalPagesWeb || filteredJurnal.length === 0}
-								onClick={() => handlePageChange(currentPage + 1)}
-							>
-								Next
-							</button>
-						</div>
-					</div>
 				</div>
 			</div>
 		</>
