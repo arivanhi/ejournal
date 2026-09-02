@@ -605,6 +605,18 @@ export default function MasterClient({
 							</button>
 						)}
 
+						{activeTab !== "koorBk" && (
+							<button
+								className={styles.btnPrimary}
+								onClick={() => {
+									resetForm();
+									setIsModalOpen(true);
+								}}
+							>
+								<Plus size={16} /> Tambah {titleLabels[activeTab]}
+							</button>
+						)}
+
 						{activeTab !== "tahunAjar" && activeTab !== "kelas" && activeTab !== "koorBk" && (
 							<button className={styles.btnSecondary} onClick={() => setIsUploadModalOpen(true)}>
 								<Users size={16} />
