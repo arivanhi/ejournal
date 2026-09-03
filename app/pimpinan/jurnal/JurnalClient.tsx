@@ -389,7 +389,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 				<div style={{ display: "none" }}>
 					<div id="pdf-jurnal-content" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 						{(() => {
-							const CHUNK_SIZE_JURNAL = 8;
+							const CHUNK_SIZE_JURNAL = 5;
 							const CHUNK_SIZE_SISWA = 15;
 							let globalTotalPages = 0;
 
@@ -408,7 +408,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 								if (sesiChunks.length === 0) sesiChunks.push([]);
 
 								let jurnalTugas = (dataItem.detailSesi || []).filter((j: any) => j.tugas && j.tugas.trim() !== "" && j.tugas.trim() !== "-");
-								
+
 								// Hanya ambil tugas yang sudah ada nilainya minimal 1 siswa
 								jurnalTugas = jurnalTugas.filter((t: any) => {
 									return t.presensi?.some((p: any) => p.nilaiTugas !== null && p.nilaiTugas !== undefined);
@@ -926,26 +926,26 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 							</div>
 							<br></br>
 							<div className={styles.headerButtons}>								<button
-									className={styles.btnPrimaryDark}
-									onClick={() => {
-										setIsBulkExportModalOpen(true);
-										setSelectedExportItems(filteredData.map((d: any) => d.id));
-									}}
-									style={{
-										display: "flex",
-										alignItems: "center",
-										gap: "0.5rem",
-										padding: "0.75rem 1.25rem",
-										borderRadius: "0.5rem",
-										border: "none",
-										cursor: "pointer",
-										background: "#0b1c36",
-										color: "#fff",
-										fontWeight: "600",
-									}}
-								>
-									<Download size={16} /> Ekspor PDF (Semua)
-								</button>
+								className={styles.btnPrimaryDark}
+								onClick={() => {
+									setIsBulkExportModalOpen(true);
+									setSelectedExportItems(filteredData.map((d: any) => d.id));
+								}}
+								style={{
+									display: "flex",
+									alignItems: "center",
+									gap: "0.5rem",
+									padding: "0.75rem 1.25rem",
+									borderRadius: "0.5rem",
+									border: "none",
+									cursor: "pointer",
+									background: "#0b1c36",
+									color: "#fff",
+									fontWeight: "600",
+								}}
+							>
+								<Download size={16} /> Ekspor PDF (Semua)
+							</button>
 							</div>
 						</div>
 
@@ -1357,7 +1357,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 												const sortedSiswa = [...selectedItem.siswaList].sort((a: any, b: any) =>
 													a.nama.localeCompare(b.nama),
 												);
-												
+
 												const itemsPerPage = 15;
 												const totalItems = sortedSiswa.length;
 												const startIndex = (currentModalPage - 1) * itemsPerPage;

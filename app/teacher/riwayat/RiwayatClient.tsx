@@ -312,7 +312,7 @@ export default function RiwayatClient({
 		return { H, I, S, A, totalHadir: H, totalPertemuan, persentase, statusText, statusClass, rataNilai, countTugas };
 	};
 
-	const CHUNK_SIZE_JURNAL = 8;
+	const CHUNK_SIZE_JURNAL = 5;
 	const CHUNK_SIZE_SISWA = 15;
 	const chunkArray = (arr: any[], size: number) => {
 		if (!arr || arr.length === 0) return [[]];
@@ -772,23 +772,23 @@ export default function RiwayatClient({
 															<strong>{statsPdf.totalPertemuan} pertemuan</strong>.
 														</p>
 
-															{(() => {
-																const notes = jurnalForPdf.filter((j: any) => j.catatan && j.catatan.trim() !== "" && j.catatan.trim() !== "-");
-																if (notes.length === 0) return null;
-																return (
-																	<>
-																		<p><strong>RANGKUMAN CATATAN EVALUASI:</strong></p>
-																		<ul style={{ paddingLeft: "1.5rem", marginBottom: "2rem" }}>
-																			{notes.map((n: any, i: number) => (
-																				<li key={i} style={{ marginBottom: "0.5rem" }}>
-																					<strong>Pertemuan ke-{i + 1} ({new Date(n.tanggal).toLocaleDateString("id-ID")}):</strong>{" "}
-																					{n.catatan}
-																				</li>
-																			))}
-																		</ul>
-																	</>
-																);
-															})()}
+														{(() => {
+															const notes = jurnalForPdf.filter((j: any) => j.catatan && j.catatan.trim() !== "" && j.catatan.trim() !== "-");
+															if (notes.length === 0) return null;
+															return (
+																<>
+																	<p><strong>RANGKUMAN CATATAN EVALUASI:</strong></p>
+																	<ul style={{ paddingLeft: "1.5rem", marginBottom: "2rem" }}>
+																		{notes.map((n: any, i: number) => (
+																			<li key={i} style={{ marginBottom: "0.5rem" }}>
+																				<strong>Pertemuan ke-{i + 1} ({new Date(n.tanggal).toLocaleDateString("id-ID")}):</strong>{" "}
+																				{n.catatan}
+																			</li>
+																		))}
+																	</ul>
+																</>
+															);
+														})()}
 
 														<div style={{ textAlign: "right", marginTop: "3rem", paddingRight: "10%" }}>
 															<p>
@@ -957,7 +957,7 @@ export default function RiwayatClient({
 										</label>
 									)}
 								</div>
-								
+
 								<div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
 									{(activeTabKelas === "Semua Kelas" ? kelasTabs.filter(t => t !== "Semua Kelas") : [activeTabKelas]).map(tab => (
 										<label key={tab} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", backgroundColor: "white", borderRadius: "0.375rem", border: "1px solid #e2e8f0", cursor: "pointer", fontSize: "0.875rem" }}>
@@ -1985,22 +1985,22 @@ export default function RiwayatClient({
 												<div style={{ border: "1px solid #000", padding: "1rem" }}>
 													<p><strong>REKAPITULASI CAPAIAN KELAS:</strong></p>
 													<p style={{ marginBottom: "1rem" }}>Rata-rata persentase kehadiran kelas {jadwal.kelas.nama} adalah <strong>{statsPdf.rataKehadiran}%</strong> selama <strong>{statsPdf.totalPertemuan} pertemuan</strong>.</p>
-														{(() => {
-															const notes = mJurnalForPdf.filter((j: any) => j.catatan && j.catatan.trim() !== "" && j.catatan.trim() !== "-");
-															if (notes.length === 0) return null;
-															return (
-																<>
-																	<p><strong>RANGKUMAN CATATAN EVALUASI:</strong></p>
-																	<ul style={{ paddingLeft: "1.5rem", marginBottom: "2rem" }}>
-																		{notes.map((n: any, i: number) => (
-																			<li key={i} style={{ marginBottom: "0.5rem" }}>
-																				<strong>Pertemuan ke-{i + 1} ({new Date(n.tanggal).toLocaleDateString("id-ID")}):</strong> {n.catatan}
-																			</li>
-																		))}
-																	</ul>
-																</>
-															);
-														})()}
+													{(() => {
+														const notes = mJurnalForPdf.filter((j: any) => j.catatan && j.catatan.trim() !== "" && j.catatan.trim() !== "-");
+														if (notes.length === 0) return null;
+														return (
+															<>
+																<p><strong>RANGKUMAN CATATAN EVALUASI:</strong></p>
+																<ul style={{ paddingLeft: "1.5rem", marginBottom: "2rem" }}>
+																	{notes.map((n: any, i: number) => (
+																		<li key={i} style={{ marginBottom: "0.5rem" }}>
+																			<strong>Pertemuan ke-{i + 1} ({new Date(n.tanggal).toLocaleDateString("id-ID")}):</strong> {n.catatan}
+																		</li>
+																	))}
+																</ul>
+															</>
+														);
+													})()}
 													<div style={{ textAlign: "right", marginTop: "3rem", paddingRight: "10%" }}>
 														<p>Brebes, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
 														<p style={{ marginBottom: "4rem" }}>Guru Pengampu,</p>
