@@ -44,8 +44,8 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
 	<div
 		style={{
-			width: "210mm",
-			height: "296mm",
+			width: "296mm",
+			height: "209mm",
 			padding: "15mm 20mm",
 			boxSizing: "border-box",
 			display: "flex",
@@ -327,7 +327,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 					filename: `Rekap_Jurnal_Mengajar_Multi_Guru.pdf`,
 					image: { type: "jpeg", quality: 1 },
 					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+					jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
 					pagebreak: { mode: ['css'] }
 				};
 
@@ -364,7 +364,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 					filename: filename,
 					image: { type: "jpeg", quality: 1 },
 					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+					jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
 					pagebreak: { mode: ['css'] } // Mengikuti sistem .html2pdf__page-break
 				};
 
@@ -389,7 +389,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 				<div style={{ display: "none" }}>
 					<div id="pdf-jurnal-content" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 						{(() => {
-							const MAX_ROWS = 25;
+							const MAX_ROWS = 15;
 							let globalTotalPages = 0;
 
 							const signatureBlock = (
@@ -406,9 +406,17 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 								const sesiChunks = chunkArray([...(dataItem.detailSesi || [])].sort((a, b) => a.pertemuanKe - b.pertemuanKe), MAX_ROWS);
 								if (sesiChunks.length === 0) sesiChunks.push([]);
 
-								const jurnalTugas = (dataItem.detailSesi || []).filter((j: any) => j.tugas && j.tugas.trim() !== "");
+								let jurnalTugas = (dataItem.detailSesi || []).filter((j: any) => j.tugas && j.tugas.trim() !== "" && j.tugas.trim() !== "-");
+								
+								// Hanya ambil tugas yang sudah ada nilainya minimal 1 siswa
+								jurnalTugas = jurnalTugas.filter((t: any) => {
+									return t.presensi?.some((p: any) => p.nilaiTugas !== null && p.nilaiTugas !== undefined);
+								});
+
+								let hasAnyNilai = jurnalTugas.length > 0;
+
 								let nilaiTugasChunks: any[][] = [];
-								if (jurnalTugas.length > 0) {
+								if (hasAnyNilai) {
 									const sortedSiswa = [...(dataItem.siswaList || [])].sort((a: any, b: any) => a.nama.localeCompare(b.nama));
 									nilaiTugasChunks = chunkArray(sortedSiswa, MAX_ROWS);
 									if (nilaiTugasChunks.length === 0) nilaiTugasChunks.push([]);
@@ -418,11 +426,11 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 								itemTotalPages += sesiChunks.length; // Bab A
 								itemTotalPages += siswaChunks.length; // Bab B
 								itemTotalPages += 1; // Bab C
-								itemTotalPages += (jurnalTugas.length === 0 ? 1 : nilaiTugasChunks.length); // Bab D
+								itemTotalPages += (hasAnyNilai ? nilaiTugasChunks.length : 0); // Bab D
 
 								globalTotalPages += itemTotalPages;
 
-								return { siswaChunks, sesiChunks, jurnalTugas, nilaiTugasChunks };
+								return { siswaChunks, sesiChunks, jurnalTugas, nilaiTugasChunks, hasAnyNilai };
 							});
 
 							let pageCounter = 1;
@@ -430,7 +438,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 							return (
 								<>
 									{pdfItemsData.map((dataItem, index) => {
-										const { siswaChunks, sesiChunks, jurnalTugas, nilaiTugasChunks } = pdfItemsChunks[index];
+										const { siswaChunks, sesiChunks, jurnalTugas, nilaiTugasChunks, hasAnyNilai } = pdfItemsChunks[index];
 										const isLastItem = index === pdfItemsData.length - 1;
 
 										const pdfSubheader = (
@@ -510,7 +518,6 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 													</div>
 													<PageFooter current={pageCounter++} total={globalTotalPages} />
 												</PageContainer>
-												<div className="html2pdf__page-break"></div>
 
 												{/* HALAMAN A. RIWAYAT KBM */}
 												{sesiChunks.map((chunk: any[], chunkIdx: number) => (
@@ -553,7 +560,6 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 															</table>
 															<PageFooter current={pageCounter++} total={globalTotalPages} />
 														</PageContainer>
-														<div className="html2pdf__page-break"></div>
 													</div>
 												))}
 
@@ -597,7 +603,6 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 															</table>
 															<PageFooter current={pageCounter++} total={globalTotalPages} />
 														</PageContainer>
-														<div className="html2pdf__page-break"></div>
 													</div>
 												))}
 
@@ -638,40 +643,29 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 															<p style={{ marginBottom: "1rem" }}>
 																Rata-rata kehadiran {dataItem.kelasNama} adalah <strong>{dataItem.persentaseKehadiran}%</strong> selama <strong>{dataItem.terisi} pertemuan</strong>.
 															</p>
-															<p><strong>RANGKUMAN CATATAN EVALUASI:</strong></p>
-															<ul style={{ paddingLeft: "1.5rem", marginBottom: "1rem" }}>
-																{(() => {
-																	const notes = dataItem.detailSesi.filter((j: any) => j.catatan && j.catatan.trim() !== "");
-																	if (notes.length === 0) return <li>Tidak ada catatan.</li>;
-																	return notes.map((n: any, i: number) => (
-																		<li key={i} style={{ marginBottom: "0.5rem" }}>
-																			<strong>P-{n.pertemuanKe} ({n.tanggal}):</strong> {n.catatan}
-																		</li>
-																	));
-																})()}
-															</ul>
+															{(() => {
+																const notes = dataItem.detailSesi.filter((j: any) => j.catatan && j.catatan.trim() !== "" && j.catatan.trim() !== "-");
+																if (notes.length === 0) return null;
+																return (
+																	<>
+																		<p><strong>RANGKUMAN CATATAN EVALUASI:</strong></p>
+																		<ul style={{ paddingLeft: "1.5rem", marginBottom: "1rem" }}>
+																			{notes.map((n: any, i: number) => (
+																				<li key={i} style={{ marginBottom: "0.5rem" }}>
+																					<strong>P-{n.pertemuanKe} ({n.tanggal}):</strong> {n.catatan}
+																				</li>
+																			))}
+																		</ul>
+																	</>
+																);
+															})()}
 														</div>
 														<PageFooter current={pageCounter++} total={globalTotalPages} />
 													</PageContainer>
-													<div className="html2pdf__page-break"></div>
 												</div>
 
 												{/* HALAMAN D. NILAI TUGAS */}
-												{jurnalTugas.length === 0 ? (
-													<div>
-														<PageContainer isLast={isLastItem}>
-															<KopSurat />
-															{pdfSubheader}
-															<h3 style={{ fontSize: "12pt", fontWeight: "bold", textTransform: "uppercase", marginBottom: "10px" }}>
-																D. Rekapitulasi Nilai Tugas
-															</h3>
-															<p style={{ fontSize: "10pt" }}>Tidak ada tugas yang diberikan pada periode ini.</p>
-															{signatureBlock}
-															<PageFooter current={pageCounter++} total={globalTotalPages} />
-														</PageContainer>
-														{!isLastItem && <div className="html2pdf__page-break"></div>}
-													</div>
-												) : (
+												{!hasAnyNilai ? null : (
 													nilaiTugasChunks.map((chunk: any[], chunkIdx: number) => {
 														const isVeryLastPageOfDocument = isLastItem && chunkIdx === nilaiTugasChunks.length - 1;
 														const isLastChunkOfThisItem = chunkIdx === nilaiTugasChunks.length - 1;
@@ -684,22 +678,14 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 																	<h3 style={{ fontSize: "12pt", fontWeight: "bold", textTransform: "uppercase", marginBottom: "10px" }}>
 																		D. Rekapitulasi Nilai Tugas {chunkIdx > 0 ? "(Lanjutan)" : ""}
 																	</h3>
-																	{chunkIdx === 0 && (
-																		<p style={{ fontSize: "10pt", marginBottom: "10px" }}>
-																			<em>*Daftar Tugas:</em><br />
-																			{jurnalTugas.map((t: any, i: number) => (
-																				<span key={t.id}><strong>T{i + 1}:</strong> {t.tugas} ({t.tanggal})<br /></span>
-																			))}
-																		</p>
-																	)}
 																	<table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", marginBottom: "2rem", fontSize: "9pt" }}>
 																		<thead style={{ display: "table-header-group" }}>
 																			<tr>
 																				<th style={{ width: "5%", border: "1px solid #000", padding: "6px", backgroundColor: "#f1f5f9" }}>No.</th>
 																				<th style={{ width: "25%", border: "1px solid #000", padding: "6px", backgroundColor: "#f1f5f9" }}>Nama Siswa</th>
 																				<th style={{ width: "10%", border: "1px solid #000", padding: "6px", backgroundColor: "#f1f5f9" }}>NIS</th>
-																				{jurnalTugas.map((t: any, i: number) => (
-																					<th key={t.id} style={{ textAlign: "center", border: "1px solid #000", padding: "6px", backgroundColor: "#f1f5f9" }}>T{i + 1}</th>
+																				{jurnalTugas.map((t: any) => (
+																					<th key={t.id} style={{ textAlign: "center", border: "1px solid #000", padding: "6px", backgroundColor: "#f1f5f9" }}>{t.tugas}</th>
 																				))}
 																				<th style={{ width: "10%", textAlign: "center", border: "1px solid #000", padding: "6px", backgroundColor: "#f1f5f9" }}>Rata-rata</th>
 																			</tr>
@@ -738,7 +724,6 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 
 																	<PageFooter current={pageCounter++} total={globalTotalPages} />
 																</PageContainer>
-																{!isVeryLastPageOfDocument && <div className="html2pdf__page-break"></div>}
 															</div>
 														);
 													})

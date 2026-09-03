@@ -36,8 +36,8 @@ import { signOut } from "next-auth/react";
 const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
 	<div
 		style={{
-			width: "210mm",
-			height: "296mm",
+			width: "296mm",
+			height: "209mm",
 			padding: "15mm 20mm",
 			boxSizing: "border-box",
 			display: "flex",
@@ -233,7 +233,10 @@ export default function RiwayatClient({
 	}, [activeJadwal]);
 
 	const jurnalTugas = useMemo(() => {
-		return jurnalForPdf.filter((j: any) => j.tugas && j.tugas.trim() !== "");
+		let tugas = jurnalForPdf.filter((j: any) => j.tugas && j.tugas.trim() !== "" && j.tugas.trim() !== "-");
+		return tugas.filter((t: any) => {
+			return t.presensi?.some((p: any) => p.nilaiTugas !== null && p.nilaiTugas !== undefined);
+		});
 	}, [jurnalForPdf]);
 
 	const alasanPdfData = useMemo(() => {
@@ -309,7 +312,7 @@ export default function RiwayatClient({
 		return { H, I, S, A, totalHadir: H, totalPertemuan, persentase, statusText, statusClass, rataNilai, countTugas };
 	};
 
-	const MAX_ROWS = 25;
+	const MAX_ROWS = 15;
 	const chunkArray = (arr: any[], size: number) => {
 		if (!arr || arr.length === 0) return [[]];
 		const res = [];
@@ -323,9 +326,9 @@ export default function RiwayatClient({
 	const alasanChunks = chunkArray(alasanPdfData, 12);
 	const pagesBabA = jurnalForPdf.length === 0 ? 1 : jurnalChunks.length;
 	const pagesBabB = siswaChunks.length;
-	const pagesBabC = alasanChunks.length === 0 ? 1 : alasanChunks.length;
+	const pagesBabC = alasanChunks.length === 0 ? 0 : alasanChunks.length;
 	const pagesBabD = 1;
-	const pagesBabE = jurnalTugas.length === 0 ? 1 : siswaChunks.length;
+	const pagesBabE = jurnalTugas.length === 0 ? 0 : siswaChunks.length;
 	const totalPdfPages = 1 + pagesBabA + pagesBabB + pagesBabC + pagesBabD + pagesBabE;
 
 	const handleDownloadPdf = async () => {
@@ -345,7 +348,7 @@ export default function RiwayatClient({
 					filename: `Riwayat_Jurnal_${activeJadwal.tahunAjaran.nama}_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}.pdf`,
 					image: { type: "jpeg", quality: 1 },
 					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+					jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
 					pagebreak: { mode: ['css'] }
 				};
 
@@ -398,7 +401,7 @@ export default function RiwayatClient({
 					filename: `Ekspor_Massal_Jurnal_${modalKelasFilter.length > 2 ? 'Beberapa_Kelas' : modalKelasFilter.join('_').replace(/ /g, '_')}.pdf`,
 					image: { type: "jpeg", quality: 1 },
 					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+					jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
 					pagebreak: { mode: ['css'] }
 				};
 
@@ -510,7 +513,7 @@ export default function RiwayatClient({
 												{periodeText}
 											</p>
 
-											<div style={{ margin: "4rem 0", display: "flex", justifyContent: "center" }}>
+											<div style={{ margin: "1.5rem 0", display: "flex", justifyContent: "center" }}>
 												<img
 													src="/logo.jpg"
 													alt="Logo SMAN 2 Brebes"
@@ -528,12 +531,12 @@ export default function RiwayatClient({
 
 											<div
 												style={{
-													marginTop: "4rem",
+													marginTop: "2rem",
 													textAlign: "center",
 													borderTop: "2px solid #0a2540",
 													paddingTop: "1.5rem",
 													width: "70%",
-													margin: "4rem auto 0 auto",
+													margin: "2rem auto 0 auto",
 												}}
 											>
 												<p style={{ fontSize: "14pt", fontWeight: 800 }}>KELAS: {activeJadwal.kelas.nama}</p>
@@ -670,14 +673,7 @@ export default function RiwayatClient({
 									})}
 
 									{/* --- HALAMAN BAB C: CATATAN ALASAN --- */}
-									{alasanChunks.length === 0 ? (
-										<PageContainer>
-											<KopSurat />
-											<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>C. CATATAN ALASAN</h3>
-											<p style={{ fontSize: "10pt", fontStyle: "italic", color: "#64748b" }}>Tidak ada catatan alasan ketidakhadiran atau keterlambatan pada periode ini.</p>
-											<PageFooter current={1 + pagesBabA + pagesBabB + 1} total={totalPdfPages} />
-										</PageContainer>
-									) : (
+									{alasanChunks.length > 0 && (
 										alasanChunks.map((chunk, chunkIdx) => {
 											const pageNum = 1 + pagesBabA + pagesBabB + (chunkIdx + 1);
 											return (
@@ -775,20 +771,23 @@ export default function RiwayatClient({
 															<strong>{statsPdf.totalPertemuan} pertemuan</strong>.
 														</p>
 
-														<p><strong>RANGKUMAN CATATAN EVALUASI:</strong></p>
-														<ul style={{ paddingLeft: "1.5rem", marginBottom: "2rem" }}>
 															{(() => {
-																const notes = jurnalForPdf.filter((j: any) => j.catatan && j.catatan.trim() !== "");
-																if (notes.length === 0)
-																	return <li style={{ color: "#64748b" }}>Tidak ada catatan kendala yang direkam pada periode ini.</li>;
-																return notes.map((n: any, i: number) => (
-																	<li key={i} style={{ marginBottom: "0.5rem" }}>
-																		<strong>Pertemuan ke-{i + 1} ({new Date(n.tanggal).toLocaleDateString("id-ID")}):</strong>{" "}
-																		{n.catatan}
-																	</li>
-																));
+																const notes = jurnalForPdf.filter((j: any) => j.catatan && j.catatan.trim() !== "" && j.catatan.trim() !== "-");
+																if (notes.length === 0) return null;
+																return (
+																	<>
+																		<p><strong>RANGKUMAN CATATAN EVALUASI:</strong></p>
+																		<ul style={{ paddingLeft: "1.5rem", marginBottom: "2rem" }}>
+																			{notes.map((n: any, i: number) => (
+																				<li key={i} style={{ marginBottom: "0.5rem" }}>
+																					<strong>Pertemuan ke-{i + 1} ({new Date(n.tanggal).toLocaleDateString("id-ID")}):</strong>{" "}
+																					{n.catatan}
+																				</li>
+																			))}
+																		</ul>
+																	</>
+																);
 															})()}
-														</ul>
 
 														<div style={{ textAlign: "right", marginTop: "3rem", paddingRight: "10%" }}>
 															<p>
@@ -805,17 +804,7 @@ export default function RiwayatClient({
 										);
 									})()}
 
-									{/* --- HALAMAN BAB E: REKAP NILAI TUGAS --- */}
-									{jurnalTugas.length === 0 ? (
-										<PageContainer isLast={true}>
-											<KopSurat />
-											<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>
-												E. REKAPITULASI NILAI TUGAS
-											</h3>
-											<p style={{ fontSize: "10pt" }}>Tidak ada tugas yang diberikan pada periode ini.</p>
-											<PageFooter current={totalPdfPages} total={totalPdfPages} />
-										</PageContainer>
-									) : (
+									{jurnalTugas.length > 0 && (
 										siswaChunks.map((chunk, chunkIdx) => {
 											const pageNum = 1 + pagesBabA + pagesBabB + pagesBabC + 1 + (chunkIdx + 1);
 											const isLastPage = chunkIdx === siswaChunks.length - 1;
@@ -826,24 +815,14 @@ export default function RiwayatClient({
 														<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>
 															E. REKAPITULASI NILAI TUGAS {chunkIdx > 0 ? "(Lanjutan)" : ""}
 														</h3>
-														{chunkIdx === 0 && (
-															<p style={{ fontSize: "9pt", marginBottom: "10px" }}>
-																<em>*Daftar Tugas:</em><br />
-																{jurnalTugas.map((t: any, i: number) => (
-																	<span key={t.id}>
-																		<strong>T{i + 1}:</strong> {t.tugas} ({new Date(t.tanggal).toLocaleDateString("id-ID")})<br />
-																	</span>
-																))}
-															</p>
-														)}
 														<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9pt" }}>
 															<thead style={{ display: "table-header-group" }}>
 																<tr style={{ backgroundColor: "#f1f5f9" }}>
 																	<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%" }}>No.</th>
 																	<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "35%" }}>Nama Siswa</th>
 																	<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "15%" }}>NIS</th>
-																	{jurnalTugas.map((t: any, i: number) => (
-																		<th key={t.id} style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>T{i + 1}</th>
+																	{jurnalTugas.map((t: any) => (
+																		<th key={t.id} style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{t.tugas}</th>
 																	))}
 																	<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "10%", textAlign: "center" }}>Rata-rata</th>
 																</tr>
@@ -1810,7 +1789,10 @@ export default function RiwayatClient({
 							.sort((a: any, b: any) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
 
 						const mSortedSiswa = [...(jadwal.kelas?.riwayatSiswa || [])].sort((a: any, b: any) => (a.siswa?.user?.nama || "").localeCompare(b.siswa?.user?.nama || ""));
-						const mJurnalTugas = mJurnalForPdf.filter((j: any) => j.tugas && j.tugas.trim() !== "");
+						let mJurnalTugas = mJurnalForPdf.filter((j: any) => j.tugas && j.tugas.trim() !== "" && j.tugas.trim() !== "-");
+						mJurnalTugas = mJurnalTugas.filter((t: any) => {
+							return t.presensi?.some((p: any) => p.nilaiTugas !== null && p.nilaiTugas !== undefined);
+						});
 
 						const format = (dateStr: string) => new Date(dateStr).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 						const mPeriodeText = (!massStartDate || !massEndDate) ? "Semua Periode" : `Periode: ${format(massStartDate)} - ${format(massEndDate)}`;
@@ -1821,7 +1803,7 @@ export default function RiwayatClient({
 						const mPagesBabA = mJurnalForPdf.length === 0 ? 1 : mJurnalChunks.length;
 						const mPagesBabB = mSiswaChunks.length;
 						const mPagesBabC = 1;
-						const mPagesBabD = mJurnalTugas.length === 0 ? 1 : mSiswaChunks.length;
+						const mPagesBabD = mJurnalTugas.length === 0 ? 0 : mSiswaChunks.length;
 						const mTotalPdfPages = 1 + mPagesBabA + mPagesBabB + mPagesBabC + mPagesBabD;
 
 						// Memastikan halaman terakhir dari satu mata pelajaran akan menyebabkan Page Break ke jadwal berikutnya
@@ -1836,7 +1818,7 @@ export default function RiwayatClient({
 										<h1 style={{ fontSize: "24pt", fontWeight: 900, color: "#0a2540", marginBottom: "0.5rem", textTransform: "uppercase", textAlign: "center" }}>{jadwal.mapel.nama}</h1>
 										<p style={{ fontSize: "12pt", fontWeight: 600 }}>Tahun Akademik {jadwal.tahunAjaran.nama}</p>
 										<p style={{ fontSize: "12pt", fontWeight: 600, marginTop: "0.5rem", color: "#dc2626" }}>{mPeriodeText}</p>
-										<div style={{ margin: "4rem 0", display: "flex", justifyContent: "center" }}>
+										<div style={{ margin: "1.5rem 0", display: "flex", justifyContent: "center" }}>
 											<img src="/logo.jpg" alt="Logo SMAN 2 Brebes" style={{ width: "160px", height: "160px", objectFit: "contain" }} />
 										</div>
 										<div style={{ textAlign: "center" }}>
@@ -1844,7 +1826,7 @@ export default function RiwayatClient({
 											<p style={{ fontSize: "14pt", fontWeight: 700, color: "#0a2540", margin: 0 }}>{user.nama}</p>
 											<p style={{ fontSize: "11pt", marginTop: "0.5rem" }}>NIP: {user.username}</p>
 										</div>
-										<div style={{ marginTop: "4rem", textAlign: "center", borderTop: "2px solid #0a2540", paddingTop: "1.5rem", width: "70%", margin: "4rem auto 0 auto" }}>
+										<div style={{ marginTop: "2rem", textAlign: "center", borderTop: "2px solid #0a2540", paddingTop: "1.5rem", width: "70%", margin: "2rem auto 0 auto" }}>
 											<p style={{ fontSize: "14pt", fontWeight: 800 }}>KELAS: {jadwal.kelas.nama}</p>
 											<p style={{ fontSize: "12pt" }}>SMA NEGERI 2 BREBES</p>
 										</div>
@@ -2002,18 +1984,22 @@ export default function RiwayatClient({
 												<div style={{ border: "1px solid #000", padding: "1rem" }}>
 													<p><strong>REKAPITULASI CAPAIAN KELAS:</strong></p>
 													<p style={{ marginBottom: "1rem" }}>Rata-rata persentase kehadiran kelas {jadwal.kelas.nama} adalah <strong>{statsPdf.rataKehadiran}%</strong> selama <strong>{statsPdf.totalPertemuan} pertemuan</strong>.</p>
-													<p><strong>RANGKUMAN CATATAN EVALUASI:</strong></p>
-													<ul style={{ paddingLeft: "1.5rem", marginBottom: "2rem" }}>
 														{(() => {
-															const notes = mJurnalForPdf.filter((j: any) => j.catatan && j.catatan.trim() !== "");
-															if (notes.length === 0) return <li style={{ color: "#64748b" }}>Tidak ada catatan kendala yang direkam pada periode ini.</li>;
-															return notes.map((n: any, i: number) => (
-																<li key={i} style={{ marginBottom: "0.5rem" }}>
-																	<strong>Pertemuan ke-{i + 1} ({new Date(n.tanggal).toLocaleDateString("id-ID")}):</strong> {n.catatan}
-																</li>
-															));
+															const notes = mJurnalForPdf.filter((j: any) => j.catatan && j.catatan.trim() !== "" && j.catatan.trim() !== "-");
+															if (notes.length === 0) return null;
+															return (
+																<>
+																	<p><strong>RANGKUMAN CATATAN EVALUASI:</strong></p>
+																	<ul style={{ paddingLeft: "1.5rem", marginBottom: "2rem" }}>
+																		{notes.map((n: any, i: number) => (
+																			<li key={i} style={{ marginBottom: "0.5rem" }}>
+																				<strong>Pertemuan ke-{i + 1} ({new Date(n.tanggal).toLocaleDateString("id-ID")}):</strong> {n.catatan}
+																			</li>
+																		))}
+																	</ul>
+																</>
+															);
 														})()}
-													</ul>
 													<div style={{ textAlign: "right", marginTop: "3rem", paddingRight: "10%" }}>
 														<p>Brebes, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
 														<p style={{ marginBottom: "4rem" }}>Guru Pengampu,</p>
@@ -2027,15 +2013,7 @@ export default function RiwayatClient({
 									);
 								})()}
 
-								{/* BAB D: REKAP NILAI TUGAS */}
-								{mJurnalTugas.length === 0 ? (
-									<PageContainer isLast={isLastJadwal}>
-										<KopSurat />
-										<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>D. REKAPITULASI NILAI TUGAS</h3>
-										<p style={{ fontSize: "10pt" }}>Tidak ada tugas yang diberikan pada periode ini.</p>
-										<PageFooter current={mTotalPdfPages} total={mTotalPdfPages} />
-									</PageContainer>
-								) : (
+								{mJurnalTugas.length > 0 && (
 									mSiswaChunks.map((chunk, chunkIdx) => {
 										const pageNum = 1 + mPagesBabA + mPagesBabB + 1 + (chunkIdx + 1);
 										const isLastPage = isLastJadwal && chunkIdx === mSiswaChunks.length - 1;
@@ -2044,22 +2022,14 @@ export default function RiwayatClient({
 												<PageContainer isLast={isLastPage}>
 													<KopSurat />
 													<h3 style={{ fontSize: "12pt", fontWeight: "bold", marginBottom: "15px" }}>D. REKAPITULASI NILAI TUGAS {chunkIdx > 0 ? "(Lanjutan)" : ""}</h3>
-													{chunkIdx === 0 && (
-														<p style={{ fontSize: "9pt", marginBottom: "10px" }}>
-															<em>*Daftar Tugas:</em><br />
-															{mJurnalTugas.map((t: any, i: number) => (
-																<span key={t.id}><strong>T{i + 1}:</strong> {t.tugas} ({new Date(t.tanggal).toLocaleDateString("id-ID")})<br /></span>
-															))}
-														</p>
-													)}
 													<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9pt" }}>
 														<thead style={{ display: "table-header-group" }}>
 															<tr style={{ backgroundColor: "#f1f5f9" }}>
 																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "5%" }}>No.</th>
 																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "35%" }}>Nama Siswa</th>
 																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "15%" }}>NIS</th>
-																{mJurnalTugas.map((t: any, i: number) => (
-																	<th key={t.id} style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>T{i + 1}</th>
+																{mJurnalTugas.map((t: any) => (
+																	<th key={t.id} style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{t.tugas}</th>
 																))}
 																<th style={{ border: "1px solid #cbd5e1", padding: "8px", width: "10%", textAlign: "center" }}>Rata-rata</th>
 															</tr>
