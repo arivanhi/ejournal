@@ -151,20 +151,34 @@ export default function PimpinanDashboardClient({
 	const pdfFilename = `${dayStr}_${monthStr}_${yearStr}_rekap_harian_(${safeTahun}).pdf`;
 
 	const classNames = Array.from(new Set(dataKehadiranSiswa.map((s: any) => s.kelas))).sort() as string[];
-	const [activeClassTab, setActiveClassTab] = useState<string>("");
+	const regularClasses = classNames.filter((c) => c.startsWith("X"));
+	const tkaClasses = classNames.filter((c) => !c.startsWith("X"));
+
+	const [activeRegularClassTab, setActiveRegularClassTab] = useState<string>("");
+	const [activeTkaClassTab, setActiveTkaClassTab] = useState<string>("");
+	const [tkaSiswaPage, setTkaSiswaPage] = useState(1);
 
 	useEffect(() => {
-		if (classNames.length > 0 && !classNames.includes(activeClassTab)) {
-			setActiveClassTab(classNames[0]);
+		if (regularClasses.length > 0 && !regularClasses.includes(activeRegularClassTab)) {
+			setActiveRegularClassTab(regularClasses[0]);
 		}
-	}, [classNames, activeClassTab]);
+		if (tkaClasses.length > 0 && !tkaClasses.includes(activeTkaClassTab)) {
+			setActiveTkaClassTab(tkaClasses[0]);
+		}
+	}, [classNames, activeRegularClassTab, activeTkaClassTab]);
 
-	const filteredAbsenByClass = dataKehadiranSiswa.filter((s: any) => s.kelas === activeClassTab);
+	const filteredAbsenReguler = dataKehadiranSiswa.filter((s: any) => s.kelas === activeRegularClassTab);
+	const filteredAbsenTka = dataKehadiranSiswa.filter((s: any) => s.kelas === activeTkaClassTab);
 
-	// Pagination Kehadiran Siswa
-	const totalSiswaPages = Math.max(1, Math.ceil(filteredAbsenByClass.length / itemsPerPage));
-	const startSiswaIndex = (siswaPage - 1) * itemsPerPage;
-	const currentSiswaItems = filteredAbsenByClass.slice(startSiswaIndex, startSiswaIndex + itemsPerPage);
+	// Pagination Kehadiran Siswa Reguler
+	const totalRegularSiswaPages = Math.max(1, Math.ceil(filteredAbsenReguler.length / itemsPerPage));
+	const startRegularSiswaIndex = (siswaPage - 1) * itemsPerPage;
+	const currentRegularSiswaItems = filteredAbsenReguler.slice(startRegularSiswaIndex, startRegularSiswaIndex + itemsPerPage);
+
+	// Pagination Kehadiran Siswa TKA
+	const totalTkaSiswaPages = Math.max(1, Math.ceil(filteredAbsenTka.length / itemsPerPage));
+	const startTkaSiswaIndex = (tkaSiswaPage - 1) * itemsPerPage;
+	const currentTkaSiswaItems = filteredAbsenTka.slice(startTkaSiswaIndex, startTkaSiswaIndex + itemsPerPage);
 
 	// Helper Render Pagination dengan Ellipsis
 	const renderPagination = (currentPage: number, totalPages: number, onPageChange: (page: number) => void) => {
@@ -818,137 +832,290 @@ export default function PimpinanDashboardClient({
 					<p className={styles.chartFootnote}>Berdasarkan data presensi jurnal terkirim hari ini.</p>
 				</div>
 
-				<div className={styles.boxCard} style={{ marginTop: "1.5rem" }}>
-					<div className={styles.boxHeader}>
-						<div className={styles.boxTitle} style={{ color: "#0f172a", fontSize: "1.1rem" }}>
-							<Users
-								size={20}
-								color="#3b82f6"
-								style={{ marginRight: "0.5rem", display: "inline-block", verticalAlign: "text-bottom" }}
-							/>
-							Tabel Kehadiran Siswa Hari Ini
+				<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: "1.5rem", marginTop: "1.5rem" }}>
+					{/* Tabel Reguler */}
+					<div className={styles.boxCard}>
+						<div className={styles.boxHeader}>
+							<div className={styles.boxTitle} style={{ color: "#0f172a", fontSize: "1.1rem" }}>
+								<Users
+									size={20}
+									color="#3b82f6"
+									style={{ marginRight: "0.5rem", display: "inline-block", verticalAlign: "text-bottom" }}
+								/>
+								Kehadiran Siswa Hari Ini
+							</div>
 						</div>
+
+						{regularClasses.length === 0 ? (
+							<div className={styles.emptyText} style={{ padding: "2rem", textAlign: "center" }}>
+								Belum ada data kehadiran siswa yang dilaporkan hari ini.
+							</div>
+						) : (
+							<>
+								<div
+									style={{
+										display: "flex",
+										gap: "0.5rem",
+										borderBottom: "1px solid #e2e8f0",
+										paddingBottom: "1rem",
+										marginBottom: "1rem",
+										overflowX: "auto",
+										scrollbarWidth: "none",
+									}}
+								>
+									{regularClasses.map((cls) => (
+										<button
+											key={cls}
+											onClick={() => {
+												setActiveRegularClassTab(cls);
+												setSiswaPage(1);
+											}}
+											style={{
+												padding: "0.5rem 1rem",
+												borderRadius: "0.5rem",
+												backgroundColor: activeRegularClassTab === cls ? "#0b1c36" : "#f8fafc",
+												color: activeRegularClassTab === cls ? "#ffffff" : "#475569",
+												fontWeight: activeRegularClassTab === cls ? "600" : "500",
+												border: activeRegularClassTab === cls ? "1px solid #0b1c36" : "1px solid #e2e8f0",
+												cursor: "pointer",
+												whiteSpace: "nowrap",
+												transition: "all 0.2s ease",
+											}}
+										>
+											{cls}
+										</button>
+									))}
+								</div>
+
+								<div className={styles.tableWrapper}>
+									<div style={{ overflowX: "auto", width: "100%" }}>
+										<table className={styles.dataTable}>
+											<thead>
+												<tr>
+													<th style={{ width: "5%" }}>NO</th>
+													<th style={{ width: "40%" }}>NAMA SISWA</th>
+													<th style={{ width: "35%" }}>MATA PELAJARAN (JURNAL)</th>
+													<th style={{ width: "20%", textAlign: "center" }}>STATUS</th>
+												</tr>
+											</thead>
+											<tbody>
+												{currentRegularSiswaItems.length === 0 ? (
+													<tr>
+														<td colSpan={4} className={styles.emptyText} style={{ textAlign: "center", padding: "1rem" }}>
+															Tidak ada data
+														</td>
+													</tr>
+												) : (
+													currentRegularSiswaItems.map((siswa: any, idx: number) => (
+														<tr key={idx}>
+															<td style={{ textAlign: "center" }}>{startRegularSiswaIndex + idx + 1}</td>
+															<td style={{ fontWeight: 500 }}>{siswa.nama}</td>
+															<td style={{ color: "#64748b" }}>{siswa.mapel}</td>
+															<td style={{ textAlign: "center" }}>
+																<span
+																	style={{
+																		padding: "0.35rem 0.85rem",
+																		borderRadius: "9999px",
+																		fontSize: "0.8rem",
+																		fontWeight: 600,
+																		display: "inline-block",
+																		backgroundColor:
+																			siswa.status === "H"
+																				? "#dcfce7"
+																				: siswa.status === "S"
+																					? "#fef3c7"
+																					: siswa.status === "I"
+																						? "#e0f2fe"
+																						: "#fee2e2",
+																		color:
+																			siswa.status === "H"
+																				? "#16a34a"
+																				: siswa.status === "S"
+																					? "#d97706"
+																					: siswa.status === "I"
+																						? "#0284c7"
+																						: "#dc2626",
+																		border: `1px solid ${
+																			siswa.status === "H"
+																				? "#bbf7d0"
+																				: siswa.status === "S"
+																					? "#fde68a"
+																					: siswa.status === "I"
+																						? "#bae6fd"
+																						: "#fecaca"
+																		}`,
+																	}}
+																>
+																	{siswa.status === "H"
+																		? "Hadir"
+																		: siswa.status === "S"
+																			? "Sakit"
+																			: siswa.status === "I"
+																				? "Izin"
+																				: "Alpa"}
+																</span>
+															</td>
+														</tr>
+													))
+												)}
+											</tbody>
+										</table>
+									</div>
+								</div>
+
+								<div className={styles.pagination}>
+									<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
+										Menampilkan {currentRegularSiswaItems.length === 0 ? 0 : startRegularSiswaIndex + 1}-
+										{Math.min(startRegularSiswaIndex + itemsPerPage, filteredAbsenReguler.length)} dari{" "}
+										{filteredAbsenReguler.length} data
+									</span>
+									{renderPagination(siswaPage, totalRegularSiswaPages, setSiswaPage)}
+								</div>
+							</>
+						)}
 					</div>
 
-					{classNames.length === 0 ? (
-						<div className={styles.emptyText} style={{ padding: "2rem", textAlign: "center" }}>
-							Belum ada data kehadiran siswa yang dilaporkan hari ini.
+					{/* Tabel TKA */}
+					<div className={styles.boxCard}>
+						<div className={styles.boxHeader}>
+							<div className={styles.boxTitle} style={{ color: "#0f172a", fontSize: "1.1rem" }}>
+								<Users
+									size={20}
+									color="#8b5cf6"
+									style={{ marginRight: "0.5rem", display: "inline-block", verticalAlign: "text-bottom" }}
+								/>
+								Kehadiran Siswa TKA Hari Ini
+							</div>
 						</div>
-					) : (
-						<>
-							<div
-								style={{
-									display: "flex",
-									gap: "0.5rem",
-									borderBottom: "1px solid #e2e8f0",
-									paddingBottom: "1rem",
-									marginBottom: "1rem",
-									overflowX: "auto",
-									scrollbarWidth: "none",
-								}}
-							>
-								{classNames.map((cls) => (
-									<button
-										key={cls}
-										onClick={() => {
-											setActiveClassTab(cls);
-											setSiswaPage(1);
-										}}
-										style={{
-											padding: "0.5rem 1rem",
-											borderRadius: "0.5rem",
-											backgroundColor: activeClassTab === cls ? "#0b1c36" : "#f8fafc",
-											color: activeClassTab === cls ? "#ffffff" : "#475569",
-											fontWeight: activeClassTab === cls ? "600" : "500",
-											border: activeClassTab === cls ? "1px solid #0b1c36" : "1px solid #e2e8f0",
-											cursor: "pointer",
-											whiteSpace: "nowrap",
-											transition: "all 0.2s ease",
-										}}
-									>
-										{cls}
-									</button>
-								))}
-							</div>
 
-							<div className={styles.tableWrapper}>
-								<div style={{ overflowX: "auto", width: "100%" }}>
-									<table className={styles.dataTable}>
-										<thead>
-											<tr>
-												<th style={{ width: "5%" }}>NO</th>
-												<th style={{ width: "40%" }}>NAMA SISWA</th>
-												<th style={{ width: "35%" }}>MATA PELAJARAN (JURNAL)</th>
-												<th style={{ width: "20%", textAlign: "center" }}>STATUS</th>
-											</tr>
-										</thead>
-										<tbody>
-											{currentSiswaItems.map((siswa: any, idx: number) => (
-												<tr key={idx}>
-													<td style={{ textAlign: "center" }}>{startSiswaIndex + idx + 1}</td>
-													<td style={{ fontWeight: 500 }}>{siswa.nama}</td>
-													<td style={{ color: "#64748b" }}>{siswa.mapel}</td>
-													<td style={{ textAlign: "center" }}>
-														<span
-															style={{
-																padding: "0.35rem 0.85rem",
-																borderRadius: "9999px",
-																fontSize: "0.8rem",
-																fontWeight: 600,
-																display: "inline-block",
-																backgroundColor:
-																	siswa.status === "H"
-																		? "#dcfce7"
-																		: siswa.status === "S"
-																			? "#fef3c7"
-																			: siswa.status === "I"
-																				? "#e0f2fe"
-																				: "#fee2e2",
-																color:
-																	siswa.status === "H"
-																		? "#16a34a"
-																		: siswa.status === "S"
-																			? "#d97706"
-																			: siswa.status === "I"
-																				? "#0284c7"
-																				: "#dc2626",
-																border: `1px solid ${
-																	siswa.status === "H"
-																		? "#bbf7d0"
-																		: siswa.status === "S"
-																			? "#fde68a"
-																			: siswa.status === "I"
-																				? "#bae6fd"
-																				: "#fecaca"
-																}`,
-															}}
-														>
-															{siswa.status === "H"
-																? "Hadir"
-																: siswa.status === "S"
-																	? "Sakit"
-																	: siswa.status === "I"
-																		? "Izin"
-																		: "Alpa"}
-														</span>
-													</td>
-												</tr>
-											))}
-										</tbody>
-									</table>
+						{tkaClasses.length === 0 ? (
+							<div className={styles.emptyText} style={{ padding: "2rem", textAlign: "center" }}>
+								Belum ada data kehadiran siswa TKA yang dilaporkan hari ini.
+							</div>
+						) : (
+							<>
+								<div
+									style={{
+										display: "flex",
+										gap: "0.5rem",
+										borderBottom: "1px solid #e2e8f0",
+										paddingBottom: "1rem",
+										marginBottom: "1rem",
+										overflowX: "auto",
+										scrollbarWidth: "none",
+									}}
+								>
+									{tkaClasses.map((cls) => (
+										<button
+											key={cls}
+											onClick={() => {
+												setActiveTkaClassTab(cls);
+												setTkaSiswaPage(1);
+											}}
+											style={{
+												padding: "0.5rem 1rem",
+												borderRadius: "0.5rem",
+												backgroundColor: activeTkaClassTab === cls ? "#0b1c36" : "#f8fafc",
+												color: activeTkaClassTab === cls ? "#ffffff" : "#475569",
+												fontWeight: activeTkaClassTab === cls ? "600" : "500",
+												border: activeTkaClassTab === cls ? "1px solid #0b1c36" : "1px solid #e2e8f0",
+												cursor: "pointer",
+												whiteSpace: "nowrap",
+												transition: "all 0.2s ease",
+											}}
+										>
+											{cls}
+										</button>
+									))}
 								</div>
-							</div>
 
-							<div className={styles.pagination}>
-								<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
-									Menampilkan {currentSiswaItems.length === 0 ? 0 : startSiswaIndex + 1}-
-									{Math.min(startSiswaIndex + itemsPerPage, filteredAbsenByClass.length)} dari{" "}
-									{filteredAbsenByClass.length} data
-								</span>
-								{renderPagination(siswaPage, totalSiswaPages, setSiswaPage)}
-							</div>
-						</>
-					)}
+								<div className={styles.tableWrapper}>
+									<div style={{ overflowX: "auto", width: "100%" }}>
+										<table className={styles.dataTable}>
+											<thead>
+												<tr>
+													<th style={{ width: "5%" }}>NO</th>
+													<th style={{ width: "40%" }}>NAMA SISWA</th>
+													<th style={{ width: "35%" }}>MATA PELAJARAN (JURNAL)</th>
+													<th style={{ width: "20%", textAlign: "center" }}>STATUS</th>
+												</tr>
+											</thead>
+											<tbody>
+												{currentTkaSiswaItems.length === 0 ? (
+													<tr>
+														<td colSpan={4} className={styles.emptyText} style={{ textAlign: "center", padding: "1rem" }}>
+															Tidak ada data
+														</td>
+													</tr>
+												) : (
+													currentTkaSiswaItems.map((siswa: any, idx: number) => (
+														<tr key={idx}>
+															<td style={{ textAlign: "center" }}>{startTkaSiswaIndex + idx + 1}</td>
+															<td style={{ fontWeight: 500 }}>{siswa.nama}</td>
+															<td style={{ color: "#64748b" }}>{siswa.mapel}</td>
+															<td style={{ textAlign: "center" }}>
+																<span
+																	style={{
+																		padding: "0.35rem 0.85rem",
+																		borderRadius: "9999px",
+																		fontSize: "0.8rem",
+																		fontWeight: 600,
+																		display: "inline-block",
+																		backgroundColor:
+																			siswa.status === "H"
+																				? "#dcfce7"
+																				: siswa.status === "S"
+																					? "#fef3c7"
+																					: siswa.status === "I"
+																						? "#e0f2fe"
+																						: "#fee2e2",
+																		color:
+																			siswa.status === "H"
+																				? "#16a34a"
+																				: siswa.status === "S"
+																					? "#d97706"
+																					: siswa.status === "I"
+																						? "#0284c7"
+																						: "#dc2626",
+																		border: `1px solid ${
+																			siswa.status === "H"
+																				? "#bbf7d0"
+																				: siswa.status === "S"
+																					? "#fde68a"
+																					: siswa.status === "I"
+																						? "#bae6fd"
+																						: "#fecaca"
+																		}`,
+																	}}
+																>
+																	{siswa.status === "H"
+																		? "Hadir"
+																		: siswa.status === "S"
+																			? "Sakit"
+																			: siswa.status === "I"
+																				? "Izin"
+																				: "Alpa"}
+																</span>
+															</td>
+														</tr>
+													))
+												)}
+											</tbody>
+										</table>
+									</div>
+								</div>
+
+								<div className={styles.pagination}>
+									<span style={{ color: "#64748b", fontSize: "0.875rem" }}>
+										Menampilkan {currentTkaSiswaItems.length === 0 ? 0 : startTkaSiswaIndex + 1}-
+										{Math.min(startTkaSiswaIndex + itemsPerPage, filteredAbsenTka.length)} dari{" "}
+										{filteredAbsenTka.length} data
+									</span>
+									{renderPagination(tkaSiswaPage, totalTkaSiswaPages, setTkaSiswaPage)}
+								</div>
+							</>
+						)}
+					</div>
 				</div>
 			</div>
 		</>
