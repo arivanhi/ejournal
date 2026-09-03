@@ -21,6 +21,7 @@ import {
 import styles from "./pimpinan.module.css";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
+import Select from "react-select";
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
 	const chunks = [];
@@ -852,39 +853,39 @@ export default function PimpinanDashboardClient({
 							</div>
 						) : (
 							<>
-								<div
-									style={{
-										display: "flex",
-										gap: "0.5rem",
-										borderBottom: "1px solid #e2e8f0",
-										paddingBottom: "1rem",
-										marginBottom: "1rem",
-										overflowX: "auto",
-										scrollbarWidth: "none",
-									}}
-								>
-									{regularClasses.map((cls) => (
-										<button
-											key={cls}
-											onClick={() => {
-												setActiveRegularClassTab(cls);
+								<div style={{ marginBottom: "1.5rem" }}>
+									<Select
+										options={regularClasses.map(cls => ({ value: cls, label: cls }))}
+										value={activeRegularClassTab ? { value: activeRegularClassTab, label: activeRegularClassTab } : null}
+										onChange={(selected: any) => {
+											if (selected) {
+												setActiveRegularClassTab(selected.value);
 												setSiswaPage(1);
-											}}
-											style={{
-												padding: "0.5rem 1rem",
+											}
+										}}
+										placeholder="Pilih kelas reguler..."
+										isSearchable
+										styles={{
+											control: (base) => ({
+												...base,
 												borderRadius: "0.5rem",
-												backgroundColor: activeRegularClassTab === cls ? "#0b1c36" : "#f8fafc",
-												color: activeRegularClassTab === cls ? "#ffffff" : "#475569",
-												fontWeight: activeRegularClassTab === cls ? "600" : "500",
-												border: activeRegularClassTab === cls ? "1px solid #0b1c36" : "1px solid #e2e8f0",
-												cursor: "pointer",
-												whiteSpace: "nowrap",
-												transition: "all 0.2s ease",
-											}}
-										>
-											{cls}
-										</button>
-									))}
+												borderColor: "#e2e8f0",
+												padding: "0.2rem",
+												boxShadow: "none",
+												"&:hover": {
+													borderColor: "#cbd5e1"
+												}
+											}),
+											option: (base, state) => ({
+												...base,
+												backgroundColor: state.isSelected ? "#0b1c36" : state.isFocused ? "#f1f5f9" : "white",
+												color: state.isSelected ? "white" : "#334155",
+												"&:active": {
+													backgroundColor: "#0b1c36"
+												}
+											})
+										}}
+									/>
 								</div>
 
 								<div className={styles.tableWrapper}>
@@ -994,39 +995,39 @@ export default function PimpinanDashboardClient({
 							</div>
 						) : (
 							<>
-								<div
-									style={{
-										display: "flex",
-										gap: "0.5rem",
-										borderBottom: "1px solid #e2e8f0",
-										paddingBottom: "1rem",
-										marginBottom: "1rem",
-										overflowX: "auto",
-										scrollbarWidth: "none",
-									}}
-								>
-									{tkaClasses.map((cls) => (
-										<button
-											key={cls}
-											onClick={() => {
-												setActiveTkaClassTab(cls);
+								<div style={{ marginBottom: "1.5rem" }}>
+									<Select
+										options={tkaClasses.map(cls => ({ value: cls, label: cls }))}
+										value={activeTkaClassTab ? { value: activeTkaClassTab, label: activeTkaClassTab } : null}
+										onChange={(selected: any) => {
+											if (selected) {
+												setActiveTkaClassTab(selected.value);
 												setTkaSiswaPage(1);
-											}}
-											style={{
-												padding: "0.5rem 1rem",
+											}
+										}}
+										placeholder="Pilih kelas TKA..."
+										isSearchable
+										styles={{
+											control: (base) => ({
+												...base,
 												borderRadius: "0.5rem",
-												backgroundColor: activeTkaClassTab === cls ? "#0b1c36" : "#f8fafc",
-												color: activeTkaClassTab === cls ? "#ffffff" : "#475569",
-												fontWeight: activeTkaClassTab === cls ? "600" : "500",
-												border: activeTkaClassTab === cls ? "1px solid #0b1c36" : "1px solid #e2e8f0",
-												cursor: "pointer",
-												whiteSpace: "nowrap",
-												transition: "all 0.2s ease",
-											}}
-										>
-											{cls}
-										</button>
-									))}
+												borderColor: "#e2e8f0",
+												padding: "0.2rem",
+												boxShadow: "none",
+												"&:hover": {
+													borderColor: "#cbd5e1"
+												}
+											}),
+											option: (base, state) => ({
+												...base,
+												backgroundColor: state.isSelected ? "#0b1c36" : state.isFocused ? "#f1f5f9" : "white",
+												color: state.isSelected ? "white" : "#334155",
+												"&:active": {
+													backgroundColor: "#0b1c36"
+												}
+											})
+										}}
+									/>
 								</div>
 
 								<div className={styles.tableWrapper}>
