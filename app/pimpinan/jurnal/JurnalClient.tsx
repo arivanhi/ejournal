@@ -389,7 +389,8 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 				<div style={{ display: "none" }}>
 					<div id="pdf-jurnal-content" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 						{(() => {
-							const MAX_ROWS = 15;
+							const CHUNK_SIZE_JURNAL = 8;
+							const CHUNK_SIZE_SISWA = 15;
 							let globalTotalPages = 0;
 
 							const signatureBlock = (
@@ -402,8 +403,8 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 							);
 
 							const pdfItemsChunks = pdfItemsData.map((dataItem) => {
-								const siswaChunks = chunkArray(dataItem.siswaList || [], MAX_ROWS);
-								const sesiChunks = chunkArray([...(dataItem.detailSesi || [])].sort((a, b) => a.pertemuanKe - b.pertemuanKe), MAX_ROWS);
+								const siswaChunks = chunkArray(dataItem.siswaList || [], CHUNK_SIZE_SISWA);
+								const sesiChunks = chunkArray([...(dataItem.detailSesi || [])].sort((a, b) => a.pertemuanKe - b.pertemuanKe), CHUNK_SIZE_JURNAL);
 								if (sesiChunks.length === 0) sesiChunks.push([]);
 
 								let jurnalTugas = (dataItem.detailSesi || []).filter((j: any) => j.tugas && j.tugas.trim() !== "" && j.tugas.trim() !== "-");
@@ -418,7 +419,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 								let nilaiTugasChunks: any[][] = [];
 								if (hasAnyNilai) {
 									const sortedSiswa = [...(dataItem.siswaList || [])].sort((a: any, b: any) => a.nama.localeCompare(b.nama));
-									nilaiTugasChunks = chunkArray(sortedSiswa, MAX_ROWS);
+									nilaiTugasChunks = chunkArray(sortedSiswa, CHUNK_SIZE_SISWA);
 									if (nilaiTugasChunks.length === 0) nilaiTugasChunks.push([]);
 								}
 
@@ -590,7 +591,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 																<tbody>
 																	{chunk.map((siswa: any, sIdx: number) => (
 																		<tr key={sIdx} style={{ pageBreakInside: "avoid" }}>
-																			<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{chunkIdx * MAX_ROWS + sIdx + 1}</td>
+																			<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{chunkIdx * CHUNK_SIZE_SISWA + sIdx + 1}</td>
 																			<td style={{ border: "1px solid #000", padding: "4px" }}>{siswa.nama}</td>
 																			<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{siswa.detailKehadiran?.H || 0}</td>
 																			<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{siswa.detailKehadiran?.S || 0}</td>
@@ -695,7 +696,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 																				let totalNilai = 0, countTugas = 0;
 																				return (
 																					<tr key={siswa.id} style={{ pageBreakInside: "avoid" }}>
-																						<td style={{ textAlign: "center", border: "1px solid #000", padding: "4px" }}>{chunkIdx * MAX_ROWS + idx + 1}</td>
+																						<td style={{ textAlign: "center", border: "1px solid #000", padding: "4px" }}>{chunkIdx * CHUNK_SIZE_SISWA + idx + 1}</td>
 																						<td style={{ border: "1px solid #000", padding: "4px" }}>{siswa.nama}</td>
 																						<td style={{ border: "1px solid #000", padding: "4px", textAlign: "center" }}>{siswa.nis}</td>
 																						{jurnalTugas.map((t: any) => {

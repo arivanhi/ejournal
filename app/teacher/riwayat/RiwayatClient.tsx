@@ -312,7 +312,8 @@ export default function RiwayatClient({
 		return { H, I, S, A, totalHadir: H, totalPertemuan, persentase, statusText, statusClass, rataNilai, countTugas };
 	};
 
-	const MAX_ROWS = 15;
+	const CHUNK_SIZE_JURNAL = 8;
+	const CHUNK_SIZE_SISWA = 15;
 	const chunkArray = (arr: any[], size: number) => {
 		if (!arr || arr.length === 0) return [[]];
 		const res = [];
@@ -320,8 +321,8 @@ export default function RiwayatClient({
 		return res;
 	};
 
-	const jurnalChunks = chunkArray(jurnalForPdf, MAX_ROWS);
-	const siswaChunks = chunkArray(sortedSiswa, MAX_ROWS);
+	const jurnalChunks = chunkArray(jurnalForPdf, CHUNK_SIZE_JURNAL);
+	const siswaChunks = chunkArray(sortedSiswa, CHUNK_SIZE_SISWA);
 
 	const alasanChunks = chunkArray(alasanPdfData, 12);
 	const pagesBabA = jurnalForPdf.length === 0 ? 1 : jurnalChunks.length;
@@ -593,7 +594,7 @@ export default function RiwayatClient({
 															</thead>
 															<tbody>
 																{chunk.map((jur: any, index: number) => {
-																	const globalIdx = (chunkIdx * MAX_ROWS) + index + 1;
+																	const globalIdx = (chunkIdx * CHUNK_SIZE_JURNAL) + index + 1;
 																	return (
 																		<tr key={jur.id}>
 																			<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{globalIdx}</td>
@@ -647,7 +648,7 @@ export default function RiwayatClient({
 														</thead>
 														<tbody>
 															{chunk.map((rs: any, index: number) => {
-																const globalIdx = (chunkIdx * MAX_ROWS) + index + 1;
+																const globalIdx = (chunkIdx * CHUNK_SIZE_SISWA) + index + 1;
 																const rekap = getRekapSiswa(rs.siswa.id, jurnalForPdf);
 																return (
 																	<tr key={rs.siswa.id}>
@@ -829,7 +830,7 @@ export default function RiwayatClient({
 															</thead>
 															<tbody>
 																{chunk.map((rs: any, index: number) => {
-																	const globalIdx = (chunkIdx * MAX_ROWS) + index + 1;
+																	const globalIdx = (chunkIdx * CHUNK_SIZE_SISWA) + index + 1;
 																	const rekap = getRekapSiswa(rs.siswa.id, jurnalForPdf);
 																	return (
 																		<tr key={rs.siswa.id}>
@@ -1797,8 +1798,8 @@ export default function RiwayatClient({
 						const format = (dateStr: string) => new Date(dateStr).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 						const mPeriodeText = (!massStartDate || !massEndDate) ? "Semua Periode" : `Periode: ${format(massStartDate)} - ${format(massEndDate)}`;
 
-						const mJurnalChunks = chunkArray(mJurnalForPdf, MAX_ROWS);
-						const mSiswaChunks = chunkArray(mSortedSiswa, MAX_ROWS);
+						const mJurnalChunks = chunkArray(mJurnalForPdf, CHUNK_SIZE_JURNAL);
+						const mSiswaChunks = chunkArray(mSortedSiswa, CHUNK_SIZE_SISWA);
 
 						const mPagesBabA = mJurnalForPdf.length === 0 ? 1 : mJurnalChunks.length;
 						const mPagesBabB = mSiswaChunks.length;
@@ -1877,7 +1878,7 @@ export default function RiwayatClient({
 														</thead>
 														<tbody>
 															{chunk.map((jur: any, i: number) => {
-																const globalIdx = (chunkIdx * MAX_ROWS) + i + 1;
+																const globalIdx = (chunkIdx * CHUNK_SIZE_JURNAL) + i + 1;
 																return (
 																	<tr key={jur.id}>
 																		<td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>{globalIdx}</td>
@@ -1921,7 +1922,7 @@ export default function RiwayatClient({
 													</thead>
 													<tbody>
 														{chunk.map((rs: any, i: number) => {
-															const globalIdx = (chunkIdx * MAX_ROWS) + i + 1;
+															const globalIdx = (chunkIdx * CHUNK_SIZE_SISWA) + i + 1;
 															const rekap = getRekapSiswa(rs.siswa.id, mJurnalForPdf);
 															return (
 																<tr key={rs.siswa.id}>
@@ -2036,7 +2037,7 @@ export default function RiwayatClient({
 														</thead>
 														<tbody>
 															{chunk.map((rs: any, i: number) => {
-																const globalIdx = (chunkIdx * MAX_ROWS) + i + 1;
+																const globalIdx = (chunkIdx * CHUNK_SIZE_SISWA) + i + 1;
 																const rekap = getRekapSiswa(rs.siswa.id, mJurnalForPdf);
 																return (
 																	<tr key={rs.siswa.id}>
