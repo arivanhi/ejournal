@@ -60,6 +60,11 @@ docker compose up -d --build
 
 ## 🚀 Changelog (Pembaruan Terkini)
 
+### v1.7.2 - Perbaikan Limitasi Ekspor PDF Skala Besar
+- **Sistem Ekspor Dokumen:**
+  - Mengubah cara kerja *rendering* mesin ekstensi pembuat PDF dari mode tunggal-masif menjadi mode perulangan iterasi (*looping*) per halaman. Hal ini diterapkan serentak ke dalam 12 modul ekspor yang terdapat di akun Guru, Pimpinan, serta Admin.
+  - Perombakan sistem ekspor dokumen PDF ini difungsikan untuk menyelesaikan *bug* layar kosong berwarna putih (*blank canvas*) yang muncul akibat prosesnya diinterupsi oleh fitur pembatasan RAM/*Memory* bawaan *browser* saat mengunduh data rekapan berskala raksasa (puluhan hingga ratusan halaman).
+
 ### v1.7.1 - Perbaikan Dashboard Pimpinan & Kehadiran Siswa
 - **Dashboard Kepsek (Pimpinan):**
   - Pemisahan data kehadiran siswa berdasarkan kelas reguler (X, XI, XII) dan kelas TKA. Tabel riwayat jurnal guru (jam kosong) juga difilter hanya menampilkan kelas reguler.
