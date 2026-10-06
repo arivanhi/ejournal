@@ -64,8 +64,8 @@ export default async function PimpinanDashboard() {
 
 	for (const key in groupedJadwal) {
 		const group = groupedJadwal[key].sort((a, b) => {
-			const timeA = parseSesi(a.waktuMulai) ?? parseInt(a.waktuMulai?.replace(":", "") || "0") || 0;
-			const timeB = parseSesi(b.waktuMulai) ?? parseInt(b.waktuMulai?.replace(":", "") || "0") || 0;
+			const timeA = (parseSesi(a.waktuMulai) ?? parseInt(a.waktuMulai?.replace(":", "") || "0")) || 0;
+			const timeB = (parseSesi(b.waktuMulai) ?? parseInt(b.waktuMulai?.replace(":", "") || "0")) || 0;
 			return timeA - timeB;
 		});
 
