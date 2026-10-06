@@ -6,6 +6,18 @@ import PimpinanDashboardClient from "./PimpinanDashboardClient";
 
 export const dynamic = "force-dynamic";
 
+const parseSesi = (val: any) => {
+	if (val === null || val === undefined) return null;
+	const strVal = String(val).trim();
+	if (strVal.includes(":")) return null; // Jika mengandung tanda titik dua, abaikan (format jam)
+	const match = strVal.match(/\d+/);
+	if (match) {
+		const num = Number(match[0]);
+		if (num > 0 && num <= 20) return num;
+	}
+	return null;
+};
+
 export default async function PimpinanDashboard() {
 	const session = await getServerSession();
 	if (!session || !session.user) redirect("/login");
@@ -52,19 +64,37 @@ export default async function PimpinanDashboard() {
 
 	for (const key in groupedJadwal) {
 		const group = groupedJadwal[key].sort((a, b) => {
-			const timeA = parseInt(a.waktuMulai?.replace(":", "") || "0") || 0;
-			const timeB = parseInt(b.waktuMulai?.replace(":", "") || "0") || 0;
+			const timeA = parseSesi(a.waktuMulai) ?? parseInt(a.waktuMulai?.replace(":", "") || "0") || 0;
+			const timeB = parseSesi(b.waktuMulai) ?? parseInt(b.waktuMulai?.replace(":", "") || "0") || 0;
 			return timeA - timeB;
 		});
 
 		const first = group[0];
-		const last = group[group.length - 1];
+		
+		let minSesi: number | null = null;
+		let maxSesi: number | null = null;
+		
+		group.forEach((j) => {
+			const s = parseSesi(j.waktuMulai) ?? parseSesi(j.waktuSelesai) ?? parseSesi(j.sesi) ?? parseSesi(j.jam) ?? parseSesi(j.jamKe);
+			if (s !== null) {
+				if (minSesi === null || s < minSesi) minSesi = s;
+				if (maxSesi === null || s > maxSesi) maxSesi = s;
+			}
+		});
+
+		let computedWaktuMulai = first.waktuMulai;
+		let computedEndSesi = first.waktuSelesai || first.waktuMulai;
+		
+		if (minSesi !== null) {
+			computedWaktuMulai = minSesi.toString();
+			computedEndSesi = maxSesi !== null ? maxSesi.toString() : minSesi.toString();
+		}
 
 		jadwalBlocks.push({
 			...first,
 			originalIds: group.map((g) => g.id),
-			waktuMulai: first.waktuMulai,
-			endSesi: last.waktuSelesai || last.waktuMulai,
+			waktuMulai: computedWaktuMulai,
+			endSesi: computedEndSesi,
 		});
 	}
 
@@ -146,7 +176,10 @@ export default async function PimpinanDashboard() {
 		if (!fulfilledBlocks.has(blockKey)) {
 			jamKosongCount++;
 
-			let jamSesi = block.waktuMulai === block.endSesi ? block.waktuMulai : `${block.waktuMulai}-${block.endSesi}`;
+			let jamSesi = block.waktuMulai;
+			if (block.endSesi && block.endSesi !== block.waktuMulai && block.endSesi !== "-") {
+				jamSesi = `${block.waktuMulai}-${block.endSesi}`;
+			}
 			if (!jamSesi || jamSesi === "-") jamSesi = "-";
 
 			peringatanJamKosong.push({
