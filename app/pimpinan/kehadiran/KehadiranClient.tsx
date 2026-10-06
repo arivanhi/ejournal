@@ -1107,11 +1107,9 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 											<table className={styles.dataTable}>
 												<thead>
 													<tr>
-														<th style={{ width: "15%" }}>Tanggal</th>
-														<th style={{ width: "15%" }}>Mata Pelajaran</th>
-														<th style={{ width: "15%" }}>Guru</th>
-														<th style={{ width: "15%" }}>Status</th>
-														<th style={{ width: "30%" }}>Alasan</th>
+														<th style={{ width: "20%" }}>Tanggal</th>
+														<th style={{ width: "20%" }}>Status</th>
+														<th style={{ width: "50%" }}>Alasan</th>
 														<th style={{ width: "10%" }}>Berkas</th>
 													</tr>
 												</thead>
@@ -1135,8 +1133,6 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 																		year: "numeric"
 																	})}
 																</td>
-																<td>{h.mapel}</td>
-																<td>{h.guru}</td>
 																<td><span className={badgeStyle}>{h.statusLabel}</span></td>
 																<td>{h.alasan}</td>
 																<td>

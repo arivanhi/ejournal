@@ -84,8 +84,19 @@ export default async function KehadiranPage() {
 
 		const presensiKelasHariIni = presensiHariIni.filter((p) => p.jurnal.jadwal.kelasId === kelas.id);
 		const statusSiswaHariIni: Record<string, string> = {};
+		
 		presensiKelasHariIni.forEach((p) => {
-			statusSiswaHariIni[p.siswaId] = p.status;
+			const currentStatus = statusSiswaHariIni[p.siswaId];
+			let statusToUse = p.status;
+			if (p.isDispensasi) statusToUse = "H";
+			
+			const priority = { A: 4, S: 3, I: 2, H: 1 };
+			const currentPriority = currentStatus ? priority[currentStatus as keyof typeof priority] || 0 : 0;
+			const newPriority = priority[statusToUse as keyof typeof priority] || 0;
+			
+			if (!currentStatus || newPriority > currentPriority) {
+				statusSiswaHariIni[p.siswaId] = statusToUse;
+			}
 		});
 
 		let H = 0,
@@ -111,17 +122,44 @@ export default async function KehadiranPage() {
 		}
 
 		const presensiKelasSemester = presensiSemesterIni.filter((p) => p.jurnal.jadwal.kelasId === kelas.id);
-		const totalSesiSemester = new Set(presensiKelasSemester.map((p) => p.jurnalId)).size;
+		const dateSet = new Set<string>();
+		presensiKelasSemester.forEach((p) => {
+			if (p.jurnal.tanggal) dateSet.add(p.jurnal.tanggal.toISOString().split("T")[0]);
+		});
+		const totalHariSemester = dateSet.size;
 
 		// PERBAIKAN: Tambahkan .sort() di akhir map untuk mengurutkan A-Z berdasarkan nama siswa
 		const siswaList = kelas.riwayatSiswa
 			.map((rs) => {
 				const presensiSiswaIni = presensiKelasSemester.filter((p) => p.siswaId === rs.siswa.id);
-				const countH = presensiSiswaIni.filter((p) => p.status === "H").length;
-				const countS = presensiSiswaIni.filter((p) => p.status === "S").length;
-				const countI = presensiSiswaIni.filter((p) => p.status === "I").length;
-				const countA = presensiSiswaIni.filter((p) => p.status === "A").length;
-				const persentase = totalSesiSemester > 0 ? Math.round((countH / totalSesiSemester) * 100) : 0;
+				
+				const perHariMap = new Map<string, string>();
+				presensiSiswaIni.forEach((p) => {
+					if (!p.jurnal.tanggal) return;
+					const dateStr = p.jurnal.tanggal.toISOString().split("T")[0];
+					const currentStatus = perHariMap.get(dateStr);
+					
+					let statusToUse = p.status;
+					if (p.isDispensasi) statusToUse = "H";
+					
+					const priority = { A: 4, S: 3, I: 2, H: 1 };
+					const currentPriority = currentStatus ? priority[currentStatus as keyof typeof priority] || 0 : 0;
+					const newPriority = priority[statusToUse as keyof typeof priority] || 0;
+					
+					if (!currentStatus || newPriority > currentPriority) {
+						perHariMap.set(dateStr, statusToUse);
+					}
+				});
+
+				let countH = 0, countS = 0, countI = 0, countA = 0;
+				perHariMap.forEach((status) => {
+					if (status === "H") countH++;
+					else if (status === "S") countS++;
+					else if (status === "I") countI++;
+					else if (status === "A") countA++;
+				});
+
+				const persentase = totalHariSemester > 0 ? Math.round((countH / totalHariSemester) * 100) : 0;
 
 				return {
 					id: rs.siswa.id,
@@ -129,7 +167,7 @@ export default async function KehadiranPage() {
 					nama: rs.siswa.user?.nama || "Siswa",
 					jmlHadir: countH,
 					detailKehadiran: { H: countH, S: countS, I: countI, A: countA },
-					totalSesi: totalSesiSemester,
+					totalSesi: totalHariSemester,
 					persentase,
 					statusHariIni: statusSiswaHariIni[rs.siswa.id] || "Belum Ada",
 				};

@@ -60,6 +60,15 @@ docker compose up -d --build
 
 ## 🚀 Changelog (Pembaruan Terkini)
 
+### v1.7.1 - Perbaikan Dashboard Pimpinan & Kehadiran Siswa
+- **Dashboard Kepsek (Pimpinan):**
+  - Pemisahan data kehadiran siswa berdasarkan kelas reguler (X, XI, XII) dan kelas TKA. Tabel riwayat jurnal guru (jam kosong) juga difilter hanya menampilkan kelas reguler.
+  - Perbaikan fitur "Jam Kosong" agar mampu mengelompokkan jam mengajar (Guru - Mapel - Kelas) secara akurat tanpa duplikasi untuk jadwal kelas jamak (gabungan).
+- **Kehadiran Siswa (Modal Detail):**
+  - Perombakan perhitungan detail presensi menjadi berbasis rekapitulasi harian (akumulasi per hari) dengan logika prioritas status (Alpa > Sakit > Izin > Hadir).
+  - Jika siswa berstatus **Dispensasi** pada sebagian atau seluruh jam pelajaran di suatu hari, status akhir harian adalah Dispensasi dan alasan kegiatannya akan diakumulasikan.
+  - Merampingkan tampilan tabel riwayat kehadiran di modal dengan menghapus kolom "Mata Pelajaran" dan "Guru" agar fokus pada Tanggal, Status, Alasan, dan Berkas Pendukung.
+
 ### v1.7.0 - Modul Bimbingan dan Konseling (BK)
 - **Dasbor Guru BK & Wali Kelas:**
   - **Jurnal Konseling**: Guru BK kini dapat mencatat jurnal layanan bimbingan (pribadi, sosial, belajar, karir) untuk satu atau beberapa kelas sekaligus.

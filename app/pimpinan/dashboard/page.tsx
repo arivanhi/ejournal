@@ -35,12 +35,13 @@ export default async function PimpinanDashboard() {
 				where: {
 					tahunAjaranId: tahunAjaranAktif.id,
 					hari: currentDayIndex,
+					kelas: { nama: { startsWith: "X" } },
 				},
 				include: { mapel: true, kelas: true, guru: { include: { user: true } } },
 			})
 		: [];
 
-	// 1.5. Group Jadwal yang Berurutan
+	// 1.5. Group Jadwal berdasarkan Guru-Mapel-Kelas
 	const jadwalBlocks: any[] = [];
 	const groupedJadwal: Record<string, any[]> = {};
 	rawJadwalHariIni.forEach((j) => {
@@ -50,24 +51,21 @@ export default async function PimpinanDashboard() {
 	});
 
 	for (const key in groupedJadwal) {
-		const group = groupedJadwal[key].sort((a, b) => (parseInt(a.waktuMulai) || 0) - (parseInt(b.waktuMulai) || 0));
-		let currentBlock: any = null;
-		for (const j of group) {
-			const currentSesi = parseInt(j.waktuMulai) || 0;
-			if (!currentBlock) {
-				currentBlock = { ...j, originalIds: [j.id], endSesi: j.waktuMulai };
-			} else {
-				const prevSesi = parseInt(currentBlock.endSesi) || 0;
-				if (currentSesi === prevSesi + 1) {
-					currentBlock.endSesi = j.waktuMulai;
-					currentBlock.originalIds.push(j.id);
-				} else {
-					jadwalBlocks.push(currentBlock);
-					currentBlock = { ...j, originalIds: [j.id], endSesi: j.waktuMulai };
-				}
-			}
-		}
-		if (currentBlock) jadwalBlocks.push(currentBlock);
+		const group = groupedJadwal[key].sort((a, b) => {
+			const timeA = parseInt(a.waktuMulai?.replace(":", "") || "0") || 0;
+			const timeB = parseInt(b.waktuMulai?.replace(":", "") || "0") || 0;
+			return timeA - timeB;
+		});
+
+		const first = group[0];
+		const last = group[group.length - 1];
+
+		jadwalBlocks.push({
+			...first,
+			originalIds: group.map((g) => g.id),
+			waktuMulai: first.waktuMulai,
+			endSesi: last.waktuSelesai || last.waktuMulai,
+		});
 	}
 
 	// 2. Ambil Semua Jurnal Hari Ini (Sertakan detail Siswa untuk absensi)
@@ -90,6 +88,7 @@ export default async function PimpinanDashboard() {
 	const jurnalHariIni: any[] = [];
 	
 	rawJurnalHariIni.forEach((jurnal) => {
+		const isKelasReguler = jurnal.jadwal.kelas.nama.startsWith("X");
 		const block = jadwalBlocks.find((b) => b.originalIds.includes(jurnal.jadwalId));
 		if (block) {
 			const blockKey = block.originalIds.join(",");
@@ -97,10 +96,10 @@ export default async function PimpinanDashboard() {
 				fulfilledBlocks.add(blockKey);
 				jurnal.jadwal.waktuMulai = block.waktuMulai;
 				jurnal.jadwal.waktuSelesai = block.endSesi;
-				jurnalHariIni.push(jurnal);
+				if (isKelasReguler) jurnalHariIni.push(jurnal);
 			}
 		} else {
-			jurnalHariIni.push(jurnal);
+			if (isKelasReguler) jurnalHariIni.push(jurnal);
 		}
 	});
 
@@ -113,11 +112,11 @@ export default async function PimpinanDashboard() {
 
 	rawJurnalHariIni.forEach((jurnal) => {
 		const namaKelas = jurnal.jadwal.kelas.nama;
-		if (!absenPerKelas[namaKelas]) absenPerKelas[namaKelas] = 0;
+		if (namaKelas.startsWith("X") && !absenPerKelas[namaKelas]) absenPerKelas[namaKelas] = 0;
 
 		jurnal.presensi.forEach((p) => {
-			// Hanya hitung angka statistik untuk yang bolos/izin
-			if (["A", "I", "S"].includes(p.status)) {
+			// Hanya hitung angka statistik untuk yang bolos/izin (Hanya kelas reguler)
+			if (["A", "I", "S"].includes(p.status) && namaKelas.startsWith("X")) {
 				totalSiswaAbsen++;
 				absenPerKelas[namaKelas]++;
 			}

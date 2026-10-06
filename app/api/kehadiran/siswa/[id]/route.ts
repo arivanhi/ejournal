@@ -57,46 +57,85 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 			},
 		});
 
-		// Mapping agar payload yang dikirim rapi
-		const data = presensi.map((p) => {
+		// Group by date
+		const groupedData = new Map<string, any>();
+		
+		presensi.forEach((p) => {
+			if (!p.jurnal.tanggal) return;
+			const dateStr = p.jurnal.tanggal.toISOString().split("T")[0];
+			
+			const isDispen = p.isDispensasi;
+			const isTerlambat = p.isTerlambat;
+			let statusToUse = p.status;
+			if (isDispen) statusToUse = "H";
+			
+			const priority = { A: 4, S: 3, I: 2, H: 1 };
+			const newPriority = priority[statusToUse as keyof typeof priority] || 0;
+			
+			let newAlasan = p.alasan || p.alasanIzin || p.alasanTerlambat || "";
+			if (isDispen && !newAlasan) newAlasan = "Dispensasi";
+
+			if (!groupedData.has(dateStr)) {
+				groupedData.set(dateStr, {
+					id: p.id,
+					tanggal: p.jurnal.tanggal,
+					statusToUse: statusToUse,
+					isDispensasi: isDispen,
+					isTerlambat: isTerlambat,
+					alasan: newAlasan ? [newAlasan] : [],
+					fileBukti: p.fileBukti || null,
+					waktuScan: p.waktuScan || p.jurnal.waktuMulai,
+				});
+			} else {
+				const existing = groupedData.get(dateStr);
+				const currentPriority = priority[existing.statusToUse as keyof typeof priority] || 0;
+				
+				if (isDispen) existing.isDispensasi = true;
+				if (isTerlambat) existing.isTerlambat = true;
+				if (newAlasan) existing.alasan.push(newAlasan);
+				if (p.fileBukti) existing.fileBukti = p.fileBukti;
+
+				if (newPriority > currentPriority) {
+					existing.statusToUse = statusToUse;
+				}
+			}
+		});
+
+		const data = Array.from(groupedData.values()).map((p) => {
 			let finalStatus = "";
-			if (p.isDispensasi) finalStatus = "Dispensasi";
-			else if (p.status === "H" && p.isTerlambat) finalStatus = "Terlambat";
-			else if (p.status === "H") finalStatus = "Hadir";
-			else if (p.status === "S") finalStatus = "Sakit";
-			else if (p.status === "I") finalStatus = "Izin";
-			else if (p.status === "A") finalStatus = "Alpa";
+			if (p.statusToUse === "A") finalStatus = "Alpa";
+			else if (p.statusToUse === "S") finalStatus = "Sakit";
+			else if (p.statusToUse === "I") finalStatus = "Izin";
+			else if (p.isDispensasi) finalStatus = "Dispensasi";
+			else if (p.isTerlambat) finalStatus = "Terlambat";
+			else finalStatus = "Hadir";
+
+			const uniqueAlasan = Array.from(new Set(p.alasan)).filter(Boolean);
 
 			return {
 				id: p.id,
-				tanggal: p.jurnal.tanggal,
-				statusAsli: p.status, // H, S, I, A
+				tanggal: p.tanggal,
 				statusLabel: finalStatus,
 				isDispensasi: p.isDispensasi,
 				isTerlambat: p.isTerlambat,
-				alasan: p.alasan || p.alasanIzin || p.alasanTerlambat || "-",
+				alasan: uniqueAlasan.length > 0 ? uniqueAlasan.join(" | ") : "-",
 				fileBukti: p.fileBukti || null,
-				mapel: p.jurnal.jadwal.mapel.nama,
-				guru: p.jurnal.jadwal.guru.user?.nama || "Guru",
-				waktuScan: p.waktuScan || p.jurnal.waktuMulai,
+				mapel: "Rekap Harian",
+				guru: "-", 
+				waktuScan: p.waktuScan,
 			};
-		});
+		}).sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
 
 		// Hitung statistik untuk dikembalikan
-		let H = 0,
-			S = 0,
-			I = 0,
-			A = 0,
-			T = 0,
-			D = 0;
+		let H = 0, S = 0, I = 0, A = 0, T = 0, D = 0;
 			
 		data.forEach((p) => {
-			if (p.isDispensasi) D++;
-			else if (p.statusAsli === "H" && p.isTerlambat) { H++; T++; }
-			else if (p.statusAsli === "H") H++;
-			else if (p.statusAsli === "S") S++;
-			else if (p.statusAsli === "I") I++;
-			else if (p.statusAsli === "A") A++;
+			if (p.statusLabel === "Dispensasi") { D++; H++; }
+			else if (p.statusLabel === "Terlambat") { T++; H++; }
+			else if (p.statusLabel === "Hadir") H++;
+			else if (p.statusLabel === "Sakit") S++;
+			else if (p.statusLabel === "Izin") I++;
+			else if (p.statusLabel === "Alpa") A++;
 		});
 
 		return NextResponse.json({
