@@ -170,7 +170,7 @@ export default async function PimpinanDashboard() {
 				totalJadwalTarget: totalJadwal,
 			}}
 			tingkatAbsensi={tingkatAbsensiTertinggi}
-			peringatanJamKosong={peringatanJamKosong.slice(0, 3)}
+			peringatanJamKosong={peringatanJamKosong}
 			riwayatJurnal={jurnalHariIni}
 			dataKehadiranSiswa={dataKehadiranSiswa}
 		/>

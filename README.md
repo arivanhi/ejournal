@@ -60,6 +60,11 @@ docker compose up -d --build
 
 ## 🚀 Changelog (Pembaruan Terkini)
 
+### v1.7.3 - Perbaikan Tampilan Guru yang Belum Mengisi Jurnal
+- **Dashboard Kepsek (Pimpinan):**
+  - Menghapus fungsi *hard-limit* / batasan pemotongan maksimal 3 data (`.slice(0, 3)`) pada *array* peringatan jam kosong. 
+  - Kini tab "Belum Mengisi (Jam Kosong)" di tabel "Riwayat Jurnal Guru Hari Ini" akan menampilkan *seluruh* daftar nama guru yang belum mengisi jurnal pada hari itu secara lengkap, selaras dan konsisten dengan data yang ada di halaman "Monitoring KBM".
+
 ### v1.7.2 - Perbaikan Limitasi Ekspor PDF Skala Besar
 - **Sistem Ekspor Dokumen:**
   - Mengubah cara kerja *rendering* mesin ekstensi pembuat PDF dari mode tunggal-masif menjadi mode perulangan iterasi (*looping*) per halaman. Hal ini diterapkan serentak ke dalam 12 modul ekspor yang terdapat di akun Guru, Pimpinan, serta Admin.
