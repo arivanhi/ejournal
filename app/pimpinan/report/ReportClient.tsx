@@ -277,7 +277,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 		<>
 			{/* CONTAINER TERSEMBUNYI UNTUK EXPORT PDF A4 LANDSCAPE */}
 			{activeData && (
-				<div style={{ display: "none" }}>
+				<div style={{ position: "absolute", top: "-9999px", left: "-9999px" }}>
 					<div id="pdf-report-container" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 						{(() => {
 							const MAX_ROWS = 25;
@@ -396,7 +396,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 									</PageContainer>
 
 									{/* DIV PEMOTONG DIMASUKKAN KE DALAM KONDISIONAL MURNI */}
-									<div className="html2pdf__page-break"></div>
+									
 
 									{/* HALAMAN 2+: Rencana Aksi */}
 									{aksiChunks.map((chunk: any[], chunkIdx: number) => {
@@ -461,7 +461,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 													{isVeryLastPage && <SignatureBlock />}
 													<PageFooter current={pageCounter++} total={totalPages} />
 												</PageContainer>
-												{!isVeryLastPage && <div className="html2pdf__page-break"></div>}
+												
 											</div>
 										);
 									})}
@@ -527,7 +527,7 @@ export default function ReportClient({ user, dataRekap }: any) {
 													{isVeryLastPage && <SignatureBlock />}
 													<PageFooter current={pageCounter++} total={totalPages} />
 												</PageContainer>
-												{!isVeryLastPage && <div className="html2pdf__page-break"></div>}
+												
 											</div>
 										);
 									})}

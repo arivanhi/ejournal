@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 
 const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
 	<div
+		className="pdf-page-target"
 		style={{
 			width: "210mm",
 			height: "296mm", // Sedikit di bawah 297mm untuk mencegah blank page ekstra
@@ -273,17 +274,21 @@ export default function RatingClient({
 		// Beri waktu sejenak agar teks tombol di UI sempat berubah menjadi "Memproses PDF..."
 		setTimeout(async () => {
 			try {
-				const html2pdf = (await import("html2pdf.js")).default;
+				const html2canvas = (await import("html2canvas")).default;
+				const jsPDF = (await import("jspdf")).default;
 				const element = document.getElementById("rating-pdf-content");
-				const opt = {
-					margin: 0, // Wajib 0 agar ukuran PageContainer paten
-					filename: `Laporan_Rating_Guru_${currentTa?.nama.replace(/ /g, "_")}.pdf`,
-					image: { type: "jpeg" as const, quality: 1 },
-					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-					pagebreak: { mode: ['css'] } // Page-break otomatis ditangani oleh isLast pada PageContainer
-				};
-				await html2pdf().set(opt).from(element).save();
+				const pdf = new jsPDF("p", "mm", "a4");
+				const pages = element.querySelectorAll(".pdf-page-target");
+
+				for (let i = 0; i < pages.length; i++) {
+					const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true });
+					const imgData = canvas.toDataURL("image/jpeg", 1.0);
+					
+					if (i > 0) pdf.addPage();
+					pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+				}
+
+				pdf.save(`Laporan_Rating_Guru_${currentTa?.nama.replace(/ /g, "_")}.pdf`);
 			} catch (error) {
 				console.error("Gagal cetak PDF:", error);
 				alert("Terjadi kesalahan saat memproses PDF.");
@@ -567,7 +572,7 @@ export default function RatingClient({
 			{/* ================================================================= */}
 			{/* AREA TERSEMBUNYI UNTUK CETAK PDF (SISTEM PAGINATION MANUAL) */}
 			{/* ================================================================= */}
-			<div style={{ position: "absolute", top: "-9999px", left: "-9999px", visibility: "hidden", zIndex: -1 }}>
+			<div style={{ position: "absolute", top: "-9999px", left: "-9999px", visibility: "visible", zIndex: -1 }}>
 				<div id="rating-pdf-content" style={{ width: "210mm", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 					{(() => {
 						const chunks = chunkArray(sortedTableData, PDF_MAX_ROWS);

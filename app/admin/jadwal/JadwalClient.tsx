@@ -272,19 +272,20 @@ export default function JadwalClient({
 	const exportToPDF = async () => {
 		setIsDownloadingPdf(true);
 		try {
-			const html2pdf = (await import("html2pdf.js")).default;
+			const html2canvas = (await import("html2canvas")).default;
+			const jsPDF = (await import("jspdf")).default;
 			const element = document.getElementById("pdf-jadwal-container");
+			const pdf = new jsPDF("l", "mm", "a4");
+			const pages = element?.querySelectorAll(".pdf-page-target") || [];
 
-			const opt = {
-				margin: 10,
-				filename: `Jadwal_Kelas_${activeKelasName.replace(" ", "_")}.pdf`,
-				image: { type: "jpeg", quality: 1 },
-				html2canvas: { scale: 2, useCORS: true },
-				jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-				pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
-			};
+			for (let i = 0; i < pages.length; i++) {
+				const canvas = await html2canvas(pages[i] as HTMLElement, { scale: 2, useCORS: true });
+				const imgData = canvas.toDataURL("image/jpeg", 1.0);
+				if (i > 0) pdf.addPage();
+				pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
+			}
 
-			await html2pdf().set(opt).from(element).save();
+			pdf.save(`Jadwal_Kelas_${activeKelasName.replace(" ", "_")}.pdf`);
 			setIsDownloadModalOpen(false);
 		} catch (error) {
 			console.error("Gagal men-generate PDF:", error);
@@ -299,19 +300,20 @@ export default function JadwalClient({
 		if (selectedClassesForDownload.length === 0) return alert("Pilih minimal 1 kelas untuk diexport.");
 		setIsDownloadingAllPdf(true);
 		try {
-			const html2pdf = (await import("html2pdf.js")).default;
+			const html2canvas = (await import("html2canvas")).default;
+			const jsPDF = (await import("jspdf")).default;
 			const element = document.getElementById("pdf-download-all-container");
+			const pdf = new jsPDF("l", "mm", "a4");
+			const pages = element?.querySelectorAll(".pdf-page-target") || [];
 
-			const opt = {
-				margin: 10,
-				filename: `Kumpulan_Jadwal_Pelajaran_${tahunAjaranTerpilih?.nama || "TA"}.pdf`,
-				image: { type: "jpeg", quality: 1 },
-				html2canvas: { scale: 2, useCORS: true },
-				jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-				pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
-			};
+			for (let i = 0; i < pages.length; i++) {
+				const canvas = await html2canvas(pages[i] as HTMLElement, { scale: 2, useCORS: true });
+				const imgData = canvas.toDataURL("image/jpeg", 1.0);
+				if (i > 0) pdf.addPage();
+				pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
+			}
 
-			await html2pdf().set(opt).from(element).save();
+			pdf.save(`Kumpulan_Jadwal_Pelajaran_${tahunAjaranTerpilih?.nama || "TA"}.pdf`);
 			setIsDownloadAllModalOpen(false);
 		} catch (error) {
 			console.error("Gagal men-generate PDF:", error);
@@ -354,6 +356,7 @@ export default function JadwalClient({
 	const renderPdfTemplate = (namaKelas: string, jadwalUntukKelasIni: any[]) => {
 		return (
 			<div
+				className="pdf-page-target"
 				style={{
 					width: "100%", // Agar otomatis menyesuaikan ukuran margin dari html2pdf
 					boxSizing: "border-box",
@@ -562,7 +565,7 @@ export default function JadwalClient({
 								</div>
 
 								{/* HIDDEN CONTAINER FOR MASSIVE EXPORT */}
-								<div style={{ display: "none" }}>
+								<div style={{ position: "absolute", top: "-9999px", left: "-9999px" }}>
 									<div id="pdf-download-all-container">
 										{selectedClassesForDownload.map((kelasId, index) => {
 											const kelasInfo = kelasList.find((k) => k.id === kelasId);
@@ -711,7 +714,7 @@ export default function JadwalClient({
 	return (
 		<div className={styles.pageContainer}>
 			{/* CONTAINER TERSEMBUNYI UNTUK EXPORT PDF 1 KELAS */}
-			<div style={{ display: "none" }}>
+			<div style={{ position: "absolute", top: "-9999px", left: "-9999px" }}>
 				<div id="pdf-jadwal-container">{renderPdfTemplate(activeKelasName, jadwalKelasAktif)}</div>
 			</div>
 

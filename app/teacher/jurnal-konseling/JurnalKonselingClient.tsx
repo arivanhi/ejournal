@@ -220,22 +220,25 @@ export default function JurnalKonselingClient({
 
 		setTimeout(async () => {
 			try {
-				const html2pdf = (await import("html2pdf.js")).default;
+				const html2canvas = (await import("html2canvas")).default;
+				const jsPDF = (await import("jspdf")).default;
 				const element = document.getElementById("pdf-jurnal-konseling");
+				const pdf = new jsPDF("l", "mm", "a4");
+				const pages = element?.querySelectorAll(".pdf-page-target") || [];
 
-				const taNama = daftarTahunAjaran.find(t => t.id === selectedTaId)?.nama || "TA";
+				for (let i = 0; i < pages.length; i++) {
+					const canvas = await html2canvas(pages[i] as HTMLElement, { scale: 2, useCORS: true });
+					const imgData = canvas.toDataURL("image/jpeg", 1.0);
+					
+					if (i > 0) pdf.addPage();
+					pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
+				}
+
+				const taNama = daftarTahunAjaran.find((t: any) => t.id === selectedTaId)?.nama || "TA";
 				const formatTgl = (d: string) => new Date(d).toLocaleDateString("id-ID", { month: "long", year: "numeric" });
 				const periode = `${formatTgl(pdfStartDate)}`;
 
-				const opt = {
-					margin: 0,
-					filename: `Laporan_Konseling_${taNama.replace(/\//g, "-")}_${periode}.pdf`,
-					image: { type: "jpeg", quality: 0.98 },
-					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-				};
-
-				await html2pdf().set(opt).from(element).save();
+				pdf.save(`Laporan_Konseling_${taNama.replace(/\//g, "-")}_${periode}.pdf`);
 				showToast("PDF berhasil diunduh!");
 			} catch (error) {
 				console.error("Gagal men-generate PDF:", error);
@@ -292,6 +295,7 @@ export default function JurnalKonselingClient({
 
 	const PdfPageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
 		<div
+			className="pdf-page-target"
 			style={{
 				width: "296mm",
 				height: "209mm",
@@ -580,7 +584,7 @@ export default function JurnalKonselingClient({
 			)}
 
 			{/* Template PDF (Tersembunyi) */}
-			<div style={{ position: "absolute", top: "-9999px", left: "-9999px", visibility: "hidden", zIndex: -1 }}>
+			<div style={{ position: "absolute", top: "-9999px", left: "-9999px", visibility: "visible", zIndex: -1 }}>
 				<div id="pdf-jurnal-konseling" style={{ width: "297mm", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 
 					{/* Halaman 1: Cover */}

@@ -42,6 +42,7 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 // ============================================================================
 const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
 	<div
+		className="pdf-page-target"
 		style={{
 			width: "210mm",
 			height: "296mm",
@@ -257,19 +258,21 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 
 		setTimeout(async () => {
 			try {
-				const html2pdf = (await import("html2pdf.js")).default;
+				const html2canvas = (await import("html2canvas")).default;
+				const jsPDF = (await import("jspdf")).default;
 				const element = document.getElementById("pdf-kehadiran-content");
+				const pdf = new jsPDF("p", "mm", "a4");
+				const pages = element.querySelectorAll(".pdf-page-target");
 
-				const opt = {
-					margin: 0,
-					filename: filename,
-					image: { type: "jpeg", quality: 1 },
-					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-					pagebreak: { mode: ['css'] }
-				};
+				for (let i = 0; i < pages.length; i++) {
+					const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true });
+					const imgData = canvas.toDataURL("image/jpeg", 1.0);
+					
+					if (i > 0) pdf.addPage();
+					pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+				}
 
-				await html2pdf().set(opt).from(element).save();
+				pdf.save(filename);
 				showToast("PDF berhasil diunduh!");
 			} catch (error) {
 				console.error("Gagal men-generate PDF:", error);
@@ -287,7 +290,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 		<>
 			{/* --- CONTAINER TERSEMBUNYI UNTUK CETAK PDF MULTI-KELAS & SINGLE KELAS --- */}
 			{pdfClasses.length > 0 && (
-				<div style={{ display: "none" }}>
+				<div style={{ position: "absolute", top: "-9999px", left: "-9999px" }}>
 					<div id="pdf-kehadiran-content" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 						{(() => {
 							const MAX_ROWS = 25;
@@ -371,7 +374,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 													</div>
 													<PageFooter current={pageCounter++} total={globalTotalPages} />
 												</PageContainer>
-												<div className="html2pdf__page-break"></div>
+												
 
 												{/* HALAMAN KONTEN DATA */}
 												{chunks.map((chunk: any[], chunkIdx: number) => {
@@ -456,7 +459,7 @@ export default function KehadiranClient({ user, tahunAjaran, dataKelas }: any) {
 																)}
 																<PageFooter current={pageCounter++} total={globalTotalPages} />
 															</PageContainer>
-															{!isVeryLastPage && <div className="html2pdf__page-break"></div>}
+															
 														</div>
 													);
 												})}

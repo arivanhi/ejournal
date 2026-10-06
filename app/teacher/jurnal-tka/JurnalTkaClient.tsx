@@ -85,6 +85,7 @@ const getWaktuString = (jams: number[]) => {
 // ============================================================================
 const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
 	<div
+		className="pdf-page-target"
 		style={{
 			width: "210mm",
 			height: "296mm",
@@ -605,19 +606,21 @@ export default function JurnalTkaClient({
 	const handleDownloadPdf = async () => {
 		setIsDownloading(true);
 		try {
-			const html2pdf = (await import("html2pdf.js")).default;
-			const element = document.getElementById("pdf-presensi-content");
+			const html2canvas = (await import("html2canvas")).default;
+				const jsPDF = (await import("jspdf")).default;
+				const element = document.getElementById("pdf-presensi-content");
+				const pdf = new jsPDF("p", "mm", "a4");
+				const pages = element.querySelectorAll(".pdf-page-target");
 
-			const opt = {
-				margin: 0,
-				filename: `Detail_Presensi_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}_${new Date(activeJurnal.tanggal).toLocaleDateString("en-CA")}.pdf`,
-				image: { type: "jpeg", quality: 1 },
-				html2canvas: { scale: 2, useCORS: true },
-				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-				pagebreak: { mode: ['css'] }
-			};
+				for (let i = 0; i < pages.length; i++) {
+					const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true });
+					const imgData = canvas.toDataURL("image/jpeg", 1.0);
+					
+					if (i > 0) pdf.addPage();
+					pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+				}
 
-			await html2pdf().set(opt).from(element).save();
+				pdf.save(`Detail_Presensi_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}_${new Date(activeJurnal.tanggal).toLocaleDateString("en-CA")}.pdf`);
 		} catch (error) {
 			console.error("Gagal men-generate PDF:", error);
 			alert("Terjadi kesalahan saat memproses PDF.");
@@ -1877,7 +1880,7 @@ export default function JurnalTkaClient({
 						{/* ================================================================= */}
 						{/* AREA TERSEMBUNYI UNTUK CETAK PDF (SISTEM PAGINATION MANUAL) */}
 						{/* ================================================================= */}
-						<div style={{ display: "none" }}>
+						<div style={{ position: "absolute", top: "-9999px", left: "-9999px" }}>
 							<div id="pdf-presensi-content" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 								{(() => {
 									let sortedData = [...activeJadwal.kelas.riwayatSiswa];
@@ -2013,7 +2016,7 @@ export default function JurnalTkaClient({
 													</table>
 													<PageFooter current={chunkIdx + 1} total={totalPages} />
 												</PageContainer>
-												{!isLastPage && <div className="html2pdf__page-break"></div>}
+												
 											</div>
 										);
 									});

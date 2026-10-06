@@ -36,6 +36,7 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 // ============================================================================
 const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
 	<div
+		className="pdf-page-target"
 		style={{
 			width: "210mm",
 			height: "296mm",
@@ -268,19 +269,21 @@ export default function PimpinanDashboardClient({
 	const handleDownloadPdf = async () => {
 		setIsDownloading(true);
 		try {
-			const html2pdf = (await import("html2pdf.js")).default;
-			const element = document.getElementById("pdf-harian-container");
+			const html2canvas = (await import("html2canvas")).default;
+				const jsPDF = (await import("jspdf")).default;
+				const element = document.getElementById("pdf-harian-container");
+				const pdf = new jsPDF("p", "mm", "a4");
+				const pages = element.querySelectorAll(".pdf-page-target");
 
-			const opt = {
-				margin: 0, // KUNCI: Diset 0 agar mengikuti padding <PageContainer>
-				filename: pdfFilename,
-				image: { type: "jpeg", quality: 1 },
-				html2canvas: { scale: 2, useCORS: true },
-				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-				pagebreak: { mode: ['css'] } // Mematuhi instruksi PageBreak manual
-			};
+				for (let i = 0; i < pages.length; i++) {
+					const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true });
+					const imgData = canvas.toDataURL("image/jpeg", 1.0);
+					
+					if (i > 0) pdf.addPage();
+					pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+				}
 
-			await html2pdf().set(opt).from(element).save();
+				pdf.save(pdfFilename);
 		} catch (error) {
 			console.error("Gagal men-generate PDF:", error);
 			alert("Terjadi kesalahan saat memproses laporan PDF.");
@@ -295,7 +298,7 @@ export default function PimpinanDashboardClient({
 			{/* ================================================================= */}
 			{/* AREA TERSEMBUNYI UNTUK CETAK PDF (SISTEM PAGINATION MANUAL)       */}
 			{/* ================================================================= */}
-			<div style={{ display: "none" }}>
+			<div style={{ position: "absolute", top: "-9999px", left: "-9999px" }}>
 				<div id="pdf-harian-container" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 
 					{/* PAGE 1: SUMMARY */}
@@ -328,7 +331,7 @@ export default function PimpinanDashboardClient({
 						</div>
 						<PageFooter current={1} total={totalPdfPages} />
 					</PageContainer>
-					<div className="html2pdf__page-break"></div>
+					
 
 					{/* A. Daftar Kelas Jam Kosong */}
 					{peringatanChunks.map((chunk: any[], chunkIdx: number) => {
@@ -372,7 +375,7 @@ export default function PimpinanDashboardClient({
 									</table>
 									<PageFooter current={pageNum} total={totalPdfPages} />
 								</PageContainer>
-								<div className="html2pdf__page-break"></div>
+								
 							</div>
 						);
 					})}
@@ -419,7 +422,7 @@ export default function PimpinanDashboardClient({
 									</table>
 									<PageFooter current={pageNum} total={totalPdfPages} />
 								</PageContainer>
-								<div className="html2pdf__page-break"></div>
+								
 							</div>
 						);
 					})}
@@ -480,7 +483,7 @@ export default function PimpinanDashboardClient({
 									)}
 									<PageFooter current={pageNum} total={totalPdfPages} />
 								</PageContainer>
-								{!isLastPage && <div className="html2pdf__page-break"></div>}
+								
 							</div>
 						);
 					})}

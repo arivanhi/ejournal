@@ -44,6 +44,7 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 // ============================================================================
 const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
 	<div
+		className="pdf-page-target"
 		style={{
 			width: "210mm",
 			height: "296mm",
@@ -213,19 +214,21 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 	const exportToPDF = async () => {
 		setIsDownloadingPdf(true);
 		try {
-			const html2pdf = (await import("html2pdf.js")).default;
-			const element = document.getElementById("pdf-monitoring-single");
+			const html2canvas = (await import("html2canvas")).default;
+				const jsPDF = (await import("jspdf")).default;
+				const element = document.getElementById("pdf-monitoring-single");
+				const pdf = new jsPDF("p", "mm", "a4");
+				const pages = element.querySelectorAll(".pdf-page-target");
 
-			const opt = {
-				margin: 0,
-				filename: `Rekap_KBM_${selectedItem.mapelNama.replace(/\s+/g, "_")}_${selectedItem.kelasNama.replace(/\s+/g, "_")}.pdf`,
-				image: { type: "jpeg", quality: 1 },
-				html2canvas: { scale: 2, useCORS: true },
-				jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-				pagebreak: { mode: ['css'] }
-			};
+				for (let i = 0; i < pages.length; i++) {
+					const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true });
+					const imgData = canvas.toDataURL("image/jpeg", 1.0);
+					
+					if (i > 0) pdf.addPage();
+					pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+				}
 
-			await html2pdf().set(opt).from(element).save();
+				pdf.save(`Rekap_KBM_${selectedItem.mapelNama.replace(/\s+/g, "_")}_${selectedItem.kelasNama.replace(/\s+/g, "_")}.pdf`);
 			showToast("PDF berhasil diunduh!");
 		} catch (error) {
 			console.error("Gagal men-generate PDF:", error);
@@ -288,19 +291,21 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 
 		setTimeout(async () => {
 			try {
-				const html2pdf = (await import("html2pdf.js")).default;
+				const html2canvas = (await import("html2canvas")).default;
+				const jsPDF = (await import("jspdf")).default;
 				const element = document.getElementById("pdf-monitoring-bulk");
+				const pdf = new jsPDF("p", "mm", "a4");
+				const pages = element.querySelectorAll(".pdf-page-target");
 
-				const opt = {
-					margin: 0,
-					filename: `Rekap_KBM_Multi_Guru.pdf`,
-					image: { type: "jpeg", quality: 1 },
-					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-					pagebreak: { mode: ['css'] }
-				};
+				for (let i = 0; i < pages.length; i++) {
+					const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true });
+					const imgData = canvas.toDataURL("image/jpeg", 1.0);
+					
+					if (i > 0) pdf.addPage();
+					pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+				}
 
-				await html2pdf().set(opt).from(element).save();
+				pdf.save(`Rekap_KBM_Multi_Guru.pdf`);
 				showToast("PDF berhasil diunduh!");
 			} catch (error) {
 				console.error("Gagal men-generate PDF:", error);
@@ -317,7 +322,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 		<>
 			{/* --- CONTAINER PDF: SINGLE ITEM (Dari Halaman Detail) --- */}
 			{selectedItem && (
-				<div style={{ display: "none" }}>
+				<div style={{ position: "absolute", top: "-9999px", left: "-9999px" }}>
 					<div id="pdf-monitoring-single">
 						{(() => {
 							const sortedRiwayat = [...(selectedItem.riwayat || [])].sort((a, b) => a.pertemuanKe - b.pertemuanKe);
@@ -400,7 +405,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 										</div>
 										<PageFooter current={pageCounter++} total={totalPagesSingle} />
 									</PageContainer>
-									<div className="html2pdf__page-break"></div>
+									
 
 									{/* HALAMAN 2+: KOP SURAT & TABEL RIWAYAT */}
 									{chunks.map((chunk, idx) => {
@@ -465,7 +470,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 													</table>
 													<PageFooter current={pageCounter++} total={totalPagesSingle} />
 												</PageContainer>
-												{!isLastPage && <div className="html2pdf__page-break"></div>}
+												
 											</div>
 										);
 									})}
@@ -478,7 +483,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 
 			{/* --- CONTAINER PDF: BULK MULTI-GURU --- */}
 			{pdfGurusData.length > 0 && (
-				<div style={{ display: "none" }}>
+				<div style={{ position: "absolute", top: "-9999px", left: "-9999px" }}>
 					<div id="pdf-monitoring-bulk" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 						{(() => {
 							const MAX_ROWS = 25;
@@ -576,7 +581,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 													</div>
 													<PageFooter current={pageCounter++} total={globalTotalPages} />
 												</PageContainer>
-												<div className="html2pdf__page-break"></div>
+												
 
 												{/* DATA RIWAYAT KELAS-KELAS */}
 												{guruData.items.map((kbmItem: any, kIndex: number) => {
@@ -649,7 +654,7 @@ export default function MonitoringClient({ user, dataMonitoring }: any) {
 																	</table>
 																	<PageFooter current={pageCounter++} total={globalTotalPages} />
 																</PageContainer>
-																{!isLastOfDocument && <div className="html2pdf__page-break"></div>}
+																
 															</div>
 														);
 													});

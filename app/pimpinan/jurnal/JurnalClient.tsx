@@ -43,6 +43,7 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 // ============================================================================
 const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
 	<div
+		className="pdf-page-target"
 		style={{
 			width: "296mm",
 			height: "209mm",
@@ -319,19 +320,21 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 
 		setTimeout(async () => {
 			try {
-				const html2pdf = (await import("html2pdf.js")).default;
+				const html2canvas = (await import("html2canvas")).default;
+				const jsPDF = (await import("jspdf")).default;
 				const element = document.getElementById("pdf-jurnal-content");
+				const pdf = new jsPDF("l", "mm", "a4");
+				const pages = element.querySelectorAll(".pdf-page-target");
 
-				const opt = {
-					margin: 0,
-					filename: `Rekap_Jurnal_Mengajar_Multi_Guru.pdf`,
-					image: { type: "jpeg", quality: 1 },
-					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-					pagebreak: { mode: ['css'] }
-				};
+				for (let i = 0; i < pages.length; i++) {
+					const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true });
+					const imgData = canvas.toDataURL("image/jpeg", 1.0);
+					
+					if (i > 0) pdf.addPage();
+					pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
+				}
 
-				await html2pdf().set(opt).from(element).save();
+				pdf.save(`Rekap_Jurnal_Mengajar_Multi_Guru.pdf`);
 				showToast("PDF berhasil diunduh!");
 			} catch (error) {
 				console.error("Gagal men-generate PDF:", error);
@@ -356,19 +359,21 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 
 		setTimeout(async () => {
 			try {
-				const html2pdf = (await import("html2pdf.js")).default;
+				const html2canvas = (await import("html2canvas")).default;
+				const jsPDF = (await import("jspdf")).default;
 				const element = document.getElementById("pdf-jurnal-content");
+				const pdf = new jsPDF("l", "mm", "a4");
+				const pages = element.querySelectorAll(".pdf-page-target");
 
-				const opt = {
-					margin: 0, // KUNCI UTAMA: Margin 0 agar tidak terpotong
-					filename: filename,
-					image: { type: "jpeg", quality: 1 },
-					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-					pagebreak: { mode: ['css'] } // Mengikuti sistem .html2pdf__page-break
-				};
+				for (let i = 0; i < pages.length; i++) {
+					const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true });
+					const imgData = canvas.toDataURL("image/jpeg", 1.0);
+					
+					if (i > 0) pdf.addPage();
+					pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
+				}
 
-				await html2pdf().set(opt).from(element).save();
+				pdf.save(filename);
 				showToast("PDF berhasil diunduh!");
 			} catch (error) {
 				console.error("Gagal men-generate PDF:", error);
@@ -386,7 +391,7 @@ export default function JurnalClient({ user, daftarTahunAjaran, riwayatData }: a
 		<>
 			{/* === CONTAINER TERSEMBUNYI UNTUK CETAK PDF === */}
 			{pdfItemsData.length > 0 && (
-				<div style={{ display: "none" }}>
+				<div style={{ position: "absolute", top: "-9999px", left: "-9999px" }}>
 					<div id="pdf-jurnal-content" style={{ width: "100%", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 						{(() => {
 							const CHUNK_SIZE_JURNAL = 5;

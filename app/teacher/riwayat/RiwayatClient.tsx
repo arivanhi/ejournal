@@ -35,6 +35,7 @@ import { signOut } from "next-auth/react";
 
 const PageContainer = ({ children, isLast }: { children: React.ReactNode; isLast?: boolean }) => (
 	<div
+		className="pdf-page-target"
 		style={{
 			width: "296mm",
 			height: "209mm",
@@ -341,19 +342,21 @@ export default function RiwayatClient({
 		// SetTimeout memberikan waktu pada UI React untuk mere-render tombol "Memproses PDF..."
 		setTimeout(async () => {
 			try {
-				const html2pdf = (await import("html2pdf.js")).default;
+				const html2canvas = (await import("html2canvas")).default;
+				const jsPDF = (await import("jspdf")).default;
 				const element = document.getElementById("pdf-portofolio-content");
+				const pdf = new jsPDF("l", "mm", "a4");
+				const pages = element.querySelectorAll(".pdf-page-target");
 
-				const opt = {
-					margin: 0,
-					filename: `Riwayat_Jurnal_${activeJadwal.tahunAjaran.nama}_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}.pdf`,
-					image: { type: "jpeg", quality: 1 },
-					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-					pagebreak: { mode: ['css'] }
-				};
+				for (let i = 0; i < pages.length; i++) {
+					const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true });
+					const imgData = canvas.toDataURL("image/jpeg", 1.0);
+					
+					if (i > 0) pdf.addPage();
+					pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
+				}
 
-				await html2pdf().set(opt).from(element).save();
+				pdf.save(`Riwayat_Jurnal_${activeJadwal.tahunAjaran.nama}_${activeJadwal.mapel.nama}_${activeJadwal.kelas.nama}.pdf`);
 			} catch (error) {
 				console.error("Gagal men-generate PDF:", error);
 				alert("Terjadi kesalahan saat memproses PDF.");
@@ -394,19 +397,21 @@ export default function RiwayatClient({
 		// Menunda sedikit fungsi html2pdf agar state "Memproses PDF..." merender dulu
 		setTimeout(async () => {
 			try {
-				const html2pdf = (await import("html2pdf.js")).default;
+				const html2canvas = (await import("html2canvas")).default;
+				const jsPDF = (await import("jspdf")).default;
 				const element = document.getElementById("mass-pdf-content");
+				const pdf = new jsPDF("l", "mm", "a4");
+				const pages = element.querySelectorAll(".pdf-page-target");
 
-				const opt = {
-					margin: 0,
-					filename: `Ekspor_Massal_Jurnal_${modalKelasFilter.length > 2 ? 'Beberapa_Kelas' : modalKelasFilter.join('_').replace(/ /g, '_')}.pdf`,
-					image: { type: "jpeg", quality: 1 },
-					html2canvas: { scale: 2, useCORS: true },
-					jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-					pagebreak: { mode: ['css'] }
-				};
+				for (let i = 0; i < pages.length; i++) {
+					const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true });
+					const imgData = canvas.toDataURL("image/jpeg", 1.0);
+					
+					if (i > 0) pdf.addPage();
+					pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
+				}
 
-				await html2pdf().set(opt).from(element).save();
+				pdf.save(`Ekspor_Massal_Jurnal_${modalKelasFilter.length > 2 ? 'Beberapa_Kelas' : modalKelasFilter.join('_').replace(/ /g, '_')}.pdf`);
 			} catch (error) {
 				console.error("Gagal men-generate PDF massal:", error);
 				alert("Terjadi kesalahan saat memproses PDF massal.");
@@ -479,7 +484,7 @@ export default function RiwayatClient({
 							</div>
 
 							{/* PERBAIKAN: Posisi mutlak dan di luar layar agar html2pdf bisa membaca (jangan display: none) */}
-							<div style={{ position: "absolute", top: "-9999px", left: "-9999px", visibility: "hidden", zIndex: -1 }}>
+							<div style={{ position: "absolute", top: "-9999px", left: "-9999px", visibility: "visible", zIndex: -1 }}>
 								<div id="pdf-portofolio-content" style={{ width: "210mm", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 
 									{/* --- HALAMAN 1: COVER --- */}
@@ -1772,7 +1777,7 @@ export default function RiwayatClient({
 			</div>
 
 			{/* === AREA TERSEMBUNYI UNTUK EKSPOR MASSAL PDF === */}
-			<div style={{ position: "absolute", top: "-9999px", left: "-9999px", visibility: "hidden", zIndex: -1 }}>
+			<div style={{ position: "absolute", top: "-9999px", left: "-9999px", visibility: "visible", zIndex: -1 }}>
 				<div id="mass-pdf-content" style={{ width: "210mm", backgroundColor: "#fff", color: "#000", fontFamily: "Arial, sans-serif" }}>
 					{selectedJadwalIds.map((jadwalId, index) => {
 						const jadwal = jadwalSemua.find((j) => j.id === jadwalId);
